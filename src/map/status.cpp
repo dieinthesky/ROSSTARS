@@ -10524,6 +10524,12 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 				return false;
 			}
 			break;
+			case SC_LIGHTNINGWALK:  
+			// Remove o status existente para permitir aplicação completa  
+			if (sc->getSCE(type)) {  
+				status_change_end(bl, type);  
+			}  
+			break;
 		case SC_TOXIN:
 		case SC_PARALYSE:
 		case SC_VENOMBLEED:

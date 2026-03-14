@@ -13724,7 +13724,14 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 static int8 skill_castend_id_check(struct block_list *src, struct block_list *target, uint16 skill_id, uint16 skill_lv) {
 	std::shared_ptr<s_skill_db> skill = skill_db.find(skill_id);
 	int32 inf = skill->inf;
-	status_change *tsc = status_get_sc(target);
+	status_change *tsc = status_get_sc(target);  
+  
+    // Adicione esta verificação após as linhas existentes  
+    if (target && skill_get_type(skill_id) == BF_MAGIC && skill_id != SA_LANDPROTECTOR) {  
+        if (map_getcell(target->m, target->x, target->y, CELL_CHKLANDPROTECTOR)) {  
+            return USESKILL_FAIL_TOTARGET; // Falha por causa do alvo  
+        }  
+    } 
 
 	if (src != target && (status_bl_has_mode(target,MD_SKILLIMMUNE) || (status_get_class(target) == MOBID_EMPERIUM && !skill->inf2[INF2_TARGETEMPERIUM])) && skill_get_casttype(skill_id) == CAST_NODAMAGE)
 		return USESKILL_FAIL_MAX; // Don't show a skill fail message (NoDamage type doesn't consume requirements)
