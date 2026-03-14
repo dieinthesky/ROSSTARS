@@ -1,0 +1,117 @@
+quiz_02,147,348,4	script	Sorteio de Arenas	563,{
+	
+	// Verifica se ï¿½ lï¿½der de guild
+	if (!getcharid(2)) {
+        mes "[Sorteio de Arenas]";
+		mes "Você não pertence a uma guild.";
+        mes "Apenas o guild leader pode usar este NPC.";
+		switch(select("Cancelar:Como funciona?")) {
+            case 1:
+                close;
+            case 2:
+            next;
+            mes "Para os jogadores não ficarem seguindo sempre a mesma ordem de arenas, e para os times não ficarem em dúvida sobre quantas partidas irão jogar sem mudar composição (classes, estratégias, pessoas), este sorteio passa a ser muito inútil.";
+            next;
+            mes "O guild leader inicia um sorteio que lista uma sequência de arenas.";
+            mes "O critério é: corrida até um certo número de vitória, ou seja, o set de partidas é encerrado quando algum dos times acumular um número de vitória.";
+            next;
+            mes "Note que melhor de 3 não é a mesma coisa que corrida até 3 vitórias: na melhor de 3, basta ganhar 2 vezes; na corrida até 3 vitórias, você precisa ganhar 3 vezes, não importa se é 3x0 ou 3x2.";
+            mes "Na corrida até 5 vitórias, a partida final pode ser o desempate entre 4x4, na corrida até 9, a partida final pode ser o desempate entre 8x8.";
+            next;
+            mes "É aconselhável que alguém tire foto do início de arenas para que tenha como referência.";
+            break;
+        }    
+        close;
+	}
+	if (!getguildmasterid(getcharid(2)) || getguildmasterid(getcharid(2)) != getcharid(0)) {
+		mes "[Sorteio de Arenas]";
+        mes "Apenas o guild leader pode usar este NPC.";
+        switch(select("Cancelar:Como funciona?")) {
+            case 1:
+                close;
+            case 2:
+            next;
+            mes "Para os jogadores não ficarem seguindo sempre a mesma ordem de arenas, e para os times não ficarem em dúvida sobre quantas partidas irão jogar sem mudar composição (classes, estratégias, pessoas), este sorteio passa a ser muito inútil.";
+            next;
+            mes "O guild leader inicia um sorteio que lista uma sequência de arenas.";
+            mes "O critério é: corrida até um certo número de vitória, ou seja, o set de partidas é encerrado quando algum dos times acumular um número de vitória.";
+            next;
+            mes "Note que melhor de 3 não é a mesma coisa que corrida até 3 vitórias: na melhor de 3, basta ganhar 2 vezes; na corrida até 3 vitórias, você precisa ganhar 3 vezes, não importa se é 3x0 ou 3x2.";
+            mes "Na corrida até 5 vitórias, a partida final pode ser o desempate entre 4x4, na corrida até 9, a partida final pode ser o desempate entre 8x8.";
+            next;
+            mes "É aconselhável que alguém tire foto do início de arenas para que tenha como referência.";
+            break;
+        }
+        close;
+	}
+
+	// Verifica delay (30 segundos)
+	if (@ultima_corrida + 30 > gettimetick(2)) {
+		mes "[Sorteio de Arenas]";
+		mes "Por favor, aguarde ^FF0000" + ((@ultima_corrida + 30) - gettimetick(2)) + " segundos^000000 antes de usar novamente.";
+		mes "Motivo do delay: para seu adversário não correr dessa ou daquela arena.";
+		close;
+	}
+
+	mes "[Sorteio de Arenas]";
+	mes "Qual tipo de sorteio deseja iniciar?";
+	next;
+	switch(select("Como funciona?:Até 9 vitórias:Até 5 vitórias:Até 3 vitórias")) {
+		case 1:
+            next;
+            mes "Para os jogadores não ficarem seguindo sempre a mesma ordem de arenas, e para os times não ficarem em dúvida sobre quantas partidas irão jogar sem mudar composição (classes, estratégias, pessoas), este sorteio passa a ser muito inútil.";
+            next;
+            mes "O guild leader inicia um sorteio que lista uma sequência de arenas.";
+            mes "O critério é: corrida até um certo número de vitória, ou seja, o set de partidas é encerrado quando algum dos times acumular um número de vitória.";
+            next;
+            mes "Note que melhor de 3 não é a mesma coisa que corrida até 3 vitórias: na melhor de 3, basta ganhar 2 vezes; na corrida até 3 vitórias, você precisa ganhar 3 vezes, não importa se é 3x0 ou 3x2.";
+            mes "Na corrida até 5 vitórias, a partida final pode ser o desempate entre 4x4, na corrida até 9, a partida final pode ser o desempate entre 8x8.";
+            next;
+            mes "É aconselhável que alguém tire foto do início de arenas para que tenha como referência.";
+            close;
+        case 2:
+			set @tipo_corrida, 9;
+			break;
+		case 3:
+			set @tipo_corrida, 5;
+			break;
+		case 4:
+			set @tipo_corrida, 3;
+			break;
+	}
+
+	if (@tipo_corrida == 9)
+		set @quantidade_numeros, 17;
+	else if (@tipo_corrida == 5)
+		set @quantidade_numeros, 9;
+	else if (@tipo_corrida == 3)
+		set @quantidade_numeros, 5;
+
+    //set @quantidade_numeros, 5; // fallback
+
+	// Sorteia os números
+	deletearray @numeros_arenas[0], 30;
+	for (set .@i, 0; .@i < @quantidade_numeros; set .@i, .@i + 1) {
+		do {
+			set .@rand, rand(1,30);
+		} while (inarray(@numeros_arenas, .@rand) != -1); // Evita duplicados
+		set @numeros_arenas[.@i], .@rand;
+	}
+
+	// Salva delay
+	set @ultima_corrida, gettimetick(2);
+
+	// Monta string com os números
+	set .@msg$, "";
+	for (set .@j, 0; .@j < @quantidade_numeros; set .@j, .@j + 1) {
+		set .@msg$, .@msg$ + @numeros_arenas[.@j];
+		if (.@j < @quantidade_numeros - 1)
+			set .@msg$, .@msg$ + ", ";
+	}
+
+	// Mensagem global com nome da guild
+    announce getguildname(getcharid(2)) + " convoca uma corrida até " + @tipo_corrida + " vitórias nas arenas " + .@msg$, bc_all;
+
+	mes "Arenas estipuladas!";
+	close;
+}

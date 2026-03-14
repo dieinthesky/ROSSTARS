@@ -1,0 +1,74 @@
+// 2025 Arenas  
+2025arena1	mapflag	nopenalty  
+2025arena1	mapflag	nosave	SavePoint  
+2025arena1	mapflag	nowarp  
+2025arena1	mapflag	noteleport  
+2025arena1	mapflag	nomemo  
+2025arena1	mapflag	gvg  
+2025arena1	mapflag	loadevent  
+2025arena1	mapflag	noreturn  
+2025arena1	mapflag	nobranch  
+2025arena1	mapflag	noicewall  
+2025arena1	mapflag	nodrop  
+  
+2025arena2	mapflag	nopenalty  
+2025arena2	mapflag	nosave	SavePoint  
+2025arena2	mapflag	nowarp  
+2025arena2	mapflag	noteleport  
+2025arena2	mapflag	nomemo  
+2025arena2	mapflag	gvg  
+2025arena2	mapflag	loadevent  
+2025arena2	mapflag	noreturn  
+2025arena2	mapflag	nobranch  
+2025arena2	mapflag	noicewall  
+2025arena2	mapflag	nodrop  
+  
+2025arena3	mapflag	nopenalty  
+2025arena3	mapflag	nosave	SavePoint  
+2025arena3	mapflag	nowarp  
+2025arena3	mapflag	noteleport  
+2025arena3	mapflag	nomemo  
+2025arena3	mapflag	gvg  
+2025arena3	mapflag	loadevent  
+2025arena3	mapflag	noreturn  
+2025arena3	mapflag	nobranch  
+2025arena3	mapflag	noicewall  
+2025arena3	mapflag	nodrop  
+  
+2025arena4	mapflag	nopenalty  
+2025arena4	mapflag	nosave	SavePoint  
+2025arena4	mapflag	nowarp  
+2025arena4	mapflag	noteleport  
+2025arena4	mapflag	nomemo  
+2025arena4	mapflag	gvg  
+2025arena4	mapflag	loadevent  
+2025arena4	mapflag	noreturn  
+2025arena4	mapflag	nobranch  
+2025arena4	mapflag	noicewall  
+2025arena4	mapflag	nodrop 
+
+25ros03_01	mapflag	battleground	2
+  
+2025arena5	mapflag	nopenalty  
+2025arena5	mapflag	nosave	SavePoint  
+2025arena5	mapflag	nowarp  
+2025arena5	mapflag	noteleport  
+2025arena5	mapflag	nomemo  
+2025arena5	mapflag	gvg  
+2025arena5	mapflag	loadevent  
+2025arena5	mapflag	noreturn  
+2025arena5	mapflag	nobranch  
+2025arena5	mapflag	noicewall  
+2025arena5	mapflag	nodrop
+
+izlude,122,128,0	script	BarricadeSpawner	-1,{  
+OnInit:  
+	// Invoca a barricada inicial  
+	monster "izlude",122,128,"Barricade",1905,1,strnpcinfo(3)+"::OnBarricadeDead";  
+	end;  
+  
+OnBarricadeDead:  
+	// Respawna a barricada quando morre  
+	monster "izlude",122,128,"Barricade",1905,1,strnpcinfo(3)+"::OnBarricadeDead";  
+	end;  
+}

@@ -1,0 +1,22 @@
+// NPC Loja de Armas Consolidada  
+izlude,158,128,6	script	Loja de Armas#weaponshop	645,{  
+    switch(select("Machados:Livros e Cajados:Arcos/Chicotes/Violinos:Adagas e Katars:Punhos e Maças:Lanças:Espadas:Cancelar")) {  
+        case 1: callshop "mercado_machados", 1; end;  
+        case 2: callshop "mercado_livros", 1; end;  
+        case 3: callshop "mercado_arcos", 1; end;  
+        case 4: callshop "mercado_katars", 1; end;  
+        case 5: callshop "mercado_maca", 1; end;  
+        case 6: callshop "mercado_lança", 1; end;  
+        case 7: callshop "mercado_espada", 1; end;  
+        case 8: end;  
+    }  
+}  
+  
+// Shops existentes (mantidos inalterados)  
+-	shop	mercado_machados	-1,1352:30000,1363:50000,1377:120000,28136:120000  
+-	shop	mercado_livros	-1,1572:50000,1564:80000,1565:100000,1602:30000,1624:50000,1636:90000,2000:90000,2004:70000,1626:70000,1646:70000,1647:90000,1659:90000,26151:120000  
+-	shop	mercado_arcos	-1,1705:30000,1746:120000,18178:120000,18179:120000,18180:120000,1950:30000,1979:90000,1901:30000,1926:50000,1913:50000,1920:70000  
+-	shop	mercado_katars	-1,1208:30000,1230:70000,1228:100000,1234:70000,1231:100000,1264:30000,1261:100000,1285:80000,1284:80000,28038:120000  
+-	shop	mercado_maca	-1,1822:30000,1802:500000,1862:120000,1504:30000,1549:70000,1532:70000,16001:90000,16003:100000,16088:120000,16089:120000  
+-	shop	mercado_lança	-1,1408:30000,1415:90000,1418:90000,1433:70000,1421:70000,1422:70000,1476:50000,1490:70000,32019:120000  
+-	shop	mercado_espada	-1,1118:30000,13412:100000,13413:100000,1181:100000,1185:100000,21047:120000,13493:120000

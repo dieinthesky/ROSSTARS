@@ -1,0 +1,76 @@
+// Adicione esta função em algum lugar do seu arquivo  
+function	script	arena7x7_restoreall	{  
+    set .@match_id, getarg(0);  
+      
+    // Percorrer todos os jogadores na arena  
+    getmapunits BL_PC, "25ros03_2", .@units;  
+    for (set .@i, 0; .@i < getarraysize(.@units); set .@i, .@i + 1) {  
+        if (isloggedin(.@units[.@i])) {  
+            attachrid .@units[.@i];  
+              
+            // Verificar se o jogador está como "tumba"  
+            if (getequipid(EQI_COSTUME_HEAD_TOP) == 18603) { // ID do item de tumba  
+                // Restaurar para jogador normal  
+                atcommand "@die";  
+                // Ou restaurar status/visual conforme necessário  
+            }  
+        }  
+    }  
+    return;  
+}
+
+-	script	TeleportAndBuffRemovalBlue	-1,{  
+OnTeleport:        
+    set .@guild_id, $@temp_guild_id;        
+    set .@party_id, $@currentPartyID[.@guild_id];        
+        
+    // Enviar para quiz_02 onde estão as waiting rooms da arena  
+    set .@dest_map$, "quiz_02";  
+    set .@x, 237; // Coordenada X do NPC azul  
+    set .@y, 347; // Coordenada Y do NPC azul  
+        
+    getpartymember .@party_id, 1;        
+    getpartymember .@party_id, 2;        
+    set .@partymembercount, $@partymembercount;        
+        
+    for ( set .@i, 0; .@i < .@partymembercount; set .@i, .@i + 1 ) {        
+        if (isloggedin($@partymemberaid[.@i], $@partymembercid[.@i])) {        
+            attachrid $@partymemberaid[.@i];        
+            if (strcharinfo(3) == "izlude") {        
+                sc_end SC_ALL;        
+                setoption 0x40 | Option_Invisible | Option_Xmas, 0;        
+            }        
+        }        
+    }        
+        
+    warpparty .@dest_map$, .@x, .@y, .@party_id;        
+    end;        
+}  
+  
+-	script	TeleportAndBuffRemovalRed	-1,{  
+OnTeleport:        
+    set .@guild_id, $@temp_guild_id;        
+    set .@party_id, $@currentPartyID[.@guild_id];        
+        
+    // Enviar para quiz_02 onde estão as waiting rooms da arena  
+    set .@dest_map$, "quiz_02";  
+    set .@x, 262; // Coordenada X do NPC vermelho  
+    set .@y, 347; // Coordenada Y do NPC vermelho  
+        
+    getpartymember .@party_id, 1;        
+    getpartymember .@party_id, 2;        
+    set .@partymembercount, $@partymembercount;        
+        
+    for ( set .@i, 0; .@i < .@partymembercount; set .@i, .@i + 1 ) {        
+        if (isloggedin($@partymemberaid[.@i], $@partymembercid[.@i])) {        
+            attachrid $@partymemberaid[.@i];        
+            if (strcharinfo(3) == "izlude") {        
+                sc_end SC_ALL;        
+                setoption 0x40 | Option_Invisible | Option_Xmas, 0;        
+            }        
+        }        
+    }        
+        
+    warpparty .@dest_map$, .@x, .@y, .@party_id;        
+    end;        
+}

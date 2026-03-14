@@ -1,0 +1,27 @@
+// Sistema completo de paredes invisíveis em tra_fild  
+tra_fild,1,1,5	script	ParedeInvisivelTraFild	-1,{  
+	end;  
+	  
+OnInit:  
+	// Parede 1: Vertical de 103,175 até 103,142 (para cima)  
+	setwall "tra_fild", 103, 175, 34, 4, false, "tra_fild_wall_v1";  
+	  
+	// Parede 2: Diagonal de 103,142 até 135,141 (para direita)  
+	// Calculando distância: 135-103 = 32 células  
+	setwall "tra_fild", 103, 142, 32, 6, false, "tra_fild_wall_diag1";  
+	  
+	// Parede 3: Horizontal de 53,141 até 103,141 (para direita)  
+	// Calculando distância: 103-53 = 50 células  
+	setwall "tra_fild", 53, 141, 50, 6, false, "tra_fild_wall_h1";  
+	  
+	end;  
+}	
+
+// Adicionando parede horizontal de 103,141 até 135,141  
+tra_fild,1,1,5	script	ParedeHorizontal_103_141	-1,{  
+OnInit:  
+	// Cria parede invisível horizontal de 103,141 até 135,141  
+	// Direção 6 = EAST (para direita), tamanho 33 células  
+	setwall "tra_fild", 103, 141, 33, 6, false, "tra_fild_wall_h_103_141";  
+	end;  
+}

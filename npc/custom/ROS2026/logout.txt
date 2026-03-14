@@ -1,0 +1,7 @@
+-	script	LOGIN	-1,{  
+OnPCLogoutEvent:  
+	if (strcharinfo(3) != "izlude")  
+		warp "izlude",127,138;  
+	end;  
+}  
+  

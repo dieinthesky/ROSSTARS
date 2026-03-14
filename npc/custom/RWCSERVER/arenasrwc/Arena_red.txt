@@ -1,0 +1,78 @@
+izlude,128,142,6	script	Red Team	67,{        
+    mes "[Red Team]";        
+    mes "Saudações. É necessário exatamente 7 membros na guild e party.";        
+    next;        
+        
+    // Check for party        
+    if ( !getcharid(1) ) {        
+        mes "[Red Team]";        
+        mes "É indispensável estar em uma party para participar.";        
+        close;        
+    }        
+        
+    // Check for guild        
+    if ( !getcharid(2) ) {        
+        mes "[Red Team]";        
+        mes "É indispensável estar em uma guild para participar.";        
+        close;        
+    }        
+        
+    set .@guild_id, getcharid(2);        
+    if ( (getguildmasterid(.@guild_id)) == (getcharid(0)) ){        
+        $@jogadoresred1 = 7; // Number of players required        
+        $@jogadoresred = $@jogadoresred1;        
+        $@jogadoresredchat = $@jogadoresred;        
+    }        
+        
+    set .@party_id, getcharid(1);        
+    getpartymember .@party_id,1;        
+    getpartymember .@party_id,2;        
+    set .@partymembercount, $@partymembercount;        
+    copyarray .@partymembername$[0], $@partymembername$[0], .@partymembercount;        
+        
+    if ((.@partymembercount == $@jogadoresred) && (getcharid(2)) && (strcharinfo(0) == getguildmaster(.@guild_id))) {        
+        if ( .@partymembercount < $@jogadoresred ) {        
+            mes "[Red Team]";        
+            mes "Sua party necessita de "+ $@jogadoresred +" membros online.";        
+            close;        
+        }        
+        
+        for ( set .@i, 0; .@i < .@partymembercount; set .@i, .@i + 1 ) {        
+            if ( !isloggedin( $@partymemberaid[.@i], $@partymembercid[.@i] ) ) continue;        
+            set .@islogin, .@islogin + 1;        
+        }        
+        if ( .@islogin < $@jogadoresred ) {        
+            mes "[Red Team]";        
+            mes "Sua party necessita de "+ $@jogadoresred +" membros online.";        
+            close;        
+        }        
+        
+        mes "[Red Team]";        
+        mes "Seja bem-vindo, "+ strcharinfo(0) +" da guild "+ strcharinfo(2) +".";        
+        mes "Deseja iniciar a batalha?";        
+        next;        
+        
+        switch(select("Sim.:Não.")) {        
+            case 1:        
+                break;        
+            case 2:        
+                close;        
+        }        
+        
+        $@currentLeader[.@guild_id] = getcharid(0);        
+        $@currentTeam$[.@guild_id] = "red";        
+        $@currentPartyID[.@guild_id] = .@party_id;        
+        $@currentGuildID[.@guild_id] = .@guild_id;        
+        $@temp_guild_id = .@guild_id;        
+        donpcevent "TeleportAndBuffRemovalRed::OnTeleport";        
+    } else {        
+        mes "[Red Team]";        
+        mes "Sua party necessita de "+ $@jogadoresred +" membros online na mesma guild e party.";        
+        close;        
+    }        
+            
+OnInit:        
+    delwaitingroom;        
+    waitingroom "Time Vermelho",0;        
+    end;        
+}

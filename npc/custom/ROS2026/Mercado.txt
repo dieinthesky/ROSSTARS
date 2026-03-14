@@ -1,0 +1,19 @@
+// NPC de teleporte para o Mercado em Izlude com waiting room  
+izlude,127,145,5	script	Teleporte Mercado	10210,{  
+	mes "[Teleporte Mercado]";  
+	mes "Ir para o Mercado?";  
+	next;  
+	if (select("Sim:Não") == 1) {  
+		mes "[Teleporte Mercado]";  
+		mes "Teleportando...";  
+		close2;  
+		warp "izlude", 149, 131;  
+		end;  
+	}  
+	mes "[Teleporte Mercado]";  
+	mes "Tudo bem, fique por aqui!";  
+	close;  
+OnInit:  
+	waitingroom "Mercado!!", 0;  
+	end;  
+}

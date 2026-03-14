@@ -1,0 +1,38 @@
+izlude,130,148,5	script	Arena de Testes ROS	430,{  
+    // Configuração das arenas  
+    setarray .@arena_names$[0], "Nightmare Toy Factory", "Arena Forgotten Glasheim", "Arena NiflHeim", "Arena NightFall of Brazilis", "Arena Sunset of Ayothaya", "Arena Somatology Labotory";  
+    setarray .@arena_maps$[0], "25ros03_01", "2025arena1", "2025arena2", "2025arena3", "2025arena4", "2025arena5";  
+    setarray .@arena_x[0], 100, 177, 91, 132, 178, 99;  
+    setarray .@arena_y[0], 80, 140, 79, 99, 144, 70;  
+      
+    // Constrói o menu dinâmico com contagem de jogadores  
+    set .@menu$, "";  
+    for (set .@i, 0; .@i < getarraysize(.@arena_names$); set .@i, .@i + 1) {  
+        set .@count, getmapusers(.@arena_maps$[.@i]);  
+        if (.@i > 0)  
+            set .@menu$, .@menu$ + ":";  
+        set .@menu$, .@menu$ + .@arena_names$[.@i] + " " + .@count + "/50";  
+    }  
+      
+    mes "[Arena de Testes ROS]";  
+    mes "Bem-vindo à Arena de Testes ROS!";  
+    mes "Escolha uma arena para entrar:";  
+    next;  
+      
+    set .@selection, select(.@menu$) - 1;  
+      
+    // Verifica se a arena está cheia  
+    if (getmapusers(.@arena_maps$[.@selection]) >= 50) {  
+        mes "[Arena de Testes ROS]";  
+        mes "Desculpe, esta arena está cheia!";  
+        close;  
+    }  
+      
+    // Warp para a arena selecionada  
+    warp .@arena_maps$[.@selection], .@arena_x[.@selection], .@arena_y[.@selection];  
+    end;  
+      
+OnInit:  
+    waitingroom "Arena de Testes ROS", 0;  
+    end;  
+}

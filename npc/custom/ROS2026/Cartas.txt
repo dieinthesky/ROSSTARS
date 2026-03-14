@@ -1,0 +1,22 @@
+/// NPC Loja de Cartas
+izlude,148,142,4	script	Mercador de Cartas#cardshop	10243,{
+    switch(select("Cartas de Acessório:Cartas de Armadura:Cartas de Capa:Cartas de Elmo:Cartas de Escudo:Cartas de Sapatos:Cartas Armas:Cancelar")) {
+        case 1: callshop "mercado_acessory_card", 1; end;
+        case 2: callshop "mercado_armor_card", 1; end;
+        case 3: callshop "mercado_garment_card", 1; end;
+        case 4: callshop "mercado_headgear_card", 1; end;
+        case 5: callshop "mercado_shield_card", 1; end;
+        case 6: callshop "mercado_shoes_card", 1; end;
+        case 7: callshop "cartas_armas", 1; end;
+        case 8: end;
+    }
+}
+
+// Shops atualizados com itens e preços corretos
+-	shop	mercado_acessory_card	-1,4022:70000,4027:50000,4051:50000,4064:70000,4079:50000,4091:50000,4424:70000,4505:50000,4349:90000,4252:70000,4145:5000000,4044:70000
+-	shop	mercado_armor_card	-1,4031:60000,4061:50000,4099:50000,4089:50000,4141:50000,4119:50000,4114:50000,4101:50000,4098:50000,4409:90000,4426:90000,4338:60000,4346:60000,4369:60000,4387:60000,4392:90000,4393:90000,4042:50000,4450:90000,4054:120000,4302:10000000
+-	shop	mercado_garment_card	-1,4088:70000,4133:60000,4334:60000,4402:70000,4303:90000,4359:10000000
+-	shop	mercado_headgear_card	-1,4041:50000,4052:50000,4112:50000,4122:50000,4127:50000,4379:60000,4412:60000,4411:60000,4513:60000,4517:60000,4524:60000,4366:90000,4198:10000000,4403:5000000
+-	shop	mercado_shield_card	-1,4045:90000,4058:90000,4414:90000,4439:90000,4146:120000,4636:10000000
+-	shop	mercado_shoes_card	-1,4097:40000,4100:50000,4107:60000,4381:60000,27152:1000000
+-	shop	cartas_armas	-1,4002:40000,4035:50000,4024:50000,4055:50000,4057:40000,4076:50000,4086:50000,4092:70000,4115:50000,4421:40000,4464:50000,4522:70000,4531:50000,4474:50000,31025:1000000,31024:1000000

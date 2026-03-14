@@ -1,0 +1,89 @@
+//===== rAthena Script =======================================        
+//= Curandeira Master - AGI, Repair, Refino e Montarias        
+//===== By: ==================================================        
+//= Custom NPC        
+//===== Description: =========================================        
+//= NPC que aplica AGI, repara itens, refina até nível seguro, reseta cooldowns e entrega montarias        
+//============================================================        
+        
+izlude,130,140,5	script	Curandeira	10116,{        
+	// Aplica AGI imediatamente      
+	sc_start SC_INCREASEAGI,2400000,10;    
+	percentheal 100,100;    
+	      
+	// Refino automático      
+	setarray .@safe_weapon[0], 0, 7, 6, 5, 4;        
+	.@safe_armor = 4;        
+	setarray .@slots[0], EQI_HEAD_TOP, EQI_ARMOR, EQI_HAND_L, EQI_HAND_R, EQI_GARMENT, EQI_SHOES, EQI_ACC_L, EQI_ACC_R, EQI_HEAD_MID, EQI_HEAD_LOW;        
+	.@refined = 0;        
+	      
+	for (.@i = 0; .@i < getarraysize(.@slots); .@i++) {        
+		.@slot = .@slots[.@i];        
+		if (getequipisequiped(.@slot) && getequipisenableref(.@slot)) {        
+			.@current_refine = getequiprefinerycnt(.@slot);        
+			.@item_type = getiteminfo(getequipid(.@slot), ITEMINFO_TYPE);        
+			        
+			if (.@item_type == IT_WEAPON) {        
+				.@weapon_lv = getequipweaponlv(.@slot);        
+				if (.@weapon_lv > 0 && .@weapon_lv < 5) {        
+					.@max_safe = .@safe_weapon[.@weapon_lv];        
+				} else {        
+					.@max_safe = 0;        
+				}        
+			} else if (.@item_type == IT_ARMOR) {        
+				.@max_safe = .@safe_armor;        
+			} else {        
+				.@max_safe = 0;        
+			}        
+			        
+			if (.@max_safe > 0 && .@current_refine < .@max_safe) {        
+				.@times = .@max_safe - .@current_refine;        
+				successrefitem .@slot, .@times;        
+				.@refined++;        
+			}        
+		}        
+	}      
+	      
+	// Repara itens      
+	repairall;        
+	      
+	// Sistema de Montarias  
+	callsub S_MONTARIAS;  
+	      
+	// Reseta cooldowns de todas as habilidades      
+	atcommand "@resetcooltime";      
+	      
+	// Mensagem final      
+	showscript "7X7 RWC BRASIL!!";        
+	      
+	end;  
+	  
+S_MONTARIAS:  
+	// Verifica se já está montado  
+	if (checkriding() || checkdragon() || checkfalcon() || checkcart() || checkmadogear() || ismounting()) {  
+		return;  
+	}  
+	  
+	// Verifica classe e dá montaria apropriada  
+	if ((eaclass()&EAJ_THIRDMASK)==EAJ_RUNE_KNIGHT && getskilllv("KN_RIDING") > 0) {  
+		setdragon;  
+	} else if ((eaclass()&EAJ_THIRDMASK)==EAJ_ROYAL_GUARD && getskilllv("KN_RIDING") > 0) {  
+		setriding;  
+	} else if ((eaclass()&EAJ_THIRDMASK)==EAJ_RANGER && getskilllv("RA_WUGRIDER") > 0) {  
+		setoption 0x100000; // OPTION_WUGRIDER  
+	} else if ((eaclass()&EAJ_THIRDMASK)==EAJ_MECHANIC && getskilllv("NC_MADOLICENCE") > 0) {  
+		setmadogear;  
+	} else if (getskilllv("KN_RIDING") > 0) {  
+		// Knights/Crusaders e classes que usam Peco  
+		if (BaseJob == Job_Knight || BaseJob == Job_Lord_Knight || BaseJob == Job_Rune_Knight) {  
+			setriding;  
+		} else if (BaseJob == Job_Crusader || BaseJob == Job_Paladin || BaseJob == Job_Royal_Guard) {  
+			setriding;  
+		}  
+	} else if (getskilllv("HT_FALCON") > 0 && BaseJob == Job_Hunter) {  
+		setfalcon;  
+	} else if (getskilllv("MC_PUSHCART") > 0 && (BaseJob == Job_Merchant || BaseJob == Job_Blacksmith || BaseJob == Job_Whitesmith || BaseJob == Job_Genetic)) {  
+		setcart;  
+	}  
+	return;  
+}

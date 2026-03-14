@@ -1,0 +1,56 @@
+// Refinador automático - refina todos os itens até o nível seguro  
+izlude,158,121,4	script	Refinador Rápido	813,{  
+	// Arrays com os níveis seguros  
+	setarray .@safe_weapon[0], 0, 7, 6, 5, 4; // [índice], nv.1, nv.2, nv.3, nv.4  
+	.@safe_armor = 4; // Equipamentos têm nível seguro +4  
+	  
+	// Verifica todos os slots de equipamento  
+	setarray .@slots[0], EQI_HEAD_TOP, EQI_ARMOR, EQI_HAND_L, EQI_HAND_R, EQI_GARMENT, EQI_SHOES, EQI_ACC_L, EQI_ACC_R, EQI_HEAD_MID, EQI_HEAD_LOW;  
+	  
+	.@refined = 0;  
+	  
+	for (.@i = 0; .@i < getarraysize(.@slots); .@i++) {  
+		.@slot = .@slots[.@i];  
+		  
+		// Verifica se tem item equipado  
+		if (getequipisequiped(.@slot)) {  
+			// Verifica se é refinável  
+			if (getequipisenableref(.@slot)) {  
+				.@current_refine = getequiprefinerycnt(.@slot);  
+				.@item_type = getiteminfo(getequipid(.@slot), ITEMINFO_TYPE);  
+				  
+				// Determina o nível seguro  
+				if (.@item_type == IT_WEAPON) {  
+					.@weapon_lv = getequipweaponlv(.@slot);  
+					if (.@weapon_lv > 0 && .@weapon_lv < 5) {  
+						.@max_safe = .@safe_weapon[.@weapon_lv];  
+					} else {  
+						.@max_safe = 0; // Não refinar armas desconhecidas  
+					}  
+				} else if (.@item_type == IT_ARMOR) {  
+					.@max_safe = .@safe_armor;  
+				} else {  
+					.@max_safe = 0; // Outros tipos não refinam  
+				}  
+				  
+				// Refina até o nível seguro  
+				if (.@max_safe > 0 && .@current_refine < .@max_safe) {  
+					.@times = .@max_safe - .@current_refine;  
+					// Usa successrefitem para refinar sem falha  
+					successrefitem .@slot, .@times;  
+					.@refined++;  
+				}  
+			}  
+		}  
+	}  
+	  
+	if (.@refined > 0) {  
+		specialeffect2 EF_REFINEOK;  
+		mes "[Refinador Rápido]";  
+		mes "Refinei " + .@refined + " itens até o nível seguro!";  
+	} else {  
+		mes "[Refinador Rápido]";  
+		mes "Nenhum item para refinar ou já estão no nível seguro.";  
+	}  
+	close;  
+}

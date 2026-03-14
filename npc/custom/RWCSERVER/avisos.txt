@@ -1,0 +1,78 @@
+izlude,116,120,5	script	Update 04 ago	617,{
+	mes "^FF0000Do not use cheats.^000000";
+	mes "^FF0000Cheat = auto pot, grf, auto click^000000";
+	//	mes "Sem usar cheats";
+	//	mes "huwag gumamit ng cheat";
+	//	mes "ne ispolzujte cit";
+	//	mes "Xya chi kar kong";
+	//	mes "Chiito o tsukawanai";
+	//	mes "no uses trampa";
+	mes "7x7 rwc = jogar rag, se não quer jogar rag, procure um server de woe, vlw.";
+	next;
+
+	mes "[Comunicado 29/07/2024]";
+	mes "1. Foi instaurado o Supremo Tribunal Federal: os processos de banimento e desbanimento passarão pelos ministros do STF: Moskaum, Sig e Fatal. Confira os avisos no discord.";
+	mes "2. Existe agora uma sexta regra: É obrigatório que na hora do jogo todos os jogadores estejam no canal de voz do discord.";
+	mes "3. As habilidades Piada Infâme e Escândalo foram consertadas.";
+	mes "Comportamento anterior (bugado): você aperta piada e, depois de alguns segundos, quem estava na sua tela quando você apertou sofre o efeito.";
+	mes "Comportamento atual: você aperta piada e depois de 3 segundos sofre o efeito quem estiver em 31x31 (tela+1 célula) do usuário.";
+	mes "[Comunicado 25/07/2024]";
+	mes "1. Bruma consertada (agora de verdade)";
+	mes "2. Agora só pode acessar o espectador como aprendiz, para evitar qualquer interferência nos jogos";
+	mes "[Comunicado 10/07/2024]";
+	mes "1. Graças aos esforços infatigáveis do Fatal Hatred o 'gargalo' (fenômeno do personagem ser puxado para dentro da célula após tentar castar uma skill no delay de outra) foi consertado.";
+	mes "2. Soul burn consertado: o dano do soul burn não é mais reduzido em cenário gvg.";
+	next;
+	
+	mes "[Comunicado 04/07/2024]";
+	mes "Bloqueado adicionar como amigo e sentar nas arenas GVGs";
+	mes "Adicionado NPC Espectador. Agora é possível assistir as partidas, com limite de 2 espectadores por partida";
+	mes "Adicionado NPC para gerenciar builds. Agora é possível salvar quantas builds você quiser e depois selecioná-la novamente pelo NPC";
+	mes "Obs: Como esse é um npc delicado, e ele pode eventualmente bugar se alguém achar uma brecha envolvendo resetadora, ou algo do tipo, peço pela boa vontade de vocês que me reportem caso identifiquem algum problema";
+	mes "[Comunicado 04/07/2024]";
+	mes "Agora é possível mudar de time dentro da arena. Existe um NPC que somente o líder pode interagir que teleporta a equipe para o outro time.";
+	mes "E agora a maior mudança. Agora temos 2 salas de espera distintas, ou seja, 4 times (time blue, time red, time blue 2, time red 2). As arenas foram divididas em 6 arenas para cada sala de espera. Junto disso adicionamos um bloqueio que impede que mais que 2 times entrem na mesma sala de espera, para evitar a situação na qual estejam jogando 3 times e alguém entre no chat de outro time e gere um bug na partida. Além disso, agora se o líder deslogar ou interagir com o NPC de sair da sala de espera o time inteiro é recallado para fora.";
+	mes "Obs: Ainda vou mudar pra time green e yellow, mas por enquanto vai ficar nomeado times 1 e 2.";
+	mes "[Comunicado 30/08/2024]";
+	mes "Frost Nova não congela mais em cima do ME";
+	mes "Todos os equips estão tradeaveis agora";
+	mes "Abracadabra e icewall desativados";
+	next;
+
+	mes "[Comunicado 29/08/2024]";
+	mes "Consertado um bug introduzido na última manutenção no qual recallar o time para a sala de espera estava recallando os jogadores que ainda estavam dentro da arena GVG";
+	mes "Consertado arena GVG teste";
+	mes "Cosertado todos os mapflags das arenas GVGs";
+	mes "Reintroduzido estilista de cabelos (ontem estava bugado)";
+	mes "Modificado NPC de restock - agora você só precisa clicar nele para gravar os stuffs que estão no seu inventário. Depois é só clicar na healer normalmente";
+	mes "Removido NPC de obter falcão/peco/carrinho - agora você só precisa clicar na healer";
+	mes "Removido NPC de refino - agora é só clicar na healer para refinar tudo para o safe level";
+	mes "[Comunicado 28/08/2024]";
+	mes "Agora é possível dar trade e colocar no armazém a maior parte dos equipamentos (preciso verificar e fazer isso para todos os equips)";
+	mes "Agora não precisa mais de itens (elu, ori etc) para refinar";
+	mes "Consertado o bug que existia quando dois líderes de pt conversavam com os NPCs de time simultaneamente";
+	mes "Corrigido arena 12";
+	mes "Adicionado bless e agi na curandeira de izlude";
+	mes "Adicionado estilista para cabelos";
+	next;
+
+	mes "[Comunicado 26/08/2024]";
+	mes "Melhorias internas no servidor, por isso foi necessário novo download.";
+	mes "Mestra das classes consertada, em breve todos irrão ser transformados em aprendiz para não abusarem do bug de skill tree da antiga mestra das classes.";
+	mes "Novas arenas adicionadas.";
+	mes "[Comunicado 25/08/2024]";
+	mes "1. Delays para andar após skills foram otimizados.";
+	mes "2. Adicionado flechas no restock e removido itens inadequados.";
+	mes "3. Supostamente resolvido o problema de desequipar flechas.";
+	mes "4. Reduzido o tempo de preparo dos rounds, de 20 segundos para 15 segundos.";
+	mes "[Comunicado 25/08/2024]";
+	mes "Foi feita uma planilha comentável para expor o que há para ser feito no servidor.";
+	mes "Recebemos a primeira doação para contratar serviços para o servidor. Essa foi, e as próximas também serão, documentadas e expostas (caixa e finalidade de uso). Ainda n?o foi o caso, mas é possível que o doador permaneça em anonimato se assim preferir.";
+	mes "Interessados em ajudar com solução de problemas ou com doações, entrem em contato comigo no discord (Pedro Cartacho).";
+	mes "[Comunicado 25/08/2024]";
+	mes "1. Para deletar o personagem, clique em delete, espere cinco segundos, clique em deletar e aperte ok sem digitar nada.";
+	mes "2. Controle de marionete, em mapa GvG, só pode ser usado pelo alt+Z.";
+	next;
+
+	close;
+} 

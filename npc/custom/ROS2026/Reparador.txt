@@ -1,0 +1,4 @@
+izlude,158,123,4	script	Reparador#izl	84,{  
+    repairall;  
+    end;  
+}

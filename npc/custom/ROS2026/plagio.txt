@@ -1,0 +1,102 @@
+izlude,157,138,4	script	Copiador de Habilidades	482,{  
+	// ==============================    
+	// SISTEMA DE RENEGADO (SÓ 4079)    
+	// ==============================    
+	if (Class != 4079) {    
+		mes "[ Copiador de Habilidades ]";    
+		mes "Apenas Shadow Chaser pode usar meus serviços.";    
+		close;    
+	}    
+	  
+	mes "[ Copiador de Habilidades ]";    
+	mes "Você pode copiar habilidades para Plágio ou Mimetismo.";    
+	next;    
+	switch(select("Plágio:Mimetismo:Ambas")) {    
+		case 1: callsub F_PLAGIO,0; break;    
+		case 2: callsub F_MIMETISMO,0,0,0; break;    
+		case 3: callsub F_PLAGIO,1; break;    
+	}    
+	end;    
+	  
+	// ---- Funções de Plágio e Mimetismo ----    
+	F_PLAGIO:    
+		set .@EQI, getarg(0);    
+		set .@menu, select(.menu$) - 1;    
+		if (.@menu < 0) end;    
+		  
+		if (getskilllv(.skill_id[.@menu])) {    
+			mes "[ Copiador de Habilidades ]";    
+			mes "Você já copiou essa habilidade.";    
+			close;    
+		}    
+		  
+		mes "[ Copiador de Habilidades ]";    
+		mes "Será necessário deslogar para copiar a habilidade.";    
+		next;    
+		  
+		if (.@EQI != 1) {    
+			if (.skill_id[.@menu] <= 0) {    
+				mes "[Erro]";    
+				mes "Habilidade inválida ou não configurada.";    
+				close;    
+			}    
+			set CLONE_SKILL, .skill_id[.@menu];    
+			set CLONE_SKILL_LV, .skill_lv[.@menu];    
+			atcommand "@kick " + strcharinfo(0);    
+			end;    
+		}    
+		  
+		mes "[ Copiador de Habilidades ]";    
+		mes "Agora iremos para Mimetismo.";    
+		callsub F_MIMETISMO,1,.skill_id[.@menu],.skill_lv[.@menu];    
+		end;    
+		  
+	F_MIMETISMO:    
+		set .@EQI2, getarg(0);    
+		set .@MENU1, getarg(1);    
+		set .@MENU2, getarg(2);    
+		set .@menuM, select(.menuM$) - 1;    
+		if (.@menuM < 0) end;    
+		  
+		if (getskilllv(.skillM_id[.@menuM])) {    
+			mes "[ Copiador de Habilidades ]";    
+			mes "Você já copiou essa habilidade.";    
+			close;    
+		}    
+		  
+		if (.skillM_id[.@menuM] <= 0) {    
+			mes "[Erro]";    
+			mes "Habilidade inválida ou não configurada.";    
+			close;    
+		}    
+		  
+		set REPRODUCE_SKILL, .skillM_id[.@menuM];    
+		set REPRODUCE_SKILL_LV, .skillM_lv[.@menuM];    
+		  
+		if (.@EQI2 != 0) {    
+			set CLONE_SKILL, .@MENU1;    
+			set CLONE_SKILL_LV, .@MENU2;    
+		}    
+		  
+		atcommand "@kick " + strcharinfo(0);    
+		end;    
+		  
+	// ==============================    
+	// INICIALIZAÇÃO    
+	// ==============================    
+	OnInit:    
+		// Skills Plágio    
+		setarray .skill_name$[0],"Avanço Ofensivo","Congelar","Chuva de Moedas","Lança Congelante","Lâmina de Vento","Pétalas Flamejantes","Rajada Congelante","Nevasca","Impacto de Tyr";    
+		setarray .skill_id[0],1001,88,526,537,540,534,15,89,62;    
+		setarray .skill_lv[0],7,10,10,10,10,10,10,10,10;    
+		for (set .@i,0; .@i < getarraysize(.skill_name$); set .@i,.@i+1)    
+			set .menu$, .menu$ + .skill_name$[.@i] + ":";    
+  
+		// Skills Mimetismo    
+		setarray .skillM_name$[0],"Avanço Ofensivo","Congelar","Chuva de Moedas","Lança Congelante","Lâmina de Vento","Pétalas Flamejantes","Rajada Congelante","Nevasca","Impacto de Tyr","Esquife de Gelo","Adoramus","Meteoro Escarlate","Pó de Diamante","Garra Sombria","Disparo Certeiro","Bomba Relógio","Tempestade de Flechas","Chute Rasteiro";    
+		setarray .skillM_id[0],1001,88,526,537,540,534,15,89,62,2204,2040,2211,2447,5001,2236,2239,2233,2337;    
+		setarray .skillM_lv[0],7,10,10,10,10,10,10,10,10,5,10,5,5,5,5,5,10,1;    
+		for (set .@i,0; .@i < getarraysize(.skillM_name$); set .@i,.@i+1)    
+			set .menuM$, .menuM$ + .skillM_name$[.@i] + ":";    
+	end;    
+}

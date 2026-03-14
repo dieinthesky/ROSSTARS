@@ -1,0 +1,71 @@
+// NPC Mercador de Batalha - Entrega itens específicos por classe com limite  
+izlude,146,141,4	script	Mercador de Batalha#battle	99,{  
+	// Verificar se o jogador é de uma classe permitida  
+	if (Class != 4065 && Class != 4078 && Class != 4060) {  
+		mes "[Mercador de Batalha]";  
+		mes "Desculpe, eu só atendo a Sicário, Bioquímico ou Cavaleiro Rúnico.";  
+		close;  
+	}  
+	  
+	// Arrays com itens disponíveis  
+	setarray .@item_ids[0], 678, 7135, 7136, 12725, 12726, 12727, 12728, 12729, 12730, 12731, 12732, 12733, 22540;  
+	setarray .@item_names$[0], "Garrafa de Veneno", "Frasco de Fogo Grego", "Frasco Acido", "Runa Nauthiz", "Runa Raido", "Runa Berkana", "Runa Isa", "Runa Othila", "Runa Uruz", "Runa Thurisaz", "Runa Wyrd", "Runa Hagalaz", "Runa Luxanima";  
+	setarray .@item_classes[0], 4065, 4078, 4078, 4060, 4060, 4060, 4060, 4060, 4060, 4060, 4060, 4060, 4060;  
+	setarray .@item_limits[0], 3, 5, 5, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3;  
+	  
+	// Verificar itens disponíveis para a classe do jogador  
+	.@items_to_give = 0;  
+	.@total_items$ = "";  
+	  
+	for (.@i = 0; .@i < getarraysize(.@item_ids); .@i++) {  
+		if (Class == .@item_classes[.@i]) {  
+			// Verifica quantos itens o jogador tem no inventário ATUALMENTE  
+			.@current_count = countitem(.@item_ids[.@i]);  
+			.@remaining = .@item_limits[.@i] - .@current_count;  
+			  
+			if (.@remaining > 0) {  
+				.@items_to_give++;  
+				.@total_items$ += .@remaining + "x " + .@item_names$[.@i] + " (você tem " + .@current_count + ")\n";  
+			}  
+		}  
+	}  
+	  
+	if (.@items_to_give == 0) {  
+		mes "[Mercador de Batalha]";  
+		mes "Você já tem todos os itens disponíveis para sua classe!";  
+		close;  
+	}  
+	  
+	// Entregar todos os itens disponíveis  
+	mes "[Mercador de Batalha]";  
+	mes "Aqui estão seus itens:";  
+	mes "";  
+	mes .@total_items$;  
+	next;  
+	  
+	// Processar entrega dos itens  
+	for (.@i = 0; .@i < getarraysize(.@item_ids); .@i++) {  
+		if (Class == .@item_classes[.@i]) {  
+			// Verifica quantos itens o jogador tem no inventário ATUALMENTE  
+			.@current_count = countitem(.@item_ids[.@i]);  
+			.@remaining = .@item_limits[.@i] - .@current_count;  
+			  
+			if (.@remaining > 0) {  
+				// Verificar peso antes de entregar  
+				if (!checkweight(.@item_ids[.@i], .@remaining)) {  
+					mes "[Mercador de Batalha]";  
+					mes "Você não pode carregar " + .@item_names$[.@i] + "!";  
+					mes "Libere espaço no inventário e volte aqui.";  
+					close;  
+				}  
+				  
+				getitem .@item_ids[.@i], .@remaining;  
+			}  
+		}  
+	}  
+	  
+	mes "[Mercador de Batalha]";  
+	mes "Itens entregues com sucesso!";  
+	mes "Volte quando precisar de mais itens (se houver disponibilidade).";  
+	close;  
+}

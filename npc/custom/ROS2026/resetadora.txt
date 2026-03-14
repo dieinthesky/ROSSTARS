@@ -1,0 +1,88 @@
+izlude,155,141,4	script	Gerenciadora de Builds	10125,{  
+	// ==============================    
+	// SISTEMA DE GERENCIADOR DE BUILDS    
+	// ==============================    
+	.MaxSlots = 5;  // Define 5 slots para builds  
+	function ManageBuild;    
+	mes "Selecione o que deseja fazer.";    
+	next;    
+	switch(select("^FF0000Salvar/Alternar Builds^000000:^0000FFRedefinir Status^000000:^0000FFRedefinir Habilidades^000000")) {    
+		case 1:    
+			for (set .@i,1; .@i <= .MaxSlots; set .@i,.@i + 1)    
+				set .@Menu$, .@Menu$ + ((getd("Slot_"+.@i+"$") == "") ? "^FF0000Slot Vazio^000000" : getd("Slot_"+.@i+"$")) + ":";    
+			set .@Slot, select(.@Menu$);    
+			do {    
+				next;    
+				mes "Build: " + ((getd("Slot_"+.@Slot+"$") == "") ? "Slot " + .@Slot : getd("Slot_"+.@Slot+"$"));    
+				mes "STR: "+getd("STR_"+.@Slot)+"  INT: "+getd("INT_"+.@Slot);    
+				mes "AGI: "+getd("AGI_"+.@Slot)+"  DEX: "+getd("DEX_"+.@Slot);    
+				mes "VIT: "+getd("VIT_"+.@Slot)+"  LUK: "+getd("LUK_"+.@Slot);    
+				mes "Pontos restantes: "+getd("STATS_"+.@Slot);    
+				set .@Option, select((getd("Slot_"+.@Slot+"$") == "") ? "Salvar" : "^0000FFAlternar Build^000000", (getd("Slot_"+.@Slot+"$") == "") ? "" : "^FF0000Apagar Build^000000");    
+				ManageBuild(.@Slot,.@Option);    
+			} while (.@Option == 2); // Fixed: Only loop when deleting (option 2)    
+			break;    
+		case 2:    
+			ResetStatus;    
+			mes "Atributos redefinidos.";    
+			break;    
+		case 3:    
+			ResetSkill;    
+			mes "Habilidades redefinidas.";    
+			break;    
+	}    
+	close;    
+	  
+	function ManageBuild {    
+		switch(getarg(1)) {    
+			case 1:    
+				// Check if this is a save operation (empty slot) or switch operation    
+				if (getd("Slot_"+getarg(0)+"$") == "") {    
+					// This is a save operation - prompt for name first    
+					mes "[Gerente de Builds]";    
+					mes "Digite um nome para esta build:";    
+					next;  // Adicionado para corrigir tela branca  
+					input .@name$;    
+					if (.@name$ == "") {    
+						mes "Nome inválido. Operação cancelada.";    
+						return;    
+					}    
+					// Save the name    
+					setd "Slot_"+getarg(0)+"$", .@name$;    
+					// Save current stats    
+					setd("STR_"+getarg(0)), readparam(bStr);    
+					setd("AGI_"+getarg(0)), readparam(bAgi);    
+					setd("VIT_"+getarg(0)), readparam(bVit);    
+					setd("INT_"+getarg(0)), readparam(bInt);    
+					setd("DEX_"+getarg(0)), readparam(bDex);    
+					setd("LUK_"+getarg(0)), readparam(bLuk);    
+					setd("STATS_"+getarg(0)), StatusPoint;    
+					message strcharinfo(0),"Build '"+.@name$+"' salva com sucesso!";    
+				} else {    
+					// This is a switch operation    
+					message strcharinfo(0),"Build alternada.";    
+					ResetStatus;    
+					set StatusPoint, getd("STATS_"+getarg(0));    
+					statusup2 bStr, getd("STR_"+getarg(0)) - 1;    
+					statusup2 bAgi, getd("AGI_"+getarg(0)) - 1;    
+					statusup2 bVit, getd("VIT_"+getarg(0)) - 1;    
+					statusup2 bInt, getd("INT_"+getarg(0)) - 1;    
+					statusup2 bDex, getd("DEX_"+getarg(0)) - 1;    
+					statusup2 bLuk, getd("LUK_"+getarg(0)) - 1;    
+				}    
+				break;    
+			case 2:    
+				message strcharinfo(0),"Build apagada.";    
+				setd("STR_"+getarg(0)),0;    
+				setd("AGI_"+getarg(0)),0;    
+				setd("VIT_"+getarg(0)),0;    
+				setd("INT_"+getarg(0)),0;    
+				setd("DEX_"+getarg(0)),0;    
+				setd("LUK_"+getarg(0)),0;    
+				setd("STATS_"+getarg(0)),0;    
+				setd("Slot_"+getarg(0)+"$"),"";    
+				break;    
+		}    
+		return;    
+	}  
+}

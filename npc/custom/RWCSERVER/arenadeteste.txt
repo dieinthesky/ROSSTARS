@@ -1,0 +1,30 @@
+izlude,136,115,4	script	Test Arena	88,{
+
+	mes "[ ^0000ffTest Arena^000000 ]";
+	mes "Hello ^ff0000"+strcharinfo(0)+"^000000, choose one of the options below:";
+	next;
+	switch(select("^228B22- Arena GvG^000000 ^FF0000[ "+getmapusers("pvp_y_1-1")+" ]^000000","^228B22- Arena PvP^000000 ^FF0000[ "+getmapusers("pvp_y_1-2")+" ]^000000")){
+// ,"^228B22- Arena GvG 2^000000 ^FF0000[ "+getmapusers("guild_vs4")+" ]^000000"
+//	switch(select("^228B22- Arena PvP^000000 ^FF0000[ "+getmapusers("pvp_y_1-2")+" ]^000000","^228B22- Arena GvG^000000 ^FF0000[ "+getmapusers("guild_vs2")+" ]^000000")){
+
+
+case 1:
+mes "[ ^0000ffTest Arena^000000 ]";
+mes "Ok, good luck!";
+warp "pvp_y_1-1",155,120; 
+close;
+
+case 2:
+mes "[ ^0000ffTest Arena^000000 ]";
+mes "Ok, good luck!";
+warp "pvp_y_1-2",127,111; 
+close;
+
+//case 3:
+//mes "[ ^0000ffTest Arena^000000 ]";
+//mes "Ok, good luck!";
+//warp "guild_vs4",0,0; 
+//close;
+
+}
+}
