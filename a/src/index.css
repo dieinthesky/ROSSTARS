@@ -1,0 +1,153 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;900&family=Nunito:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 230 25% 7%;
+    --foreground: 40 20% 90%;
+
+    --card: 230 20% 11%;
+    --card-foreground: 40 20% 90%;
+
+    --popover: 230 20% 11%;
+    --popover-foreground: 40 20% 90%;
+
+    --primary: 40 85% 55%;
+    --primary-foreground: 230 25% 7%;
+
+    --secondary: 230 18% 18%;
+    --secondary-foreground: 40 20% 85%;
+
+    --muted: 230 15% 15%;
+    --muted-foreground: 230 10% 55%;
+
+    --accent: 270 50% 50%;
+    --accent-foreground: 40 20% 95%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 230 15% 20%;
+    --input: 230 15% 20%;
+    --ring: 40 85% 55%;
+
+    --radius: 0.5rem;
+
+    --gold: 40 85% 55%;
+    --gold-light: 40 90% 70%;
+    --gold-dark: 35 80% 35%;
+    --royal-purple: 270 50% 50%;
+    --royal-purple-light: 270 60% 65%;
+    --arena-green: 140 50% 45%;
+    --arena-blue: 210 70% 55%;
+    --arena-red: 0 65% 55%;
+
+    --gradient-gold: linear-gradient(135deg, hsl(35 80% 35%), hsl(40 85% 55%), hsl(40 90% 70%));
+    --gradient-royal: linear-gradient(135deg, hsl(270 50% 30%), hsl(270 50% 50%));
+    --gradient-dark: linear-gradient(180deg, hsl(230 25% 7%), hsl(230 20% 11%));
+    --gradient-card: linear-gradient(145deg, hsl(230 20% 13%), hsl(230 20% 9%));
+
+    --shadow-gold: 0 0 20px hsl(40 85% 55% / 0.15);
+    --shadow-card: 0 4px 20px hsl(0 0% 0% / 0.4);
+    --shadow-glow: 0 0 30px hsl(40 85% 55% / 0.2);
+
+    --sidebar-background: 230 20% 9%;
+    --sidebar-foreground: 40 20% 85%;
+    --sidebar-primary: 40 85% 55%;
+    --sidebar-primary-foreground: 230 25% 7%;
+    --sidebar-accent: 230 18% 18%;
+    --sidebar-accent-foreground: 40 20% 85%;
+    --sidebar-border: 230 15% 20%;
+    --sidebar-ring: 40 85% 55%;
+
+    --font-heading: 'Cinzel', serif;
+    --font-body: 'Nunito', sans-serif;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+}
+
+@layer utilities {
+  .text-gold {
+    color: hsl(var(--gold));
+  }
+  .bg-gold {
+    background-color: hsl(var(--gold));
+  }
+  .border-gold {
+    border-color: hsl(var(--gold));
+  }
+  .text-gold-light {
+    color: hsl(var(--gold-light));
+  }
+  .bg-gradient-gold {
+    background: var(--gradient-gold);
+  }
+  .bg-gradient-royal {
+    background: var(--gradient-royal);
+  }
+  .bg-gradient-card {
+    background: var(--gradient-card);
+  }
+  .shadow-gold {
+    box-shadow: var(--shadow-gold);
+  }
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  .glow-gold {
+    filter: drop-shadow(0 0 8px hsl(var(--gold) / 0.4));
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--gold) / 0.5);
+}
+
+/* Rank badge animations */
+@keyframes rank-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px hsl(var(--gold) / 0.3)); }
+  50% { filter: drop-shadow(0 0 12px hsl(var(--gold) / 0.6)); }
+}
+
+.animate-rank-glow {
+  animation: rank-glow 2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}

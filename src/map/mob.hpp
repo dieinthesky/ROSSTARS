@@ -4,6 +4,13 @@
 #ifndef MOB_HPP
 #define MOB_HPP
 
+#ifndef MOB_ID_ARENA_BOT_SAGE_LP
+	#define MOB_ID_ARENA_BOT_SAGE_LP 31998
+#endif
+#ifndef MOB_ID_ARENA_BOT_SHURA_1V1
+	#define MOB_ID_ARENA_BOT_SHURA_1V1 31997
+#endif
+
 #include <deque>
 #include <vector>
 
@@ -397,6 +404,8 @@ struct mob_data : public block_list {
 	 **/
 	int32 tomb_nid;
 	uint16 damagetaken;
+	/// Spirit spheres (arena Shura bot 31997; client packet like PC — see expanded_ai fork).
+	int16 spiritball;
 
 	e_mob_bosstype get_bosstype();
 	map_session_data* get_mvp_player();
@@ -527,6 +536,12 @@ TIMER_FUNC(mob_norm_attacked);
 int32 mob_target(struct mob_data *md,struct block_list *bl,int32 dist);
 bool mob_randomtarget(mob_data& md, int32& target_id);
 int32 mob_unlocktarget(struct mob_data *md, t_tick tick);
+
+// Arena Shura bot helpers (mob_id = MOB_ID_ARENA_BOT_SHURA_1V1)
+int32 mob_arena_shura_virtballs(struct mob_data* md);
+void mob_arena_shura_on_soul_collect(struct mob_data* md);
+void mob_arena_shura_on_absorbed(struct mob_data* md);
+
 struct mob_data* mob_spawn_dataset(struct spawn_data *data);
 int32 mob_spawn(struct mob_data *md);
 TIMER_FUNC(mob_delayspawn);

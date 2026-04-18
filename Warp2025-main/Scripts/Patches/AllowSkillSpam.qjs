@@ -1,0 +1,184 @@
+/**************************************************************************\
+* *
+* Copyright (C) 2019 Functor                                             *
+* Copyright (C) 2019-2024 Andrei Karas (4144)                            *
+* Copyright (C) 2021-2024 Neo-Mind                                       *
+* *
+* This file is a part of WARP project (specific to RO clients)           *
+* *
+* WARP is free software: you can redistribute it and/or modify           *
+* it under the terms of the GNU General Public License as published by   *
+* the Free Software Foundation, either version 3 of the License, or      *
+* (at your option) any later version.                                    *
+* *
+* This program is distributed in the hope that it will be useful,        *
+* but WITHOUT ANY WARRANTY; without even the implied warranty of         *
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the          *
+* GNU General Public License for more details.                           *
+* *
+* You should have received a copy of the GNU General Public License      *
+* along with this program.  If not, see <http://www.gnu.org/licenses/>.  *
+* *
+* *
+|**************************************************************************|
+* *
+* Author(s)     : Functor, Andrei (4144), Neo-Mind                       *
+* Created Date  : 2020-11-22                                             *
+* Last Modified : 2024-08-08                                             *
+* *
+\**************************************************************************/
+
+AllowSkillSpam = function(_)
+{
+	$$(_, 1, `Find the comparison`)
+	let parts =
+	[
+		MOV(EAX, [POS4WC])
+	,
+		CMP(EBX, 0x7F4)
+	,
+		CMOVZ(EAX, [POS4WC])
+	+	MOV([POS4WC], EAX)
+	];
+
+	let addr = Exe.FindHex(parts);
+	if (addr < 0 && ROC.IsZero)
+	{
+		parts =
+		[
+			""
+		,
+			CMP(R32, 0x7F4)
+		,
+			MOV(EAX, [POS4WC])
+		+	MOV(R32, 0x5D)
+		+	CMOVE(EAX, [POS4WC])
+		+	MOV([POS4WC], EAX)
+		];
+		addr = Exe.FindHex(parts);
+	}
+	if (addr > 0)
+	{
+		$$(_, 2.1, `Prepare replacement code - CMP is for triggering Zero Flag`)
+		const code =
+			CMP(EBX, EBX)
+		+	NOPs(parts.byteCount(1) - 2)
+		;
+
+		$$(_, 2.2, `Overwrite the original CMP`)
+		Exe.SetHex(addr + parts.byteCount(0), code);
+	}
+	else if (Exe.BuildDate < 20180700)
+	{
+		throw Error("Pattern not found");
+	}
+	else
+	{
+		$$(_, 3.1, `Find the new comparison`)
+		const mvReg = MOV(R32, [EBP, NEG2WC]);
+		let code =
+			CMP(Exe.Version < 14 ? R32 : EAX, 0x7F4)
+		+	JE(WCp)
+		+	(ROC.FullVer == 14.29 ? '' : mvReg)
+		+	MOV(R32, 0x438)
+		+	MOV([EBP, NEG2WC], R16)
+		+	(ROC.FullVer == 14.29 ? mvReg : '')
+		;
+
+		addr = Exe.FindHex(code);
+
+		if (addr < 0) {
+			addr = Exe.FindHex("0F B7 D0 0F B7 CE 3D F4 07 00 00 74");
+			if (addr > 0) {
+				addr += 6;
+			}
+		}
+
+		if (addr < 0)
+			throw Error("New Pattern not found");
+
+		$$(_, 3.2, `Extract the comparison`)
+		const cmp74 = Instr.FromAddr(addr);
+
+		$$(_, 3.3, `Find the code where the comparison with the virtual_key_code is made`)
+		code =
+			TEST(R32, R32)
+		+	JZ(WCp)
+		+	CMP([POS4WC], R32)
+		+	JE(WCp)
+		+	MOV(ECX, POS4WC)
+		+	CALL(ALLWC)
+		+	MOV([POS4WC], R32)
+		;
+		
+		let addr2 = Exe.FindHex(code);
+		let isModernReorder = false;
+
+		if (addr2 < 0) {
+			addr2 = Exe.FindHex("83 7D ?? 00 74 ?? 39 3D ?? ?? ?? ?? 74 ?? B9 ?? ?? ?? ?? E8");
+			if (addr2 > 0) {
+				isModernReorder = true;
+			}
+		}
+
+		if (addr2 < 0)
+			throw Error("virtual_key_code reference missing");
+
+		let rcmp;
+		if (!isModernReorder) {
+			$$(_, 3.4, `Extract the first 4 instructions`)
+			const test0 = Instr.FromAddr(addr2);
+			let jz1 = test0.getNext();
+			rcmp = jz1.getNext();
+			let jz2 = rcmp.getNext();
+
+			$$(_, 3.5, `Update the jumps`)
+			jz1.Immd -= (rcmp.Size + jz2.Size);
+			jz2.Immd += (test0.Size + jz1.Size);
+
+			$$(_, 3.6, `Reorder and apply`)
+			Exe.SetHex(addr2, rcmp + jz2 + test0 + jz1);
+		} else {
+			$$(_, 3.4, `Extract modern instructions`)
+			const cmp0 = Instr.FromAddr(addr2);
+			let jz1 = cmp0.getNext();
+			rcmp = jz1.getNext();
+			let jz2 = rcmp.getNext();
+
+			$$(_, 3.5, `Update modern jumps`)
+			jz1.Immd -= (rcmp.Size + jz2.Size);
+			jz2.Immd += (cmp0.Size + jz1.Size);
+
+			$$(_, 3.6, `Reorder modern and apply`)
+			Exe.SetHex(addr2, rcmp + jz2 + cmp0 + jz1);
+		}
+
+		$$(_, 3.7, `Extract the target address`)
+		const tgt = rcmp.Disp;
+
+		$$(_, 4.1, `Construct the new function`)
+		code =
+			PUSH_EAX
+		+	MOV(EAX, [tgt + 4])
+		+	MOV([tgt], EAX)
+		+	POP_EAX
+		+	cmp74
+		+	RETN()
+		;
+
+		$$(_, 4.2, `Prepare the arguments for auto-hook`)
+		const args =
+		{
+			isCall: true,
+			nops: cmp74.Size - 5
+		};
+
+		$$(_, 4.3, `Add our code and call it from the original comparison address`)
+		AutoHook(cmp74.Addr, code, args);
+	}
+
+	return true;
+};
+
+AllowSkillSpam.validate = () =>
+	Exe.BuildDate > 20170000;

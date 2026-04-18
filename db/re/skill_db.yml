@@ -7280,7 +7280,7 @@ Body:
     Range: 9
     Hit: Single
     HitCount: 1
-    FixedCastTime: 500
+    FixedCastTime: 1000
     Requires:
       SpCost: 5
   - Id: 263
@@ -7529,7 +7529,7 @@ Body:
         Time: 1500
       - Level: 5
         Time: 1000
-    Duration1: 3000
+    Duration1: 5000
     FixedCastTime:
       - Level: 1
         Time: 2000
@@ -9897,7 +9897,6 @@ Body:
     FixedCastTime: 700
     CastTimeFlags:
       IgnoreDex: true
-      IgnoreItemBonus: true
     Requires:
       SpCost:
         - Level: 1
@@ -20232,7 +20231,7 @@ Body:
     Range: 11
     Hit: Multi_Hit
     HitCount: 1
-    Cooldown: 5000
+    Cooldown: 500
     Requires:
       SpCost:
         - Level: 1
@@ -20313,16 +20312,16 @@ Body:
         Reproduce: true
     AfterCastActDelay:
       - Level: 1
-        Time: 2500
+        Time: 2600
       - Level: 2
-        Time: 2000
+        Time: 2200
       - Level: 3
-        Time: 1500
+        Time: 1800
       - Level: 4
-        Time: 1000
+        Time: 1400
       - Level: 5
         Time: 1000
-    Cooldown: 1000
+    Cooldown: 350
     CastDelayFlags:
       IgnoreStatus: true
     Requires:
@@ -23586,7 +23585,8 @@ Body:
     Hit: Single
     HitCount: 1
     CastTime: 2000
-    AfterCastActDelay: 0
+    # AfterCastActDelay applied on server only when debuff lands (see skill_castend_id + unit_data::sc_mask_aftercast_success)
+    AfterCastActDelay: 1000
     Duration1:
       - Level: 1
         Time: 10000
@@ -23620,7 +23620,7 @@ Body:
     Hit: Single
     HitCount: 1
     CastTime: 2000
-    AfterCastActDelay: 0
+    AfterCastActDelay: 1000
     Duration1:
       - Level: 1
         Time: 10000
@@ -23654,7 +23654,7 @@ Body:
     Hit: Single
     HitCount: 1
     CastTime: 2000
-    AfterCastActDelay: 0
+    AfterCastActDelay: 1000
     Duration1:
       - Level: 1
         Time: 10000
@@ -23688,7 +23688,7 @@ Body:
     Hit: Single
     HitCount: 1
     CastTime: 2000
-    AfterCastActDelay: 0
+    AfterCastActDelay: 1000
     Duration1:
       - Level: 1
         Time: 10000
@@ -23756,7 +23756,7 @@ Body:
     Hit: Single
     HitCount: 1
     CastTime: 2000
-    AfterCastActDelay: 0
+    AfterCastActDelay: 1000
     Duration1:
       - Level: 1
         Time: 10000
@@ -24023,11 +24023,11 @@ Body:
     AfterCastActDelay: 2000
     Duration1:
       - Level: 1
-        Time: 10000
+        Time: 5000
       - Level: 2
-        Time: 20000
+        Time: 10000
       - Level: 3
-        Time: 30000
+        Time: 15000
     Cooldown: 180000
     FixedCastTime: 1000
     Requires:
@@ -26068,7 +26068,7 @@ Body:
     Range: 9
     Hit: Multi_Hit
     HitCount: 2
-    Element: Weapon
+    Element: Neutral
     CopyFlags:
       Skill:
         Reproduce: true
@@ -26272,6 +26272,7 @@ Body:
       Splash: true
     Flags:
       IsTrap: true
+      IgnoreHovering: true
     Range: 9
     Hit: Single
     HitCount: 1
@@ -33035,17 +33036,17 @@ Body:
     HitCount: 1
     Knockback:
       - Level: 1
-        Amount: 4
-      - Level: 2
         Amount: 5
-      - Level: 3
+      - Level: 2
         Amount: 6
-      - Level: 4
+      - Level: 3
         Amount: 7
-      - Level: 5
+      - Level: 4
         Amount: 8
-      - Level: 6
+      - Level: 5
         Amount: 9
+      - Level: 6
+        Amount: 10
     AfterCastActDelay: 500
     Duration1: 50000
     Duration2: 20000
@@ -34445,7 +34446,6 @@ Body:
     DamageFlags:
       NoDamage: true
     Cooldown: 10000
-    FixedCastTime: 60
     CastTimeFlags:
       IgnoreDex: true
       IgnoreStatus: true
@@ -49002,7 +49002,7 @@ Body:
     HitCount: 1
     Element: Fire
     Knockback: 2
-    Duration1: -1
+    Duration1: 60000
     Requires:
       SpCost: 40
     Status: Circle_Of_Fire_Option
@@ -49015,7 +49015,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 60000
     Requires:
       SpCost: 60
     Status: Fire_Cloak_Option
@@ -49051,7 +49051,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 60000
     Requires:
       SpCost: 40
     Status: Water_Screen_Option
@@ -49064,7 +49064,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 60000
     Requires:
       SpCost: 60
     Status: Water_Drop_Option
@@ -49100,7 +49100,7 @@ Body:
     Hit: Single
     HitCount: 1
     Knockback: 5
-    Duration1: -1
+    Duration1: 60000
     Requires:
       SpCost: 40
     Status: Wind_Step_Option
@@ -49113,7 +49113,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 60000
     Requires:
       SpCost: 60
     Status: Wind_Curtain_Option
@@ -49148,7 +49148,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 60000
     Requires:
       SpCost: 40
     Status: Solid_Skin_Option
@@ -49161,7 +49161,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 60000
     Requires:
       SpCost: 60
     Status: Stone_Shield_Option
@@ -49196,7 +49196,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 300000
     Requires:
       SpCost: 1
     Status: Pyrotechnic_Option
@@ -49209,7 +49209,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 300000
     Requires:
       SpCost: 1
     Status: Heater_Option
@@ -49222,7 +49222,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 300000
     Requires:
       SpCost: 1
     Status: Tropic_Option
@@ -49235,7 +49235,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 300000
     Requires:
       SpCost: 1
     Status: AquaPlay_Option
@@ -49248,7 +49248,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 300000
     Requires:
       SpCost: 1
     Status: Cooler_Option
@@ -49261,7 +49261,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 300000
     Requires:
       SpCost: 1
     Status: Chilly_Air_Option
@@ -49274,7 +49274,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 300000
     Requires:
       SpCost: 1
     Status: Gust_Option
@@ -49287,7 +49287,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 300000
     Requires:
       SpCost: 1
     Status: Blast_Option
@@ -49300,7 +49300,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 300000
     Requires:
       SpCost: 1
     Status: Wild_Storm_Option
@@ -49313,7 +49313,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 300000
     Requires:
       SpCost: 1
     Status: Petrology_Option
@@ -49326,7 +49326,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 300000
     Requires:
       SpCost: 1
     Status: Cursed_Soil_Option
@@ -49339,7 +49339,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 300000
     Requires:
       SpCost: 1
     Status: Upheaval_Option
@@ -49592,7 +49592,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 300000
     Requires:
       SpCost: 1
     Status: FlameTechnic_Option
@@ -49605,7 +49605,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 60000
     Requires:
       SpCost: 1
     Status: FlameArmor_Option
@@ -49637,7 +49637,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 300000
     Requires:
       SpCost: 1
     Status: Cold_Force_Option
@@ -49650,7 +49650,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 60000
     Requires:
       SpCost: 1
     Status: Crystal_Armor_Option
@@ -49682,7 +49682,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 300000
     Requires:
       SpCost: 1
     Status: Grace_Breeze_Option
@@ -49695,7 +49695,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 60000
     Requires:
       SpCost: 1
     Status: Eyes_Of_Storm_Option
@@ -49727,7 +49727,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 300000
     Requires:
       SpCost: 1
     Status: Earth_Care_Option
@@ -49740,7 +49740,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 60000
     Requires:
       SpCost: 1
     Status: Strong_Protection_Option
@@ -49772,7 +49772,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 300000
     Requires:
       SpCost: 1
     Status: Deep_Poisoning_Option
@@ -49785,7 +49785,7 @@ Body:
       NoDamage: true
     Hit: Single
     HitCount: 1
-    Duration1: -1
+    Duration1: 60000
     Requires:
       SpCost: 1
     Status: Poison_Shield_Option

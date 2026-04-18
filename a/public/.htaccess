@@ -1,0 +1,12 @@
+# Apache: React Router (SPA) + não reescrever pedidos à API PHP
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  RewriteRule ^api/ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# Se o site estiver numa subpasta (ex. /ranking/), ajuste:
+# RewriteBase /ranking/

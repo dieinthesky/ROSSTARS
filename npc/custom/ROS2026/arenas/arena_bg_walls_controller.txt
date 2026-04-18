@@ -201,39 +201,20 @@ OnOpen_2025arena1:
 OnClose_2025arena2:
 	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena2";
 	if (.mode_nf == 0) end;
-	if (.mode_nf == 1 || .mode_nf == 5) {
-		setcell "2025arena2",142,82,142,82,CELL_WALKABLE,0;
-		setcell "2025arena2",142,81,142,81,CELL_WALKABLE,0;
-		setcell "2025arena2",142,80,142,80,CELL_WALKABLE,0;
-	}
-	if (.mode_nf == 2 || .mode_nf == 5) {
-		setcell "2025arena2",142,79,142,79,CELL_WALKABLE,0;
-		setcell "2025arena2",142,78,142,78,CELL_WALKABLE,0;
-		setcell "2025arena2",142,77,142,77,CELL_WALKABLE,0;
-	}
-	if (.mode_nf == 3 || .mode_nf == 5) {
-		setcell "2025arena2",56,82,56,82,CELL_WALKABLE,0;
-		setcell "2025arena2",56,81,56,81,CELL_WALKABLE,0;
-		setcell "2025arena2",56,80,56,80,CELL_WALKABLE,0;
-	}
-	if (.mode_nf == 4 || .mode_nf == 5) {
-		setcell "2025arena2",56,79,56,79,CELL_WALKABLE,0;
-		setcell "2025arena2",56,78,56,78,CELL_WALKABLE,0;
-	}
+	// 2025arena2: setcell (bloqueio real). Coordenadas exatas (print):
+	// x=56, y=82..77
+	//
+	// Blue (direita): x=142, y=82..77
+	if (.mode_nf == 1 || .mode_nf == 2 || .mode_nf == 5)
+		setcell "2025arena2",142,77,142,82,CELL_WALKABLE,0;
+	// Red (esquerda): x=56, y=82..77
+	if (.mode_nf == 3 || .mode_nf == 4 || .mode_nf == 5)
+		setcell "2025arena2",56,77,56,82,CELL_WALKABLE,0;
 	end;
 
 OnOpen_2025arena2:
-	setcell "2025arena2",142,82,142,82,CELL_WALKABLE,1;
-	setcell "2025arena2",142,81,142,81,CELL_WALKABLE,1;
-	setcell "2025arena2",142,80,142,80,CELL_WALKABLE,1;
-	setcell "2025arena2",142,79,142,79,CELL_WALKABLE,1;
-	setcell "2025arena2",142,78,142,78,CELL_WALKABLE,1;
-	setcell "2025arena2",142,77,142,77,CELL_WALKABLE,1;
-	setcell "2025arena2",56,82,56,82,CELL_WALKABLE,1;
-	setcell "2025arena2",56,81,56,81,CELL_WALKABLE,1;
-	setcell "2025arena2",56,80,56,80,CELL_WALKABLE,1;
-	setcell "2025arena2",56,79,56,79,CELL_WALKABLE,1;
-	setcell "2025arena2",56,78,56,78,CELL_WALKABLE,1;
+	setcell "2025arena2",142,77,142,82,CELL_WALKABLE,1;
+	setcell "2025arena2",56,77,56,82,CELL_WALKABLE,1;
 	end;
 
 OnClose_2025arena3:
@@ -339,15 +320,9 @@ OnClose_2025arena5:
 		setcell "2025arena5",151,77,151,77,CELL_WALKABLE,0;
 		setcell "2025arena5",151,76,151,76,CELL_WALKABLE,0;
 	}
-	if (.mode_so == 3 || .mode_so == 5) {
-		setcell "2025arena5",46,80,46,80,CELL_WALKABLE,0;
-		setcell "2025arena5",46,79,46,79,CELL_WALKABLE,0;
-		setcell "2025arena5",46,78,46,78,CELL_WALKABLE,0;
-	}
-	if (.mode_so == 4 || .mode_so == 5) {
-		setcell "2025arena5",46,77,46,77,CELL_WALKABLE,0;
-		setcell "2025arena5",46,76,46,76,CELL_WALKABLE,0;
-	}
+	// Red (esquerda): x=46, y=76..83 (mesmo padrao da NifHeim; antes faltava y 81-83)
+	if (.mode_so == 3 || .mode_so == 4 || .mode_so == 5)
+		setcell "2025arena5",46,76,46,83,CELL_WALKABLE,0;
 	end;
 
 OnOpen_2025arena5:
@@ -359,11 +334,7 @@ OnOpen_2025arena5:
 	setcell "2025arena5",151,78,151,78,CELL_WALKABLE,1;
 	setcell "2025arena5",151,77,151,77,CELL_WALKABLE,1;
 	setcell "2025arena5",151,76,151,76,CELL_WALKABLE,1;
-	setcell "2025arena5",46,80,46,80,CELL_WALKABLE,1;
-	setcell "2025arena5",46,79,46,79,CELL_WALKABLE,1;
-	setcell "2025arena5",46,78,46,78,CELL_WALKABLE,1;
-	setcell "2025arena5",46,77,46,77,CELL_WALKABLE,1;
-	setcell "2025arena5",46,76,46,76,CELL_WALKABLE,1;
+	setcell "2025arena5",46,76,46,83,CELL_WALKABLE,1;
 	end;
 
 OnClose_25ros03_01:

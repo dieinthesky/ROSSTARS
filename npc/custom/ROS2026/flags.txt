@@ -73,3 +73,76 @@
 2025arena5	mapflag	nobranch  
 2025arena5	mapflag	noicewall  
 2025arena5	mapflag	nodrop 
+
+// Arenas de treino (mesmos mapas do NPC Arena de Testes ROS) — GvG (@gvgon)
+25ros03_02	mapflag	gvg
+25ros03_02	mapflag	nopenalty  
+25ros03_02	mapflag	nosave	SavePoint 
+25ros03_02	mapflag	nowarp  
+25ros03_02	mapflag	noteleport  
+25ros03_02	mapflag	nomemo  
+25ros03_02	mapflag	loadevent  
+25ros03_02	mapflag	noreturn  
+25ros03_02	mapflag	nobranch  
+25ros03_02	mapflag	noicewall  
+25ros03_02	mapflag	nodrop  
+
+2025arena11	mapflag	gvg
+2025arena11	mapflag	nopenalty  
+2025arena11	mapflag	nosave	SavePoint 
+2025arena11	mapflag	nowarp  
+2025arena11	mapflag	noteleport  
+2025arena11	mapflag	nomemo  
+2025arena11	mapflag	loadevent  
+2025arena11	mapflag	noreturn  
+2025arena11	mapflag	nobranch  
+2025arena11	mapflag	noicewall  
+2025arena11	mapflag	nodrop  
+
+2025arena22	mapflag	gvg
+2025arena22	mapflag	nopenalty  
+2025arena22	mapflag	nosave	SavePoint 
+2025arena22	mapflag	nowarp  
+2025arena22	mapflag	noteleport  
+2025arena22	mapflag	nomemo  
+2025arena22	mapflag	loadevent  
+2025arena22	mapflag	noreturn  
+2025arena22	mapflag	nobranch  
+2025arena22	mapflag	noicewall  
+2025arena22	mapflag	nodrop  
+
+2025arena33	mapflag	gvg
+2025arena33	mapflag	nopenalty  
+2025arena33	mapflag	nosave	SavePoint 
+2025arena33	mapflag	nowarp  
+2025arena33	mapflag	noteleport  
+2025arena33	mapflag	nomemo  
+2025arena33	mapflag	loadevent  
+2025arena33	mapflag	noreturn  
+2025arena33	mapflag	nobranch  
+2025arena33	mapflag	noicewall  
+2025arena33	mapflag	nodrop  
+
+2025arena44	mapflag	gvg
+2025arena44	mapflag	nopenalty  
+2025arena44	mapflag	nosave	SavePoint 
+2025arena44	mapflag	nowarp  
+2025arena44	mapflag	noteleport  
+2025arena44	mapflag	nomemo  
+2025arena44	mapflag	loadevent  
+2025arena44	mapflag	noreturn  
+2025arena44	mapflag	nobranch  
+2025arena44	mapflag	noicewall  
+2025arena44	mapflag	nodrop  
+
+2025arena55	mapflag	gvg
+2025arena55	mapflag	nopenalty  
+2025arena55	mapflag	nosave	SavePoint 
+2025arena55	mapflag	nowarp  
+2025arena55	mapflag	noteleport  
+2025arena55	mapflag	nomemo  
+2025arena55	mapflag	loadevent  
+2025arena55	mapflag	noreturn  
+2025arena55	mapflag	nobranch  
+2025arena55	mapflag	noicewall  
+2025arena55	mapflag	nodrop  

@@ -66,6 +66,10 @@ bool path_search(struct walkpath_data *wpd,int16 m,int16 x0,int16 y0,int16 x1,in
 // tries to find a shootable path
 bool path_search_long(struct shootpath_data *spd,int16 m,int16 x0,int16 y0,int16 x1,int16 y1,cell_chk cell);
 
+// Like path_search_long, but blocks diagonal steps that would slip between two obstructed cells
+// (standard Bresenham can miss 1-cell-thick diagonal barriers). Does not test the destination tile.
+bool path_search_long_strict(struct shootpath_data *spd,int16 m,int16 x0,int16 y0,int16 x1,int16 y1,cell_chk cell);
+
 // distance related functions
 bool check_distance(int32 dx, int32 dy, int32 distance);
 uint32 distance(int32 dx, int32 dy);

@@ -9,7 +9,21 @@
 
 
 //------------------------------------------------------------
-// Fun??o global: restocar stuffs salvos pela Maquina de Restoque
+// Itens que a Maquina de Restoque salva / Curandeira restoca
+// Consumiveis + ETC; exclui cartas (IT_CARD) e item 1000196
+//------------------------------------------------------------
+function	script	F_ROS2026_IsRestockConsumable	{
+	.@id = getarg(0);
+	if (.@id == 1000196)
+		return 0;
+	.@t = getiteminfo(.@id, ITEMINFO_TYPE);
+	if (.@t == IT_CARD)
+		return 0;
+	return (.@t == IT_HEALING || .@t == IT_USABLE || .@t == IT_AMMO || .@t == IT_DELAYCONSUME || .@t == IT_ETC);
+}
+
+//------------------------------------------------------------
+// Funcao global: restocar stuffs salvos pela Maquina de Restoque
 //------------------------------------------------------------
 function	script	F_RestockSavedStuffs	{
 
@@ -23,6 +37,8 @@ function	script	F_RestockSavedStuffs	{
 
 	for (.@i = 0; .@i < getarraysize(Stuffs_id); .@i++) {
 		.@id   = Stuffs_id[.@i];
+		if (!callfunc("F_ROS2026_IsRestockConsumable", .@id))
+			continue;
 		.@need = Stuffs_amt[.@i];
 		.@have = countitem(.@id);
 		.@miss = .@need - .@have;
@@ -35,7 +51,7 @@ function	script	F_RestockSavedStuffs	{
 	if (getarraysize(@tmp_id) == 0) return 0;
 
 	if (!checkweight2(@tmp_id, @tmp_amt)) {
-		// sem peso, n?o entrega nada
+		// sem peso, nao entrega nada
 		return -1;
 	}
 
@@ -52,7 +68,8 @@ function	script	F_RestockSavedStuffs	{
 // NPC Curandeira
 //------------------------------------------------------------
 turbo_room,99,111,4	script	Curandeira	10039,{        
-	// Buff AGI e cura total     
+	// Remove debuffs, musicas de bardo/odalisca e status ruins (ex.: SC_DONTFORGETME); depois AGI + cura
+	sc_end SC_ALL;
 	sc_start SC_INCREASEAGI,2400000,10;    
 	percentheal 100,100;    
 
@@ -74,13 +91,27 @@ turbo_room,99,111,4	script	Curandeira	10039,{
 	end;  
 	  
 S_MONTARIAS:  
+	// So aplica se o player tiver falado com o NPC de montarias e salvo escolha.
+	if (#ROS2026_MOUNT_PREF <= 0) {
+		return;
+	}
+
+	// Mecanico: carrinho + Mado juntos (nao remove um ao aplicar o outro)
+	if ((eaclass()&EAJ_THIRDMASK)==EAJ_MECHANIC && #ROS2026_MOUNT_PREF == 12) {
+		if (getskilllv("MC_PUSHCART") > 0 && !checkcart())
+			setcart;
+		if (getskilllv("NC_MADOLICENCE") > 0 && !checkmadogear())
+			setmadogear;
+		return;
+	}
+
 	// Verifica se ja existe montaria/companheiro ativo, incluindo Warg/Wug.
 	if (checkriding() || checkdragon() || checkfalcon() || checkcart() || checkmadogear() || checkoption(Option_Wug) || checkoption(Option_Wugrider) || ismounting()) {  
 		return;  
 	}  
 	  
 	// Preferencia salva pelo NPC Mestre das Montarias (#ROS2026_MOUNT_PREF):  
-	// 0=auto 1=Ranger Falcon 2=Ranger Warg 10=Mech Cart 11=Mech Mado 20=RK Dragon 30=RG Gryphon 40=Genetic Cart  
+	// 0=auto 1=Ranger Falcon 2=Ranger Warg 10=Mech Cart 11=Mech Mado 12=Mech Cart+Mado 20=RK Dragon 30=RG Gryphon 40=Genetic Cart  
 
 	if ((eaclass()&EAJ_THIRDMASK)==EAJ_RANGER) {  
 		if (#ROS2026_MOUNT_PREF == 1 && getskilllv("HT_FALCON") > 0) {  
@@ -91,16 +122,6 @@ S_MONTARIAS:
 		if (#ROS2026_MOUNT_PREF == 2 && getskilllv("RA_WUGMASTERY") > 0 && getskilllv("RA_WUGRIDER") > 0) {  
 			setfalcon 0;  
 			setoption OPTION_WUGRIDER, 1;  
-			return;  
-		}  
-		if (getskilllv("RA_WUGRIDER") > 0 && getskilllv("RA_WUGMASTERY") > 0) {  
-			setfalcon 0;  
-			setoption OPTION_WUGRIDER, 1;  
-			return;  
-		}  
-		if (getskilllv("HT_FALCON") > 0) {  
-			setoption (OPTION_WUG|OPTION_WUGRIDER), 0;  
-			setfalcon;  
 			return;  
 		}  
 		return;  
@@ -117,31 +138,14 @@ S_MONTARIAS:
 			if (!checkmadogear()) setmadogear;  
 			return;  
 		}  
-		if (getskilllv("NC_MADOLICENCE") > 0) {  
-			if (checkcart()) setcart 0;  
-			if (!checkmadogear()) setmadogear;  
-			return;  
-		}  
-		if (getskilllv("MC_PUSHCART") > 0 && !checkcart()) {  
-			setcart;  
-			return;  
-		}  
 		return;  
 	}  
 
-	if ((eaclass()&EAJ_THIRDMASK)==EAJ_RUNE_KNIGHT && getskilllv("RK_DRAGONTRAINING") > 0) {  
+	if ((eaclass()&EAJ_THIRDMASK)==EAJ_RUNE_KNIGHT && #ROS2026_MOUNT_PREF == 20 && getskilllv("RK_DRAGONTRAINING") > 0) {  
 		setdragon;  
-	} else if ((eaclass()&EAJ_THIRDMASK)==EAJ_ROYAL_GUARD && getskilllv("KN_RIDING") > 0) {  
+	} else if ((eaclass()&EAJ_THIRDMASK)==EAJ_ROYAL_GUARD && #ROS2026_MOUNT_PREF == 30 && getskilllv("KN_RIDING") > 0) {  
 		setriding;  
-	} else if (getskilllv("KN_RIDING") > 0) {  
-		if (BaseJob == Job_Knight || BaseJob == Job_Lord_Knight || BaseJob == Job_Rune_Knight) {  
-			setriding;  
-		} else if (BaseJob == Job_Crusader || BaseJob == Job_Paladin || BaseJob == Job_Royal_Guard) {  
-			setriding;  
-		}  
-	} else if (getskilllv("HT_FALCON") > 0 && BaseJob == Job_Hunter) {  
-		setfalcon;  
-	} else if (getskilllv("MC_PUSHCART") > 0 && (BaseJob == Job_Merchant || BaseJob == Job_Blacksmith || BaseJob == Job_Whitesmith || BaseJob == Job_Genetic)) {  
+	} else if (#ROS2026_MOUNT_PREF == 40 && getskilllv("MC_PUSHCART") > 0 && BaseJob == Job_Genetic) {  
 		setcart;  
 	}  
 	return;  

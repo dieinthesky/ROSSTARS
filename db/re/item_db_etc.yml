@@ -10195,7 +10195,7 @@ Body:
       BuyingStore: true
       DropEffect: CLIENT
     Script: |
-      bonus4 bAddEff,Eff_Crystalize,500,ATF_SHORT,6000;
+      bonus4 bAddEff,Eff_Crystalize,500,ATF_SHORT|ATF_LONG,3000;
   - Id: 4523
     AegisName: Pot_Dofle_Card
     Name: Pot Dofle Card
@@ -90487,16 +90487,6 @@ Body:
     Name: Automatic Module(Fire Howling Tail)
     Type: Etc
     Weight: 10
-    Trade:
-      Override: 100
-      NoDrop: true
-      NoTrade: true
-      NoSell: true
-      NoCart: true
-      NoStorage: true
-      NoGuildStorage: true
-      NoMail: true
-      NoAuction: true
   - Id: 1000196
     AegisName: EP17_2_EP45
     Name: Automatic Module(Storm Buster Trip)

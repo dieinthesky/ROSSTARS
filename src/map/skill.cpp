@@ -4,11 +4,13 @@
 #include "skill.hpp"
 
 #include <array>
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <vector>
 
 #include <common/cbasetypes.hpp>
 #include <common/ers.hpp>
@@ -144,7 +146,7 @@ static int32 skill_check_unit_range2 (struct block_list *bl, int32 x, int32 y, u
 static int32 skill_destroy_trap( struct block_list *bl, va_list ap );
 static int32 skill_check_condition_mob_master_sub (struct block_list *bl, va_list ap);
 static bool skill_check_condition_sc_required( map_session_data& sd, uint16 skill_id, s_skill_condition& require );
-static bool skill_check_unit_movepos(uint8 check_flag, struct block_list *bl, int16 dst_x, int16 dst_y, int32 easy, bool checkpath);
+static bool skill_check_unit_movepos(uint8 check_flag, struct block_list *bl, int16 dst_x, int16 dst_y, int32 easy, bool checkpath, bool ignore_sc_move_lock = false);
 static void skill_blockpc_clear_one( map_session_data& sd, uint16 skill_id );
 
 // Use this function for splash skills that can't hit icewall when cast by players
@@ -519,20 +521,33 @@ uint16 skill_dummy2skill_id(uint16 skill_id) {
  * @param display_failure: Display skill failure message
  * @return True on skill cast success or false on failure
  */
-static int32 skill_check_wm_poemofnetherworld_enemy_on_center_sub(struct block_list *bl, va_list ap) {
+static int32 skill_check_wm_poemofnetherworld_center_blocked_sub(struct block_list *bl, va_list ap) {
 	struct block_list *src = va_arg(ap, struct block_list *);
-	bool *enemy_on_center = va_arg(ap, bool *);
+	bool *center_blocked = va_arg(ap, bool *);
+	status_change *tsc;
 
-	if (enemy_on_center == nullptr || src == nullptr)
+	if (center_blocked == nullptr || src == nullptr)
 		return 0;
 
-	// Ignore caster itself when checking "enemy on center".
-	// This prevents blocking WM_POEMOFNETHERWORLD on the caster's own foot.
-	if (bl->id == src->id)
+	// Caster may place on own cell when not rooted by Netherworld.
+	if (bl->id == src->id) {
+		tsc = status_get_sc(bl);
+		if (tsc != nullptr && tsc->getSCE(SC_NETHERWORLD)) {
+			*center_blocked = true;
+			return 1;
+		}
 		return 0;
+	}
 
 	if (battle_check_target(src, bl, BCT_ENEMY) > 0) {
-		*enemy_on_center = true;
+		*center_blocked = true;
+		return 1;
+	}
+
+	// Anyone already trapped by Poem (ally, neutral, etc.) cannot have a new poem centered on their tile.
+	tsc = status_get_sc(bl);
+	if (tsc != nullptr && tsc->getSCE(SC_NETHERWORLD)) {
+		*center_blocked = true;
 		return 1;
 	}
 
@@ -567,8 +582,139 @@ static int32 skill_vacuum_extreme_group_del_sub(struct block_list *bl, va_list a
 	if (sc == nullptr)
 		return 0;
 	sce = sc->getSCE(SC_VACUUM_EXTREME);
-	if (sce != nullptr && sce->val2 == group_id)
+	if (sce != nullptr && sce->val2 == group_id) {
+		// Ending SC_VACUUM_EXTREME starts SC_VACUUM_EXTREME_POSTDELAY in status.cpp.
+		// Keep POSTDELAY to prevent immediate re-vacuuming after "burn cell / renew LP".
 		status_change_end(bl, SC_VACUUM_EXTREME);
+	}
+	return 0;
+}
+
+/** map_foreachinallarea: clear Vacuum status for chars on LP cells (only for this Vacuum group_id) */
+static int32 skill_vacuum_extreme_group_del_on_lp_cell_sub(struct block_list *bl, va_list ap)
+{
+	int32 group_id = va_arg(ap, int32);
+	status_change *sc;
+	struct status_change_entry *sce;
+
+	nullpo_ret(bl);
+	if (!map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))
+		return 0;
+
+	sc = status_get_sc(bl);
+	if (sc == nullptr)
+		return 0;
+	sce = sc->getSCE(SC_VACUUM_EXTREME);
+	if (sce != nullptr && sce->val2 == group_id) {
+		status_change_end(bl, SC_VACUUM_EXTREME);
+	}
+	return 0;
+}
+
+/** map_foreachinallarea: mark Vacuum groups to not apply SC while target is on LP */
+static int32 skill_lp_vacuum_suppress_group_sub(struct block_list *bl, va_list ap)
+{
+	(void)ap;
+	struct skill_unit *su = (struct skill_unit*)bl;
+	if (su == nullptr || su->group == nullptr)
+		return 0;
+	if (su->group->skill_id == SO_VACUUM_EXTREME)
+		su->group->state.vacuum_lp_suppress_sc_on_lp = 1;
+	return 0;
+}
+
+/** map_foreachinallarea: for Vacuum units inside LP, suppress per-cell SC and optionally remove the unit tile */
+static int32 skill_lp_vacuum_mark_cells_sub(struct block_list *bl, va_list ap)
+{
+	struct skill_unit *su = (struct skill_unit*)bl;
+	if (su == nullptr || su->group == nullptr)
+		return 0;
+	if (su->group->skill_id != SO_VACUUM_EXTREME)
+		return 0;
+
+	// Mark this Vacuum cell as suppressed (no re-apply) for the rest of this Vacuum's lifetime.
+	{
+		const int16 cx = (int16)su->group->val1;
+		const int16 cy = (int16)su->group->val2;
+		const int16 dx = (int16)(su->x - (cx - 3));
+		const int16 dy = (int16)(su->y - (cy - 3));
+		if (dx >= 0 && dx < 7 && dy >= 0 && dy < 7) {
+			const uint32 idx = (uint32)dx + 7u * (uint32)dy;
+			if (idx < 64)
+				su->group->vacuum_sc_suppressed_mask |= (1ULL << idx);
+		}
+	}
+
+	// Also prevent Vacuum from applying SC on LP cells (group-level).
+	su->group->state.vacuum_lp_suppress_sc_on_lp = 1;
+
+	// Remove the Vacuum unit tile so LP visuals/cell control aren't covered.
+	skill_delunit(su);
+	return 1;
+}
+
+/** map_foreachinallarea: clear Vacuum status for chars currently on LP cells */
+static int32 skill_lp_clear_vacuum_sc_on_chars_sub(struct block_list *bl, va_list ap)
+{
+	(void)ap;
+	if (bl == nullptr)
+		return 0;
+	if (!map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))
+		return 0;
+	status_change_end(bl, SC_VACUUM_EXTREME);
+	return 0;
+}
+
+/** map_foreachinallarea: clear Vacuum statuses from chars regardless of cell */
+static int32 skill_clear_vacuum_sc_on_chars_sub(struct block_list *bl, va_list ap)
+{
+	(void)ap;
+	if (bl == nullptr)
+		return 0;
+	status_change_end(bl, SC_VACUUM_EXTREME);
+	return 0;
+}
+
+static void skill_vacuum_extreme_suppress_mask_rect(std::shared_ptr<s_skill_unit_group> vacgrp, int16 rx1, int16 ry1, int16 rx2, int16 ry2)
+{
+	if (vacgrp == nullptr || vacgrp->skill_id != SO_VACUUM_EXTREME)
+		return;
+
+	const int16 cx = (int16)vacgrp->val1;
+	const int16 cy = (int16)vacgrp->val2;
+	const int16 fx1 = cx - 3, fy1 = cy - 3;
+	const int16 fx2 = cx + 3, fy2 = cy + 3;
+
+	const int16 x1 = max(rx1, fx1);
+	const int16 y1 = max(ry1, fy1);
+	const int16 x2 = min(rx2, fx2);
+	const int16 y2 = min(ry2, fy2);
+
+	for (int16 x = x1; x <= x2; ++x) {
+		for (int16 y = y1; y <= y2; ++y) {
+			const int16 dx = (int16)(x - fx1);
+			const int16 dy = (int16)(y - fy1);
+			if (dx < 0 || dx >= 7 || dy < 0 || dy >= 7)
+				continue;
+			const uint32 idx = (uint32)dx + 7u * (uint32)dy;
+			if (idx < 64)
+				vacgrp->vacuum_sc_suppressed_mask |= (1ULL << idx);
+		}
+	}
+}
+
+static int32 skill_vacuum_extreme_suppress_mask_rect_sub(struct block_list *bl, va_list ap)
+{
+	int16 rx1 = (int16)va_arg(ap, int32);
+	int16 ry1 = (int16)va_arg(ap, int32);
+	int16 rx2 = (int16)va_arg(ap, int32);
+	int16 ry2 = (int16)va_arg(ap, int32);
+
+	struct skill_unit *su = (struct skill_unit*)bl;
+	if (su == nullptr || su->group == nullptr || su->group->skill_id != SO_VACUUM_EXTREME)
+		return 0;
+
+	skill_vacuum_extreme_suppress_mask_rect(su->group, rx1, ry1, rx2, ry2);
 	return 0;
 }
 
@@ -583,12 +729,12 @@ bool skill_pos_maxcount_check(struct block_list *src, int16 x, int16 y, uint16 s
 	map_data *mapdata = map_getmapdata(src->m);
 
 	// WM_POEMOFNETHERWORLD placement rules:
-	// - cannot be cast with the center cell (x,y) occupied by an enemy ("enemy foot")
+	// - center (x,y) cannot be an enemy's tile, nor a character rooted by SC_NETHERWORLD (trapped victim)
 	// - cannot overlap another WM_POEMOFNETHERWORLD within its 3x3 footprint around (x,y)
 	if (skill_id == WM_POEMOFNETHERWORLD) {
-		bool enemy_on_center = false;
-		map_foreachincell(skill_check_wm_poemofnetherworld_enemy_on_center_sub, src->m, x, y, BL_CHAR, src, &enemy_on_center);
-		if (enemy_on_center)
+		bool center_blocked = false;
+		map_foreachincell(skill_check_wm_poemofnetherworld_center_blocked_sub, src->m, x, y, BL_CHAR, src, &center_blocked);
+		if (center_blocked)
 			return false;
 
 		// Overlap check for existing Netherworlds.
@@ -612,8 +758,8 @@ bool skill_pos_maxcount_check(struct block_list *src, int16 x, int16 y, uint16 s
 			clif_skill_fail( *sd, skill_id );
 		return false;
 	}
-	// WM_POEMOFNETHERWORLD should be placeable on the caster's own foot.
-	// It already enforces "no enemy on center" and "no overlap in its 3x3 footprint" above,
+	// WM_POEMOFNETHERWORLD should be placeable on the caster's own foot when not SC_NETHERWORLD-rooted.
+	// It already enforces center rules (enemy / trapped char) and "no overlap in its 3x3 footprint" above,
 	// so we bypass UF_NOFOOTSET here to prevent blocking because the caster itself is on (x,y).
 	if (skill_id != WM_POEMOFNETHERWORLD && type&battle_config.skill_nofootset && skill->unit_flag[UF_NOFOOTSET] && skill_check_unit_range2(src, x, y, skill_id, skill_lv, false)) {
 		if (sd && display_failure)
@@ -924,13 +1070,19 @@ int8 skill_isCopyable(map_session_data *sd, uint16 skill_id) {
 
 	s_skill_copyable copyable = skill_db.find(skill_id)->copyable;
 
-	//Reproduce can copy skill if SC__REPRODUCE is active and the skill is copyable by Reproduce
-	if (copyable.option & SKILL_COPY_REPRODUCE && pc_checkskill(sd,SC_REPRODUCE) && sd->sc.getSCE(SC__REPRODUCE) && sd->sc.getSCE(SC__REPRODUCE)->val1)
-		return 2;
-
-	//Plagiarism only able to copy skill while SC_PRESERVE is not active and skill is copyable by Plagiarism
+	//Plagiarism has priority while SC_PRESERVE is not active, so shared copyable skills
+	//replace the Plagiarism slot before touching the Reproduce slot.
 	if (copyable.option & SKILL_COPY_PLAGIARISM && pc_checkskill(sd,RG_PLAGIARISM) > 0 && sd->sc.getSCE(SC_PRESERVE) == nullptr)
 		return 1;
+
+	//Reproduce is treated as the protected copied skill slot:
+	// once a skill is set there, automatic combat copying must not overwrite it.
+	// The custom NPC explicitly resets the slot before assigning a new skill.
+	if (copyable.option & SKILL_COPY_REPRODUCE && pc_checkskill(sd,SC_REPRODUCE) && sd->sc.getSCE(SC__REPRODUCE) && sd->sc.getSCE(SC__REPRODUCE)->val1) {
+		uint16 current_reproduce = static_cast<uint16>(pc_readglobalreg(sd, add_str(SKILL_VAR_REPRODUCE)));
+		if (current_reproduce == 0 || current_reproduce == skill_id)
+			return 2;
+	}
 
 	return 0;
 }
@@ -1327,6 +1479,198 @@ struct s_skill_unit_layout *skill_get_unit_layout(uint16 skill_id, uint16 skill_
  * [2] counts how many targets have been processed. counter is added in skill_area_sub if the foreach function flag is: flag&(SD_SPLASH|SD_PREAMBLE)
  */
 static int32 skill_area_temp[8];
+struct skill_devotion_aoe_snap_entry {
+	int32 target_id;
+	int32 master_id;
+	int32 range; // SC_DEVOTION val3 at snapshot (needed when resolving devotion redirect after movement / desync)
+};
+
+/** Stack of devotion snapshots: nested AoE foreach (or re-entry) must not clear the outer cast's data. */
+static std::vector<std::vector<skill_devotion_aoe_snap_entry>> skill_devotion_aoe_snap_stack;
+
+static bool skill_devotion_aoe_uses_snapshot(uint16 skill_id)
+{
+	switch (skill_id) {
+	case NC_SELFDESTRUCTION:
+	case WM_GREAT_ECHO:
+	case RA_ARROWSTORM:
+	case SN_SHARPSHOOTING:
+	case SR_TIGERCANNON:
+	case SR_EARTHSHAKER:
+	case SR_SKYNETBLOW:
+	case GC_ROLLINGCUTTER:
+	case ASC_METEORASSAULT:
+	case SO_DIAMONDDUST:
+	case SO_PSYCHIC_WAVE:
+	case SO_EARTHGRAVE:
+	case WL_TETRAVORTEX:
+	case WL_TETRAVORTEX_FIRE:
+	case WL_TETRAVORTEX_WATER:
+	case WL_TETRAVORTEX_WIND:
+	case WL_TETRAVORTEX_GROUND:
+	case WL_CRIMSONROCK:
+	case WL_SOULEXPANSION:
+	case WL_JACKFROST:
+	case WL_EARTHSTRAIN:
+	case RK_SONICWAVE:
+	case RK_WINDCUTTER:
+	case RK_IGNITIONBREAK:
+	case RK_STORMBLAST:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static int32 skill_devotion_aoe_snapshot_sub(struct block_list *bl, va_list ap)
+{
+	status_change *tsc = status_get_sc(bl);
+
+	nullpo_ret(bl);
+
+	if (skill_devotion_aoe_snap_stack.empty())
+		return 0;
+
+	if (tsc && tsc->getSCE(SC_DEVOTION)) {
+		status_change_entry *sce = tsc->getSCE(SC_DEVOTION);
+		if (sce) {
+			struct block_list *d_bl = map_id2bl(sce->val1);
+			if (d_bl)
+				skill_devotion_aoe_snap_stack.back().push_back({ bl->id, d_bl->id, sce->val3 });
+		}
+	}
+
+	return 0;
+}
+
+static void skill_devotion_aoe_snapshot_push_range(struct block_list *center, int32 range)
+{
+	skill_devotion_aoe_snap_stack.emplace_back();
+	map_foreachinrange(skill_devotion_aoe_snapshot_sub, center, range, BL_CHAR);
+}
+
+static void skill_devotion_aoe_snapshot_push_area(int16 m, int16 x0, int16 y0, int16 x1, int16 y1)
+{
+	skill_devotion_aoe_snap_stack.emplace_back();
+	map_foreachinarea(skill_devotion_aoe_snapshot_sub, m, x0, y0, x1, y1, BL_CHAR);
+}
+
+static void skill_devotion_aoe_snapshot_pop()
+{
+	if (!skill_devotion_aoe_snap_stack.empty())
+		skill_devotion_aoe_snap_stack.pop_back();
+}
+
+static bool skill_devotion_aoe_is_snapshotted(int32 target_id)
+{
+	if (skill_devotion_aoe_snap_stack.empty())
+		return false;
+
+	for (const skill_devotion_aoe_snap_entry &e : skill_devotion_aoe_snap_stack.back()) {
+		if (e.target_id == target_id)
+			return true;
+	}
+	return false;
+}
+
+static int32 skill_devotion_aoe_get_snapshotted_master(int32 target_id)
+{
+	if (skill_devotion_aoe_snap_stack.empty())
+		return 0;
+
+	for (const skill_devotion_aoe_snap_entry &e : skill_devotion_aoe_snap_stack.back()) {
+		if (e.target_id == target_id)
+			return e.master_id;
+	}
+	return 0;
+}
+
+static int32 skill_devotion_aoe_get_snapshotted_range(int32 target_id)
+{
+	if (skill_devotion_aoe_snap_stack.empty())
+		return 0;
+
+	for (const skill_devotion_aoe_snap_entry &e : skill_devotion_aoe_snap_stack.back()) {
+		if (e.target_id == target_id)
+			return e.range;
+	}
+	return 0;
+}
+
+static bool skill_devotion_pc_master_has_target(const TBL_PC *master, int32 target_id)
+{
+	for (int32 i = 0; i < MAX_DEVOTION; i++) {
+		if (master->devotion[i] == target_id)
+			return true;
+	}
+	return false;
+}
+
+/**
+ * Devotion master link + range snapshot (no distance check).
+ * Listed AoE skills may resolve range from snapshot when SC_DEVOTION was dropped before resolution.
+ */
+static bool skill_devotion_resolve_link(struct block_list *bl, struct block_list *d_bl, status_change *tsc,
+	uint16 skill_id, int32 aoe_snap_master_id, int32 *range_out)
+{
+	nullpo_retr(false, bl);
+	nullpo_retr(false, d_bl);
+	nullpo_retr(false, range_out);
+
+	status_change_entry *sce = (tsc != nullptr) ? tsc->getSCE(SC_DEVOTION) : nullptr;
+
+	bool linked = false;
+	int32 range = 0;
+
+	if (d_bl->type == BL_MER) {
+		TBL_MER *mer = (TBL_MER *)d_bl;
+		if (mer->master == nullptr || mer->master->id != bl->id)
+			return false;
+		linked = true;
+		if (sce != nullptr && map_id2bl(sce->val1) == d_bl)
+			range = sce->val3;
+		else if (skill_devotion_aoe_uses_snapshot(skill_id) && d_bl->id == aoe_snap_master_id)
+			range = skill_devotion_aoe_get_snapshotted_range(bl->id);
+	} else if (d_bl->type == BL_PC) {
+		TBL_PC *pc = (TBL_PC *)d_bl;
+		if (sce != nullptr && map_id2bl(sce->val1) == d_bl && sce->val2 >= 0 && sce->val2 < MAX_DEVOTION
+			&& pc->devotion[sce->val2] == bl->id) {
+			linked = true;
+			range = sce->val3;
+		} else if (skill_devotion_aoe_uses_snapshot(skill_id) && d_bl->id == aoe_snap_master_id &&
+			(skill_devotion_pc_master_has_target(pc, bl->id) || skill_devotion_aoe_is_snapshotted(bl->id))) {
+			// Snapshot is authoritative for this explosion: devotion[] can drift from custom devotion logic
+			// while SC_DEVOTION is still up; still redirect damage to the master.
+			linked = true;
+			range = skill_devotion_aoe_get_snapshotted_range(bl->id);
+		}
+	} else
+		return false;
+
+	if (!linked || range <= 0)
+		return false;
+
+	*range_out = range;
+	return true;
+}
+
+/**
+ * True if this hit should be absorbed by the devotion master (in range, valid link).
+ * Listed AoE skills use snapshot range when SC_DEVOTION was dropped before resolution.
+ */
+static bool skill_devotion_redirect_valid(struct block_list *bl, struct block_list *d_bl, status_change *tsc,
+	uint16 skill_id, int32 aoe_snap_master_id)
+{
+	int32 range = 0;
+
+	if (!skill_devotion_resolve_link(bl, d_bl, tsc, skill_id, aoe_snap_master_id, &range))
+		return false;
+
+	if (bl->m != d_bl->m)
+		return false;
+
+	return check_distance_bl(bl, d_bl, range);
+}
 
 /*==========================================
  * Add effect to skill when hit succesfully target
@@ -1390,7 +1734,7 @@ int32 skill_additional_effect( struct block_list* src, struct block_list *bl, ui
 
 	if( sd )
 	{ // These statuses would be applied anyway even if the damage was blocked by some skills. [Inkfish]
-		if( skill_id != WS_CARTTERMINATION && skill_id != AM_DEMONSTRATION && skill_id != CR_REFLECTSHIELD && skill_id != MS_REFLECTSHIELD && skill_id != GN_HELLS_PLANT_ATK
+		if( skill_id != WS_CARTTERMINATION && skill_id != AM_DEMONSTRATION && skill_id != CR_REFLECTSHIELD && skill_id != MS_REFLECTSHIELD
 #ifndef RENEWAL
 		&& skill_id != ASC_BREAKER
 #endif
@@ -1420,13 +1764,22 @@ int32 skill_additional_effect( struct block_list* src, struct block_list *bl, ui
 						continue; //Range Failed.
 				}
 
+				// Sropho Card (4522): tagged via source_card — melee auto-attack only (skill_id 0, no BF_SKILL, no BF_LONG).
+				// Skills (incl. ranged) and physical ranged autos (bow/gun/etc.) do not inflict this Crystalize.
+				if (it.sc == SC_CRYSTALIZE && it.source_card == static_cast<t_itemid>(4522)) {
+					if (skill_id != 0 || (attack_type & BF_SKILL) || (attack_type & BF_LONG))
+						continue;
+				}
+
 				if (it.flag&ATF_TARGET) {
 					uint8 scflag = SCSTART_NONE;
-					// Keep fixed duration only for Sropho Card profile:
-					// bonus4 bAddEff,Eff_Crystalize,500,ATF_SHORT,5000;
-					if (it.sc == SC_CRYSTALIZE && it.duration == 5000 && it.rate == 500 && (it.flag & ATF_SHORT))
+					int32 sc_delay = 100;
+					// Sropho Card: fixed duration (NOTICKDEF), delay 0 for Renewal tick math.
+					if (it.sc == SC_CRYSTALIZE && it.source_card == static_cast<t_itemid>(4522)) {
 						scflag |= SCSTART_NOTICKDEF;
-					status_change_start(src, bl, it.sc, rate, 7, 0, 0, 0, it.duration, scflag, 100);
+						sc_delay = 0;
+					}
+					status_change_start(src, bl, it.sc, rate, 7, 0, 0, 0, it.duration, scflag, sc_delay);
 				}
 				if (it.flag&ATF_SELF)
 					status_change_start(src, src, it.sc, rate, 7, 0, 0, 0, it.duration, SCSTART_NONE, 100);
@@ -2804,7 +3157,7 @@ int32 skill_counter_additional_effect (struct block_list* src, struct block_list
 	 	!(skill_get_inf(skill_id)&(INF_GROUND_SKILL|INF_SELF_SKILL)) &&
 		(rate=pc_checkskill(sd,HW_SOULDRAIN))>0
 	){	//Soul Drain should only work on targetted spells [Skotlex]
-		if (pc_issit(sd)) pc_setstand(sd, true); //Character stuck in attacking animation while 'sitting' fix. [Skotlex]
+		if (pc_issit(sd) && !sd->sc.getSCE(SC_SITDOWN_FORCE) && !sd->sc.getSCE(SC_BANANA_BOMB_SITDOWN)) pc_setstand(sd, true); //Character stuck in attacking animation while 'sitting' fix. [Skotlex]
 		clif_skill_nodamage(src,*bl,HW_SOULDRAIN,rate);
 		status_heal(src, 0, status_get_lv(bl)*(95+15*rate)/100, 2);
 	}
@@ -3296,7 +3649,7 @@ int16 skill_blown(struct block_list* src, struct block_list* target, char count,
 //		1 - Regular reflection (Maya)
 //		2 - SL_KAITE reflection
 //		3 - NPC_MAGICMIRROR reflection
-// out_devotion_maya_half: Maya do Paladino (devotion master) aplicada ao devoto — reflete 50% do dano ao caster.
+// out_devotion_maya_half: Maya do Paladino (devotion master) aplicada ao devoto — reflete 40% do dano ao caster.
 static int32 skill_magic_reflect(struct block_list* src, struct block_list* bl, int32 type, bool *out_devotion_maya_half)
 {
 	status_change *sc = status_get_sc(bl);
@@ -3579,6 +3932,7 @@ static void skill_do_copy(struct block_list* src,struct block_list *bl, uint16 s
 	else {
 		uint16 idx;
 		uint8 lv;
+		int8 copy_type;
 
 		skill_id = skill_dummy2skill_id(skill_id);
 
@@ -3586,13 +3940,18 @@ static void skill_do_copy(struct block_list* src,struct block_list *bl, uint16 s
 		if (!(idx = skill_get_index(skill_id)))
 			return;
 
-		switch ( skill_isCopyable(tsd, skill_id) ) {
-			case 1: //Copied by Plagiarism
-				//Delete reproduced skill when the plagiarized skill id is the same
-				if ( tsd->reproduceskill_idx && tsd->status.skill[tsd->reproduceskill_idx].flag == SKILL_FLAG_PLAGIARIZED && tsd->status.skill[tsd->reproduceskill_idx].id == skill_id ) {
-					pc_skill_plagiarism_reset(*tsd, 2);
-				}
+		copy_type = skill_isCopyable(tsd, skill_id);
+		if (copy_type == 1 && tsd->cloneskill_idx > 0 &&
+			tsd->status.skill[tsd->cloneskill_idx].flag == SKILL_FLAG_PLAGIARIZED &&
+			tsd->status.skill[tsd->cloneskill_idx].id == skill_id)
+			return;
+		if (copy_type == 2 && tsd->reproduceskill_idx > 0 &&
+			tsd->status.skill[tsd->reproduceskill_idx].flag == SKILL_FLAG_PLAGIARIZED &&
+			tsd->status.skill[tsd->reproduceskill_idx].id == skill_id)
+			return;
 
+		switch ( copy_type ) {
+			case 1: //Copied by Plagiarism
 				pc_skill_plagiarism_reset(*tsd, 1);
 
 				//Cap level to RG_PLAGIARISM level
@@ -3604,11 +3963,6 @@ static void skill_do_copy(struct block_list* src,struct block_list *bl, uint16 s
 				break;
 
 			case 2: //Copied by Reproduce
-				//Delete plagiarized skill when the reproduced skill id is the same
-				if ( tsd->cloneskill_idx > 0 && tsd->status.skill[tsd->cloneskill_idx].flag == SKILL_FLAG_PLAGIARIZED && tsd->status.skill[tsd->cloneskill_idx].id == skill_id ) {
-					pc_skill_plagiarism_reset(*tsd, 1);
-				}
-
 				pc_skill_plagiarism_reset(*tsd, 2);
 
 				//Copied skill level depends on the Reproduce level used
@@ -3765,8 +4119,8 @@ int64 skill_attack (int32 attack_type, struct block_list* src, struct block_list
 		//When caster is not the src of attack, this is a ground skill, and as such, do the relevant target checking. [Skotlex]
 		if (!status_check_skilluse(battle_config.skill_caster_check?src:nullptr, bl, skill_id, 2))
 			return 0;
-	} else if ((flag&SD_ANIMATION) && skill_get_nk(skill_id, NK_SPLASH)) {
-		//Note that splash attacks often only check versus the targetted mob, those around the splash area normally don't get checked for being hidden/cloaked/etc. [Skotlex]
+	} else if (skill_get_nk(skill_id, NK_SPLASH) && !skill_get_inf2(skill_id, INF2_TARGETHIDDEN)) {
+		// Splash from caster (e.g. RK_WINDCUTTER): apply hide/cloak visibility rules (flag 2). Skills with TargetHidden skip this.
 		if (!status_check_skilluse(src, bl, skill_id, 2))
 			return 0;
 	}
@@ -3799,8 +4153,8 @@ int64 skill_attack (int32 attack_type, struct block_list* src, struct block_list
 		dmg.amotion = 0;
 
 	// Mechanic skills that depend on Sorcerer Striking:
-	// If the Mechanic has NC_NEUTRALBARRIER active, require SO_STRIKING (SC_STRIKING) to hit players.
-	// Otherwise, the skill should hit normally.
+	// If the Mechanic has NC_NEUTRALBARRIER active, require SO_STRIKING (SC_STRIKING) for Vulcan Arm / Cold Slower to deal damage.
+	// (Battle layer also blocks long-range hits into the field unless the attacker has Striking on these skills.)
 	if ((skill_id == NC_VULCANARM || skill_id == NC_COLDSLOWER)
 		&& sd && sc && battle_neutral_barrier_ranged_immunity_active(src) && !sc->getSCE(SC_STRIKING)) {
 		dmg.damage = 0;
@@ -3918,12 +4272,12 @@ int64 skill_attack (int32 attack_type, struct block_list* src, struct block_list
 					dmg.damage = i64max(dmg.damage, dmg.div_);
 				}
 			}
-			// Reflexo via Maya do devotion master: metade do dano refletido no caster (Maya no próprio alvo = cheio).
+			// Reflexo via Maya do devotion master: 40% do dano refletido no caster (Maya no próprio alvo = cheio).
 			if (devotion_maya_half && type == 1 && dmg.dmg_lv != ATK_MISS) {
-				dmg.damage = dmg.damage * 50 / 100;
+				dmg.damage = dmg.damage * 40 / 100;
 				dmg.damage = i64max(dmg.damage, dmg.div_);
 				if (dmg.damage2 > 0)
-					dmg.damage2 = dmg.damage2 * 50 / 100;
+					dmg.damage2 = dmg.damage2 * 40 / 100;
 			}
 #endif
 		}
@@ -4211,11 +4565,18 @@ int64 skill_attack (int32 attack_type, struct block_list* src, struct block_list
 	}
 
 	shadow_flag = skill_check_shadowform(bl, damage, dmg.div_);
+	const int64 raw_skill_damage = damage;
+	const bool aoe_devotion_had_snapshot = (skill_devotion_aoe_uses_snapshot(skill_id) && skill_devotion_aoe_is_snapshotted(bl->id));
+	const bool target_has_devotion = (tsc && tsc->getSCE(SC_DEVOTION)) || aoe_devotion_had_snapshot;
+
+	// Listed AoE + devotion snapshot: devotee must not take direct HP loss from the hit; redirect uses raw_skill_damage.
+	if (skill_devotion_aoe_uses_snapshot(skill_id) && aoe_devotion_had_snapshot)
+		damage = 0;
 
 	// Instant damage
 	if( !dmg.amotion ) {
 		//Deal damage before knockback to allow stuff like firewall+storm gust combo.
-		if( (!tsc || (!tsc->getSCE(SC_DEVOTION) && skill_id != CR_REFLECTSHIELD && !tsc->getSCE(SC_WATER_SCREEN_OPTION))
+		if( (!tsc || (!target_has_devotion && skill_id != CR_REFLECTSHIELD && !tsc->getSCE(SC_WATER_SCREEN_OPTION))
 #ifndef RENEWAL
 			|| skill_id == HW_GRAVITATION
 #endif
@@ -4253,16 +4614,26 @@ int64 skill_attack (int32 attack_type, struct block_list* src, struct block_list
 		&& skill_id != PA_PRESSURE && skill_id != HW_GRAVITATION
 #endif
 		) {
-		if (tsc->getSCE(SC_DEVOTION)) {
-			struct status_change_entry *sce = tsc->getSCE(SC_DEVOTION);
-			struct block_list *d_bl = map_id2bl(sce->val1);
+		int32 aoe_devotion_snapshot_master = 0;
+		if (skill_devotion_aoe_uses_snapshot(skill_id))
+			aoe_devotion_snapshot_master = skill_devotion_aoe_get_snapshotted_master(bl->id);
 
-			if (d_bl && (
-				(d_bl->type == BL_MER && ((TBL_MER*)d_bl)->master && ((TBL_MER*)d_bl)->master->id == bl->id) ||
-				(d_bl->type == BL_PC && ((TBL_PC*)d_bl)->devotion[sce->val2] == bl->id)
-				) && check_distance_bl(bl, d_bl, sce->val3) )
-			{
-				int64 devotion_damage = damage;
+		if ((tsc && tsc->getSCE(SC_DEVOTION)) || (skill_devotion_aoe_uses_snapshot(skill_id) && aoe_devotion_snapshot_master != 0)) {
+			struct status_change_entry *sce = (tsc ? tsc->getSCE(SC_DEVOTION) : nullptr);
+			struct block_list *d_bl = nullptr;
+
+			if (skill_devotion_aoe_uses_snapshot(skill_id) && aoe_devotion_snapshot_master != 0)
+				d_bl = map_id2bl(aoe_devotion_snapshot_master);
+			else if (sce)
+				d_bl = map_id2bl(sce->val1);
+
+			int32 devotion_range = 0;
+			const bool devotion_structural = d_bl != nullptr && skill_devotion_resolve_link(bl, d_bl, tsc, skill_id, aoe_devotion_snapshot_master, &devotion_range);
+			const bool devotion_in_map_range = devotion_structural && bl->m == d_bl->m && check_distance_bl(bl, d_bl, devotion_range);
+			const bool devotion_redirect_ok = devotion_in_map_range;
+
+			if (devotion_redirect_ok) {
+				int64 devotion_damage = (skill_devotion_aoe_uses_snapshot(skill_id) && aoe_devotion_snapshot_master != 0) ? raw_skill_damage : damage;
 
 				// Needed to check the devotion master for Rebound Shield status.
 				status_change *d_sc = status_get_sc(d_bl);
@@ -4273,6 +4644,9 @@ int64 skill_attack (int32 attack_type, struct block_list* src, struct block_list
 				if (!rmdamage) {
 					clif_damage(*d_bl, *d_bl, gettick(), 0, 0, devotion_damage, 0, DMG_NORMAL, 0, false);
 					battle_fix_damage(src, d_bl, devotion_damage, 0, 0);
+					// AoE devotion snapshot: never leak residual direct HP loss to devotee.
+					if (skill_devotion_aoe_uses_snapshot(skill_id) && aoe_devotion_snapshot_master != 0)
+						damage = 0;
 				} else {
 					bool isDevotRdamage = false;
 
@@ -4285,9 +4659,32 @@ int64 skill_attack (int32 attack_type, struct block_list* src, struct block_list
 					battle_fix_damage(bl, (!isDevotRdamage) ? bl : d_bl, devotion_damage, 0, 0);
 				}
 			} else {
-				status_change_end(bl, SC_DEVOTION);
-				if (!dmg.amotion)
-					battle_fix_damage(src, bl, damage, dmg.dmotion, 0);
+				// Do not drop SC_DEVOTION only for being out of range: keep the link until the devotee actually takes damage (custom).
+				if (tsc && tsc->getSCE(SC_DEVOTION)) {
+					if (!devotion_structural)
+						status_change_end(bl, SC_DEVOTION);
+					else if (raw_skill_damage > 0 && !devotion_in_map_range)
+						status_change_end(bl, SC_DEVOTION);
+				}
+				if (!dmg.amotion) {
+					// AoE snapshot devotion: out of range (or link broken) — devotee takes full damage from snapshot raw.
+					if (skill_devotion_aoe_uses_snapshot(skill_id) && aoe_devotion_had_snapshot && d_bl) {
+						if (!rmdamage) {
+							clif_damage(*bl, *bl, gettick(), 0, 0, raw_skill_damage, 0, DMG_NORMAL, 0, false);
+							battle_fix_damage(src, bl, raw_skill_damage, dmg.dmotion, 0);
+						} else {
+							bool isDevotRdamage = false;
+
+							if (battle_config.devotion_rdamage && battle_config.devotion_rdamage > rnd()%100)
+								isDevotRdamage = true;
+							block_list *rd_tgt = (!isDevotRdamage) ? bl : d_bl;
+
+							clif_damage(*bl, *rd_tgt, gettick(), 0, 0, raw_skill_damage, 0, DMG_NORMAL, 0, false);
+							battle_fix_damage(bl, rd_tgt, raw_skill_damage, 0, 0);
+						}
+					} else if (!aoe_devotion_had_snapshot || !skill_devotion_aoe_uses_snapshot(skill_id))
+						battle_fix_damage(src, bl, damage, dmg.dmotion, 0);
+				}
 			}
 		}
 		if (tsc->getSCE(SC_WATER_SCREEN_OPTION)) {
@@ -4478,6 +4875,9 @@ static int32 skill_check_unit_range_sub(struct block_list *bl, va_list ap)
 		case SC_ESCAPE:
 			//Non stackable on themselves and traps (including venom dust which does not has the trap inf2 set)
 			if (skill_id != g_skill_id && !skill_get_inf2(g_skill_id, INF2_ISTRAP) && g_skill_id != AS_VENOMDUST && g_skill_id != MH_POISON_MIST)
+				return 0;
+			// Poem of Netherworld floor is a trap (INF2_ISTRAP) but must not count as NoReiteration conflict for Emergency Escape.
+			if (g_skill_id == WM_POEMOFNETHERWORLD)
 				return 0;
 			// Allow renewing/placing Escape/Ankle Snare when our trap with victim is in the area (same cell or adjacent - caster can be next to trap)
 			if (caster && (skill_id == SC_ESCAPE || skill_id == HT_ANKLESNARE) && g_skill_id == skill_id
@@ -4698,6 +5098,16 @@ static int32 skill_check_unit_range2 (struct block_list *bl, int32 x, int32 y, u
 							return 0; // We are the victim in an enemy trap in area - UF_NOFOOTSET must not block Escape
 					}
 				}
+			}
+			// SC_ESCAPE: Poem tiles use UF_NOFOOTSET; ally-cast poem often does not apply SC_NETHERWORLD (Target: Enemy on unit).
+			// Client ground (x,y) can differ from the PC cell — check feet (bl) and cast cell; skip CHAR overlap (e.g. bard on same AoE).
+			if (skill_id == SC_ESCAPE && bl->type == BL_PC) {
+				status_change *bsc = status_get_sc(bl);
+				if (bsc != nullptr && bsc->getSCE(SC_NETHERWORLD) != nullptr)
+					return 0;
+				if (map_find_skill_unit_oncell(bl, bl->x, bl->y, WM_POEMOFNETHERWORLD, nullptr, 0) != nullptr
+					|| map_find_skill_unit_oncell(bl, x, y, WM_POEMOFNETHERWORLD, nullptr, 0) != nullptr)
+					return 0;
 			}
 		}
 		//If the caster is a monster/NPC, only check for players. Otherwise just check characters
@@ -5818,7 +6228,9 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 
 	case KN_CHARGEATK:
 		{
-		bool path = path_search_long(nullptr, src->m, src->x, src->y, bl->x, bl->y,CELL_CHKWALL);
+		// Physical charge: require a clear segment like walking would — use CHKNOPASS (walls + cliffs),
+		// and path_search_long_strict so diagonals cannot slip between two blocked cells (Bresenham gap).
+		bool path = path_search_long_strict(nullptr, src->m, src->x, src->y, bl->x, bl->y, CELL_CHKNOPASS);
 #ifdef RENEWAL
 		int32 dist = skill_get_blewcount(skill_id, skill_lv);
 #else
@@ -5827,15 +6239,12 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 #endif
 		uint8 dir = map_calc_dir(bl, src->x, src->y);
 
-		// teleport to target (if not on WoE grounds)
-		// KN_CHARGEATK: allow advance on Battlegrounds (MF_BATTLEGROUND) and GvG/Battlefields.
-		// We only block WOE via gvg2 checks.
-		if (skill_check_unit_movepos(4, src, bl->x + dirx[dir], bl->y + diry[dir], 0, true))
-			clif_blown(src);
-
-		// cause damage and knockback if the path to target was a straight one
 		if (path) {
-			if(skill_attack(BF_WEAPON, src, src, bl, skill_id, skill_lv, tick, dist)) {
+			// Advance only when unobstructed straight line to target (check_flag 4: block on GvG castle maps).
+			if (skill_check_unit_movepos(4, src, bl->x + dirx[dir], bl->y + diry[dir], 0, true))
+				clif_blown(src);
+
+			if (skill_attack(BF_WEAPON, src, src, bl, skill_id, skill_lv, tick, dist)) {
 #ifdef RENEWAL
 				if (map_getmapdata(src->m)->getMapFlag(MF_PVP))
 					dist += 2; // Knockback is 4 on PvP maps
@@ -5979,15 +6388,42 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 			int16 dir = map_calc_dir(src,bl->x,bl->y);
 
 #ifdef RENEWAL
-			if (skill_id == MO_EXTREMITYFIST && sd && sd->spiritball_old > 5)
-				flag |= 1; // Give +100% damage increase
+			if (skill_id == MO_EXTREMITYFIST) {
+				if (sd && sd->spiritball_old > 5)
+					flag |= 1; // Give +100% damage increase
+				else if (src->type == BL_MOB) {
+					mob_data *ashura_md = BL_CAST( BL_MOB, src );
+					if (ashura_md != nullptr && ashura_md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1 && ashura_md->spiritball > 5)
+						flag |= 1;
+				}
+			}
 #endif
-			skill_attack(BF_WEAPON,src,src,bl,skill_id,skill_lv,tick,flag);
+			// Arena Shura bot: if the target entered Hiding during cast, Ashura must MISS (player-like behavior).
+			if ( skill_id == MO_EXTREMITYFIST && src->type == BL_MOB ) {
+				mob_data *ashura_md = BL_CAST( BL_MOB, src );
+				status_change *tsc = status_get_sc( bl );
+				if ( ashura_md != nullptr && ashura_md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1
+					&& tsc != nullptr && tsc->getSCE( SC_HIDING ) != nullptr ) {
+					clif_skill_damage( *src, *bl, tick, status_get_amotion(src), status_get_dmotion(bl), 0, 1, skill_id, skill_lv, skill_get_hit(skill_id) );
+				} else {
+					skill_attack(BF_WEAPON,src,src,bl,skill_id,skill_lv,tick,flag);
+				}
+			} else {
+				skill_attack(BF_WEAPON,src,src,bl,skill_id,skill_lv,tick,flag);
+			}
 			if (skill_id == MO_EXTREMITYFIST) {
 				status_set_sp(src, 0, 0);
 				sc_start(src, src, SC_EXTREMITYFIST, 100, skill_lv, skill_get_time(skill_id, skill_lv));
 				status_change_end(src, SC_EXPLOSIONSPIRITS);
 				status_change_end(src, SC_BLADESTOP);
+				// Mobs skip skill_consume_requirement at castbegin; arena Shura uses spiritball like a PC.
+				if (src->type == BL_MOB) {
+					mob_data *ext_md = BL_CAST( BL_MOB, src );
+					if ( ext_md != nullptr && ext_md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1 && ext_md->spiritball > 0 ) {
+						ext_md->spiritball = 0;
+						clif_spiritball( src );
+					}
+				}
 			} else {
 				status_set_hp(src, 1, 0);
 				status_change_end(src, SC_NEN);
@@ -6477,7 +6913,11 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 			}
 
 			// recursive invocation of skill_castend_damage_id() with flag|1
+			if (skill_devotion_aoe_uses_snapshot(skill_id))
+				skill_devotion_aoe_snapshot_push_range(bl, splash_size);
 			map_foreachinrange(skill_area_sub, bl, splash_size, starget, src, skill_id, skill_lv, tick, flag|BCT_ENEMY|SD_SPLASH|1, skill_castend_damage_id);
+			if (skill_devotion_aoe_uses_snapshot(skill_id))
+				skill_devotion_aoe_snapshot_pop();
 
 			if (skill_id == RA_ARROWSTORM)
 				status_change_end(src, SC_CAMOUFLAGE);
@@ -6846,7 +7286,6 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 	case MG_FIREBOLT:
 	case MG_LIGHTNINGBOLT:
 	case WZ_EARTHSPIKE:
-	case AL_HEAL:
 	case NPC_DARKTHUNDER:
 	case NPC_FIRESTORM:
 	case PR_ASPERSIO:
@@ -6859,7 +7298,6 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 	case NJ_KOUENKA:
 	case NJ_HYOUSENSOU:
 	case NJ_HUUJIN:
-	case AB_HIGHNESSHEAL:
 	case AB_DUPLELIGHT_MAGIC:
 	case WM_METALICSOUND:
 	case KO_KAIHOU:
@@ -6870,6 +7308,12 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 	case CD_ARBITRIUM:
 	case HN_METEOR_STORM_BUSTER:
 		skill_attack(BF_MAGIC,src,src,bl,skill_id,skill_lv,tick,flag);
+		break;
+
+	case AL_HEAL:
+	case AB_HIGHNESSHEAL:
+		status_change_end(bl, SC_DARKCROW);
+		skill_attack(BF_MAGIC, src, src, bl, skill_id, skill_lv, tick, flag);
 		break;
 
 	case IG_JUDGEMENT_CROSS:
@@ -7078,7 +7522,9 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 			skill_attack(skill_get_type(skill_id),src,src,bl,skill_id,skill_lv,tick,flag);
 		else {
 			clif_skill_nodamage(src,*bl,skill_id,skill_lv);
+			skill_devotion_aoe_snapshot_push_range(bl, skill_get_splash(skill_id, skill_lv));
 			map_foreachinallrange(skill_area_sub, bl,skill_get_splash(skill_id, skill_lv),BL_CHAR,src,skill_id,skill_lv,tick, flag|BCT_ENEMY|1,skill_castend_nodamage_id);
+			skill_devotion_aoe_snapshot_pop();
 		}
 		break;
 	case GC_DARKILLUSION:
@@ -7117,7 +7563,7 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 		if (bl->x != src->x || bl->y != src->y)
 			dir = map_calc_dir(bl, src->x, src->y);	// dir based on target as we move player based on target location
 
-		if (skill_check_unit_movepos(0, src, bl->x + dirx[dir], bl->y + diry[dir], 1, 1)) {
+		if (skill_check_unit_movepos(0, src, bl->x + dirx[dir], bl->y + diry[dir], 1, 1, true)) {
 			clif_blown(src);
 			skill_attack(BF_WEAPON, src, src, bl, skill_id, skill_lv, tick, flag);
 		} else {
@@ -7127,11 +7573,22 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 		break;
 	}
 	case GC_PHANTOMMENACE:
-		if (flag&1) { // Only Hits Invisible Targets
-			if(tsc && (tsc->option&(OPTION_HIDE|OPTION_CLOAK|OPTION_CHASEWALK) || tsc->getSCE(SC_CAMOUFLAGE) || tsc->getSCE(SC_STEALTHFIELD))) {
+		if (flag&1) { // AoE: reveal hidden targets in range; damage roll can still miss (RemoveOnDamaged never ran on miss).
+			if (tsc && (tsc->option&(OPTION_HIDE|OPTION_CLOAK|OPTION_CHASEWALK) || tsc->getSCE(SC_CAMOUFLAGE) || tsc->getSCE(SC_STEALTHFIELD))) {
+				status_change_end(bl, SC_HIDING);
+				status_change_end(bl, SC_CLOAKING);
 				status_change_end(bl, SC_CLOAKINGEXCEED);
-				skill_attack(BF_WEAPON,src,src,bl,skill_id,skill_lv,tick,flag);
+				status_change_end(bl, SC_CAMOUFLAGE);
+				status_change_end(bl, SC_NEWMOON);
+				if (tsc->option & OPTION_CHASEWALK) {
+					status_change_end(bl, SC_CHASEWALK);
+					status_change_end(bl, SC_CHASEWALK2);
+				}
+				if (tsc->getSCE(SC_STEALTHFIELD))
+					status_change_end(bl, SC_STEALTHFIELD);
+				skill_attack(BF_WEAPON, src, src, bl, skill_id, skill_lv, tick, flag);
 			}
+			tsc = status_get_sc(bl);
 			if (tsc && tsc->getSCE(SC__SHADOWFORM) && rnd() % 100 < 100 - tsc->getSCE(SC__SHADOWFORM)->val1 * 10) // [100 - (Skill Level x 10)] %
 				status_change_end(bl, SC__SHADOWFORM); // Should only end, no damage dealt.
 		}
@@ -7179,7 +7636,9 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 				if (skill_lv > 5) {
 					skill_area_temp[0] = i;
 					skill_area_temp[1] = skill[1];
+					skill_devotion_aoe_snapshot_push_range(bl, skill_get_splash(skill_id, skill_lv));
 					map_foreachinallrange(skill_area_sub, bl, skill_get_splash(skill_id, skill_lv), BL_CHAR, src, skill[0], skill_lv, tick, flag | BCT_ENEMY, skill_castend_damage_id);
+					skill_devotion_aoe_snapshot_pop();
 				} else
 					skill_addtimerskill(src, tick + i * 200, bl->id, skill[1], 0, skill[0], skill_lv, i, flag);
 				i++;
@@ -7218,7 +7677,9 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 				if (skill_lv > 5) {
 					skill_area_temp[0] = abs(i - SC_SPHERE_5);
 					skill_area_temp[1] = k;
+					skill_devotion_aoe_snapshot_push_range(bl, skill_get_splash(skill_id, skill_lv));
 					map_foreachinallrange(skill_area_sub, bl, skill_get_splash(skill_id, skill_lv), BL_CHAR, src, subskill, skill_lv, tick, flag | BCT_ENEMY, skill_castend_damage_id);
+					skill_devotion_aoe_snapshot_pop();
 				} else
 					skill_addtimerskill(src, tick + abs(i - SC_SPHERE_5) * 200, bl->id, k, 0, subskill, skill_lv, abs(i - SC_SPHERE_5), flag);
 				status_change_end(src, static_cast<sc_type>(i));
@@ -7450,7 +7911,9 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 			if (tsc && tsc->getSCE(SC__SHADOWFORM) && rnd() % 100 < 100 - tsc->getSCE(SC__SHADOWFORM)->val1 * 10) // [100 - (Skill Level x 10)] %
 				status_change_end(bl, SC__SHADOWFORM);
 		} else {
+			skill_devotion_aoe_snapshot_push_range(bl, skill_get_splash(skill_id, skill_lv));
 			map_foreachinrange(skill_area_sub, bl, skill_get_splash(skill_id, skill_lv), BL_CHAR|BL_SKILL, src, skill_id, skill_lv, tick, flag|BCT_ENEMY|SD_SPLASH|1, skill_castend_damage_id);
+			skill_devotion_aoe_snapshot_pop();
 			clif_skill_damage( *src, *src, tick, status_get_amotion(src), 0, DMGVAL_IGNORE, 1, skill_id, skill_lv, DMG_SINGLE );
 		}
 		break;
@@ -7461,7 +7924,9 @@ int32 skill_castend_damage_id (struct block_list* src, struct block_list *bl, ui
 		} else if (sd) {
 			if (sc && sc->getSCE(SC_COMBO) && sc->getSCE(SC_COMBO)->val1 == SR_FALLENEMPIRE && !sc->getSCE(SC_FLASHCOMBO))
 				flag |= 8; // Only apply Combo bonus when Tiger Cannon is not used through Flash Combo
+			skill_devotion_aoe_snapshot_push_range(bl, skill_get_splash(skill_id, skill_lv));
 			map_foreachinrange(skill_area_sub, bl, skill_get_splash(skill_id, skill_lv), BL_CHAR | BL_SKILL, src, skill_id, skill_lv, tick, flag | BCT_ENEMY | SD_SPLASH | 1, skill_castend_damage_id);
+			skill_devotion_aoe_snapshot_pop();
 		}
 		break;
 
@@ -8121,6 +8586,7 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 			}
 			if (skill_id == AL_HEAL)
 				status_change_end(bl, SC_BITESCAR);
+			status_change_end(bl, SC_DARKCROW);
 			clif_skill_nodamage(src, *bl, skill_id, heal);
 			if( tsc && tsc->getSCE(SC_AKAITSUKI) && heal && skill_id != HLIF_HEAL )
 				heal = ~heal + 1;
@@ -8238,9 +8704,8 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 	case AL_DECAGI:
 	case MER_DECAGI:
 	{
+		// Base success %; MDEF resist (base MDEF only) is applied once in status_get_sc_def(SC_DECREASEAGI).
 		int32 rate = 50 + skill_lv * 3 + (status_get_lv(src) + sstatus->int_) / 5;
-
-		rate -= status_get_mdef(bl);
 
 		if (rate < 0)
 			rate = 0;
@@ -8715,7 +9180,6 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 	case KO_MEIKYOUSISUI:
 	case ALL_ODINS_POWER:
 	case ALL_FULL_THROTTLE:
-	case RA_UNLIMIT:
 	case WL_TELEKINESIS_INTENSE:
 	case RL_HEAT_BARREL:
 	case RL_P_ALTER:
@@ -8767,6 +9231,11 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 	case SKE_ENCHANTING_SKY:
 		clif_skill_nodamage(src,*bl,skill_id,skill_lv,
 			sc_start(src,bl,type,100,skill_lv,skill_get_time(skill_id,skill_lv)));
+		break;
+
+	case RA_UNLIMIT:
+		clif_skill_nodamage_self(src, *bl, skill_id, skill_lv,
+			sc_start(src, bl, type, 100, skill_lv, skill_get_time(skill_id, skill_lv)));
 		break;
 
 	case NPC_GRADUAL_GRAVITY:
@@ -8935,25 +9404,47 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 			sc_start(src, bl, type, skill_lv*20, skill_lv, skill_get_time2(skill_id, skill_lv)));
 		break;
 
-	case KN_AUTOCOUNTER:
-		sc_start(src,bl,type,100,skill_lv,skill_get_time(skill_id,skill_lv));
-		skill_addtimerskill(src,tick + 100,bl->id,0,0,skill_id,skill_lv,BF_WEAPON,flag);
+	case KN_AUTOCOUNTER: {
+		struct block_list *hit = bl;
+		if (sd) {
+			struct unit_data *ud = unit_bl2ud(src);
+			if (bl->id == src->id && ud != nullptr) {
+				int32 ac_tid = 0;
+				if (ud->target > 0 && ud->target != src->id)
+					ac_tid = ud->target;
+				else if (ud->autocounter_grace_target > 0 && DIFF_TICK(tick, ud->autocounter_grace_tick) <= KN_AUTOCOUNTER_TARGET_GRACE_MS)
+					ac_tid = ud->autocounter_grace_target;
+				if (ac_tid > 0) {
+					struct block_list *at = map_id2bl(ac_tid);
+					if (at != nullptr && at->prev != nullptr && src->m == at->m && battle_check_target(src, at, BCT_ENEMY) > 0 &&
+						battle_check_range(src, at, skill_get_range2(src, skill_id, skill_lv, true)))
+						hit = at;
+				}
+			}
+		}
+		if (hit->id != src->id && battle_check_target(src, hit, BCT_ENEMY) > 0) {
+			if (sc && sc->getSCE(SC_AUTOCOUNTER))
+				status_change_end(src, SC_AUTOCOUNTER);
+			clif_specialeffect(src, EF_AUTOCOUNTER, AREA);
+			clif_skill_nodamage(src, *hit, skill_id, skill_lv);
+			skill_attack(BF_WEAPON, src, src, hit, skill_id, skill_lv, tick, flag);
+		} else {
+			sc_start(src, src, type, 100, skill_lv, skill_get_time(skill_id, skill_lv));
+			skill_addtimerskill(src, tick + 100, src->id, 0, 0, skill_id, skill_lv, BF_WEAPON, flag);
+		}
 		break;
+	}
 
 	case SO_STRIKING:
+		// Party/self only. (Vanilla kRO blocks Striking on VS maps; many private servers use MF_PVP on fields,
+		// which made the skill unusable there — allow cast on VS maps like other party buffs.)
 		if (battle_check_target(src, bl, BCT_SELF|BCT_PARTY) > 0) {
-			int32 bonus = 0;
+			// Flat +20/+40/+60/+80/+100 WATK per level for any party PC (fist / non-weapon RH still gets the buff).
+			int32 bonus = dstsd ? 20 * skill_lv : 0;
 
-			if (dstsd) {
-				int16 index = dstsd->equip_index[EQI_HAND_R];
-
-				if (index >= 0 && dstsd->inventory_data[index] && dstsd->inventory_data[index]->type == IT_WEAPON)
-					bonus = (20 * skill_lv) * dstsd->inventory_data[index]->weapon_level;
-			}
-
-			clif_skill_nodamage(src, *bl, skill_id, skill_lv, sc_start2(src,bl, type, 100, skill_lv, bonus, skill_get_time(skill_id, skill_lv)));
+			clif_skill_nodamage(src, *bl, skill_id, skill_lv, sc_start2(src, bl, type, 100, skill_lv, bonus, skill_get_time(skill_id, skill_lv)));
 		} else if (sd)
-			clif_skill_fail( *sd, skill_id, USESKILL_FAIL_TOTARGET );
+			clif_skill_fail(*sd, skill_id, USESKILL_FAIL_TOTARGET);
 		break;
 
 	case NPC_STOP:
@@ -9125,29 +9616,27 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 				return 1;
 			}
 
-			i = 0;
 			count = (sd)? min(skill_lv,MAX_DEVOTION) : 1; // Mercenary only can Devote owner
 			if( sd )
 			{ // Player Devoting Player
-				ARR_FIND(0, count, i, sd->devotion[i] == bl->id );
-				if( i == count )
-				{
-					ARR_FIND(0, count, i, sd->devotion[i] == 0 );
-					if( i == count )
-					{ // No free slots, skill Fail
-						clif_skill_fail( *sd, skill_id );
-						map_freeblock_unlock();
-						return 1;
-					}
+				i = pc_devotion_resolve_slot(sd, bl->id, static_cast<uint8>(count), true);
+				if( i < 0 )
+				{ // All slots held by devotees still in range
+					clif_skill_fail( *sd, skill_id );
+					map_freeblock_unlock();
+					return 1;
 				}
 
 				sd->devotion[i] = bl->id;
 			}
-			else
+			else {
+				i = 0;
 				mer->devotion_flag = 1; // Mercenary Devoting Owner
+			}
 
+			// val4 = CR_DEVOTION/ML_DEVOTION skill_lv (unused by battle logic); allows server to rebuild Duration2 if tick ever becomes invalid.
 			clif_skill_nodamage(src, *bl, skill_id, skill_lv,
-				sc_start4(src, bl, type, 10000, src->id, i, skill_get_range2(src, skill_id, skill_lv, true), 0, skill_get_time2(skill_id, skill_lv)));
+				sc_start4(src, bl, type, 10000, src->id, i, skill_get_range2(src, skill_id, skill_lv, true), skill_lv, skill_get_time2(skill_id, skill_lv)));
 			clif_devotion(src, nullptr);
 		}
 		break;
@@ -9239,6 +9728,19 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 				limit += sd->sc.getSCE(SC_RAISINGDRAGON)->val1;
 			clif_skill_nodamage(src,*bl,skill_id,skill_lv);
 			pc_addspiritball(sd,skill_get_time(skill_id,skill_lv),limit);
+		} else if( src->type == BL_MOB && src == bl ) {
+			mob_data *c_md = BL_CAST( BL_MOB, src );
+			if( c_md != nullptr && c_md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1 ) {
+				int32 limit = skill_lv;
+				if( sc != nullptr && sc->getSCE( SC_RAISINGDRAGON ) )
+					limit += sc->getSCE( SC_RAISINGDRAGON )->val1;
+				limit = std::min<int32>( 15, std::max( 1, limit ) );
+				if( c_md->spiritball < limit ) {
+					c_md->spiritball++;
+					clif_spiritball( c_md, nullptr, AREA );
+				}
+				clif_skill_nodamage( src, *bl, skill_id, skill_lv );
+			}
 		}
 		break;
 
@@ -9250,6 +9752,12 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 			clif_skill_nodamage(src,*bl,skill_id,skill_lv);
 			for (i = 0; i < limit; i++)
 				pc_addspiritball(sd,skill_get_time(skill_id,skill_lv),limit);
+		} else if( src->type == BL_MOB ) {
+			mob_data* md = BL_CAST( BL_MOB, src );
+			if( md != nullptr && md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1 && src == bl ) {
+				clif_skill_nodamage( src, *src, skill_id, skill_lv, true );
+				mob_arena_shura_on_soul_collect( md );
+			}
 		}
 		break;
 
@@ -9279,7 +9787,7 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 
 	case MO_ABSORBSPIRITS:
 		i = 0;
-		if (dstsd && (battle_check_target(src, bl, BCT_SELF) > 0 || (battle_check_target(src, bl, BCT_ENEMY) > 0 && (map_flag_vs(src->m) || (sd && sd->duel_group && sd->duel_group == dstsd->duel_group)))) && // Only works on self and enemies
+		if (dstsd && (battle_check_target(src, bl, BCT_SELF) > 0 || (battle_check_target(src, bl, BCT_ENEMY) > 0 && (map_flag_vs(src->m) || (sd && sd->duel_group && sd->duel_group == dstsd->duel_group) || (src->type == BL_MOB && BL_CAST( BL_MOB, src )->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1)))) && // Only works on self and enemies (allow arena shura bot)
 			((dstsd->class_&MAPID_BASEMASK) != MAPID_GUNSLINGER || (dstsd->class_&MAPID_UPPERMASK) != MAPID_REBELLION)) { // split the if for readability, and included gunslingers in the check so that their coins cannot be removed [Reddozen]
 			if (dstsd->spiritball > 0) {
 				i = dstsd->spiritball * 7;
@@ -9288,6 +9796,12 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 			if (dstsd->spiritcharm_type != CHARM_TYPE_NONE && dstsd->spiritcharm > 0) {
 				i += dstsd->spiritcharm * 7;
 				pc_delspiritcharm(dstsd,dstsd->spiritcharm,dstsd->spiritcharm_type);
+			}
+		} else if (dstmd && dstmd->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1 && battle_check_target(src, bl, BCT_ENEMY) > 0) {
+			// Same as PC branch: convert drained spirit spheres into SP for the caster (mob vs mob Shura bot).
+			if ( dstmd->spiritball > 0 ) {
+				i = dstmd->spiritball * 7;
+				mob_arena_shura_on_absorbed( dstmd );
 			}
 		} else if (dstmd && !status_has_mode(tstatus,MD_STATUSIMMUNE) && rnd() % 100 < 20) { // check if target is a monster and not status immune, for the 20% chance to absorb 2 SP per monster's level [Reddozen]
 			i = 2 * dstmd->level;
@@ -9435,8 +9949,12 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 
 		skill_area_temp[1] = 0;
 		clif_skill_nodamage(src,*bl,skill_id,skill_lv);
+		if (skill_devotion_aoe_uses_snapshot(skill_id))
+			skill_devotion_aoe_snapshot_push_range(bl, skill_get_splash(skill_id, skill_lv));
 		i = map_foreachinrange(skill_area_sub, bl, skill_get_splash(skill_id, skill_lv), starget,
 				src, skill_id, skill_lv, tick, flag|BCT_ENEMY|SD_SPLASH|1, skill_castend_damage_id);
+		if (skill_devotion_aoe_uses_snapshot(skill_id))
+			skill_devotion_aoe_snapshot_pop();
 		if( !i && ( skill_id == RK_WINDCUTTER || skill_id == NC_AXETORNADO || skill_id == LG_CANNONSPEAR || skill_id == SR_SKYNETBLOW || skill_id == KO_HAPPOKUNAI ) )
 			clif_skill_damage( *src, *src, tick, status_get_amotion(src), 0, DMGVAL_IGNORE, 1, skill_id, skill_lv, DMG_SINGLE );
 	}
@@ -9457,7 +9975,7 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 		if (flag & 1) {
 			skill_area_temp[1] = 0;
 
-			if (sd && pc_issit(sd)) { // Force player to stand before attacking
+			if (sd && pc_issit(sd) && !sd->sc.getSCE(SC_SITDOWN_FORCE) && !sd->sc.getSCE(SC_BANANA_BOMB_SITDOWN)) { // Force player to stand before attacking
 				pc_setstand(sd, true);
 				skill_sit(sd, false);
 			}
@@ -9524,7 +10042,9 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 #else
 		clif_skill_damage( *src, *src, tick, status_get_amotion(src), 0, DMGVAL_IGNORE, 1, skill_id, skill_lv, DMG_SINGLE );
 #endif
+		skill_devotion_aoe_snapshot_push_range(bl, skill_get_splash(skill_id, skill_lv));
 		map_foreachinrange(skill_area_sub, bl, skill_get_splash(skill_id, skill_lv), BL_CHAR|BL_SKILL, src, skill_id, skill_lv, tick, flag|BCT_ENEMY|SD_SPLASH|1, skill_castend_damage_id);
+		skill_devotion_aoe_snapshot_pop();
 		break;
 
 	case SR_TIGERCANNON:
@@ -9807,7 +10327,7 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 			map_freeblock_unlock();
 			return 0;
 		}
-		i = sc_start(src,bl,type,100,skill_lv,skill_get_time(skill_id,skill_lv));
+		i = sc_start(src,bl,type,100,skill_lv,skill_id == SC_REPRODUCE ? INFINITE_TICK : skill_get_time(skill_id,skill_lv));
 		if( i )
 			clif_skill_nodamage(src,*bl,skill_id,( skill_id == LG_FORCEOFVANGUARD || skill_id == RA_CAMOUFLAGE ) ? skill_lv : -1,i);
 		else if( sd )
@@ -10452,6 +10972,8 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 			// Monsters will unlock their target instead
 			else if (dstmd)
 				mob_unlocktarget(dstmd, tick);
+
+			status_change_end(bl, SC_DARKCROW);
 
 			if(tsc == nullptr || tsc->empty())
 				break;
@@ -11769,6 +12291,12 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 			clif_skill_damage( *src, *bl,tick, status_get_amotion(src), 0, DMGVAL_IGNORE, 1, skill_id, skill_lv, DMG_SINGLE );
 			i = skill_get_splash(skill_id,skill_lv);
 			map_foreachinallarea(skill_cell_overlap, src->m, src->x-i, src->y-i, src->x+i, src->y+i, BL_SKILL, LG_EARTHDRIVE, &dummy, src, skill_lv);
+			// Suppress Vacuum re-application on all burned cells for any Vacuum group whose 7x7 footprint intersects this AoE.
+			// Search a slightly larger area to find the Vacuum group even if the burned cell has no Vacuum unit tile (LP/holes).
+			map_foreachinallarea(skill_vacuum_extreme_suppress_mask_rect_sub, src->m, src->x-i-3, src->y-i-3, src->x+i+3, src->y+i+3, BL_SKILL,
+				src->x-i, src->y-i, src->x+i, src->y+i);
+			// Burned cells must release Vacuum immob on chars in the AoE (LP or not).
+			map_foreachinallarea(skill_clear_vacuum_sc_on_chars_sub, src->m, src->x-i, src->y-i, src->x+i, src->y+i, BL_CHAR);
 			map_foreachinrange(skill_area_sub, bl,i,BL_CHAR,src,skill_id,skill_lv,tick,flag|BCT_ENEMY|1,skill_castend_damage_id);
 			clif_skill_nodamage(src, *src, skill_id, skill_lv);
 		}
@@ -11829,7 +12357,9 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 		{
 			int16 count = 1;
 			skill_area_temp[2] = 0;
+			skill_devotion_aoe_snapshot_push_range(src, skill_get_splash(skill_id, skill_lv));
 			map_foreachinrange(skill_area_sub,src,skill_get_splash(skill_id,skill_lv),BL_CHAR,src,skill_id,skill_lv,tick,flag|BCT_ENEMY|SD_PREAMBLE|SD_SPLASH|1,skill_castend_damage_id);
+			skill_devotion_aoe_snapshot_pop();
 			if( tsc && tsc->getSCE(SC_ROLLINGCUTTER) )
 			{ // Every time the skill is casted the status change is reseted adding a counter.
 				count += (int16)tsc->getSCE(SC_ROLLINGCUTTER)->val1;
@@ -11937,6 +12467,7 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 	case AB_CHEAL:
 		if( !sd || sd->status.party_id == 0 || flag&1 ) {
 			if( sd && tstatus && !battle_check_undead(tstatus->race, tstatus->def_ele) && !tsc->getSCE(SC_BERSERK) ) {
+				status_change_end(bl, SC_DARKCROW);
 				int32 partycount = (sd->status.party_id ? party_foreachsamemap(party_sub_count, sd, 0) : 0);
 
 				i = skill_calc_heal(src, bl, AL_HEAL, pc_checkskill(sd, AL_HEAL), true);
@@ -12043,8 +12574,21 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 			if (dstsd)
 				pc_bonus_script_clear(dstsd,BSF_REM_ON_CLEARANCE);
 
+			status_change_end(bl, SC_DARKCROW);
+
 			if(tsc == nullptr || tsc->empty())
 				break;
+
+			// SC_ESCAPE: if target is held by an Escape trap, remove the trap unit group too.
+			// SC_ESCAPE traps apply SC_ANKLE with val2 = trap group_id (see HT_SPRINGTRAP logic).
+			if (status_change_entry *ankle = tsc->getSCE(SC_ANKLE); ankle != nullptr) {
+				if (std::shared_ptr<s_skill_unit_group> grp = skill_id2group(ankle->val2); grp != nullptr) {
+					if (grp->skill_id == SC_ESCAPE && grp->val2 == bl->id) {
+						skill_delunitgroup(grp);
+						status_change_end(bl, SC_ANKLE);
+					}
+				}
+			}
 
 			//Statuses change that can't be removed by Cleareance
 			for (const auto &it : status_db) {
@@ -12107,10 +12651,11 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 	case WL_WHITEIMPRISON:
 		if( (src == bl || battle_check_target(src, bl, BCT_ENEMY)>0) && status_get_class_(bl) != CLASS_BOSS && !status_isimmune(bl) ) // Should not work with Bosses.
 		{
+			// Base % (×100 in sc_start2): JobLv/4 + 20 + 5×SkillLv; resist via status_get_sc_def (STR/BaseLv/LUK term /10000).
 			int32 rate = ( sd? sd->status.job_level : 50 ) / 4;
 
 			if( src == bl ) rate = 100; // Success Chance: On self, 100%
-			else if(bl->type == BL_PC) rate += 20 + 10 * skill_lv; // On Players, (20 + 10 * Skill Level) %
+			else if(bl->type == BL_PC) rate += 20 + 5 * skill_lv;
 			else rate += 40 + 10 * skill_lv; // On Monsters, (40 + 10 * Skill Level) %
 
 			if( sd )
@@ -12332,7 +12877,9 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 				pc_setmadogear(sd, false);
 			skill_area_temp[1] = 0;
 			clif_skill_nodamage(src, *bl, skill_id, skill_lv);
+			skill_devotion_aoe_snapshot_push_range(bl, skill_get_splash(skill_id, skill_lv));
 			map_foreachinrange(skill_area_sub, bl, skill_get_splash(skill_id, skill_lv), BL_CHAR|BL_SKILL, src, skill_id, skill_lv, tick, flag|BCT_ENEMY|SD_SPLASH|1, skill_castend_damage_id);
+			skill_devotion_aoe_snapshot_pop();
 			status_set_sp(src, 0, 0);
 			skill_clear_unitgroup(src);
 		}
@@ -12480,6 +13027,8 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 
         if (duration && sce_after != nullptr && sce_after != sce_before) {
             clif_skill_nodamage(src, *bl, skill_id, 0, duration);
+			if (unit_data *const udm = unit_bl2ud(src))
+				udm->sc_mask_aftercast_success = 1;
             if (sd) {
                 int32 cooldown = pc_get_skillcooldown(sd, skill_id, skill_lv);
                 if (cooldown > 0)
@@ -12510,6 +13059,8 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 
 			if (duration && sce_after != nullptr && sce_after != sce_before) {
 				if (clif_skill_nodamage(src, *bl, skill_id, 0, duration)) {
+					if (unit_data *const udm = unit_bl2ud(src))
+						udm->sc_mask_aftercast_success = 1;
 					int32 sp = 100 * skill_lv;
 
 					if( dstmd )
@@ -12569,10 +13120,25 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 			}
 		} else {
 			int32 count = 0;
+			int32 ballcap = 15;
+			if( sd )
+				ballcap = sd->spiritball_old;
+			else if( src->type == BL_MOB ) {
+				mob_data *cc_md = BL_CAST( BL_MOB, src );
+				if( cc_md != nullptr && cc_md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1 )
+					ballcap = cc_md->spiritball;
+			}
 			clif_skill_damage( *src, *bl, tick, status_get_amotion(src), 0, DMGVAL_IGNORE, 1, skill_id, skill_lv, DMG_SINGLE );
-			count = map_forcountinrange(skill_area_sub, src, skill_get_splash(skill_id,skill_lv), (sd)?sd->spiritball_old:15, // Assume 15 spiritballs in non-charactors
+			count = map_forcountinrange(skill_area_sub, src, skill_get_splash(skill_id,skill_lv), ballcap,
 				BL_CHAR, src, skill_id, skill_lv, tick, flag|BCT_ENEMY|1, skill_castend_nodamage_id);
 			if( sd ) pc_delspiritball(sd, count, 0);
+			else if( src->type == BL_MOB ) {
+				mob_data *cc_md = BL_CAST( BL_MOB, src );
+				if( cc_md != nullptr && cc_md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1 ) {
+					cc_md->spiritball = static_cast<int16>( std::max<int32>( 0, cc_md->spiritball - count ) );
+					clif_spiritball( cc_md, nullptr, AREA );
+				}
+			}
 			clif_skill_nodamage(src, *src, skill_id, skill_lv,
 				sc_start2(src,src, SC_CURSEDCIRCLE_ATKER, 100, skill_lv, count, skill_get_time(skill_id,skill_lv)));
 		}
@@ -12591,10 +13157,25 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 			}
 		} else {
 			int32 count = 0;
+			int32 ballcap = 15;
+			if( sd )
+				ballcap = sd->spiritball_old;
+			else if( src->type == BL_MOB ) {
+				mob_data *cc_md = BL_CAST( BL_MOB, src );
+				if( cc_md != nullptr && cc_md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1 )
+					ballcap = cc_md->spiritball;
+			}
 			clif_skill_damage( *src, *bl, tick, status_get_amotion(src), 0, DMGVAL_IGNORE, 1, skill_id, skill_lv, DMG_SINGLE );
-			count = map_forcountinrange(skill_area_sub, src, skill_get_splash(skill_id,skill_lv), (sd)?sd->spiritball_old:15, // Assume 15 spiritballs in non-charactors
+			count = map_forcountinrange(skill_area_sub, src, skill_get_splash(skill_id,skill_lv), ballcap,
 				BL_CHAR, src, skill_id, skill_lv, tick, flag|BCT_ENEMY|1, skill_castend_nodamage_id);
 			if( sd ) pc_delspiritball(sd, count, 0);
+			else if( src->type == BL_MOB ) {
+				mob_data *cc_md = BL_CAST( BL_MOB, src );
+				if( cc_md != nullptr && cc_md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1 ) {
+					cc_md->spiritball = static_cast<int16>( std::max<int32>( 0, cc_md->spiritball - count ) );
+					clif_spiritball( cc_md, nullptr, AREA );
+				}
+			}
 			clif_skill_nodamage(src, *src, skill_id, skill_lv,
 				sc_start2(src,src, SC_CURSEDCIRCLE_ATKER, 50, skill_lv, count, skill_get_time(skill_id,skill_lv)));
 		}
@@ -12607,6 +13188,16 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 			for( i = 0; i < max; i++ ) // Don't call more than max available spheres.
 				pc_addspiritball(sd, skill_get_time(skill_id, skill_lv), max);
 			clif_skill_nodamage(src, *bl, skill_id, skill_lv, sc_start(src,bl, type, 100, skill_lv,skill_get_time(skill_id, skill_lv)));
+		} else if( src->type == BL_MOB ) {
+			// Keep this isolated: only the arena shura bot uses this path.
+			mob_data* md = BL_CAST( BL_MOB, src );
+			if (md != nullptr && md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1) {
+				sc_start(src, src, SC_EXPLOSIONSPIRITS, 100, skill_lv, skill_get_time(skill_id, skill_lv));
+				clif_skill_nodamage(src, *src, skill_id, skill_lv, sc_start(src, src, type, 100, skill_lv, skill_get_time(skill_id, skill_lv)));
+				const int16 maxballs = std::min<int16>( 15, static_cast<int16>( 5 + skill_lv ) );
+				md->spiritball = maxballs;
+				clif_spiritball( md, nullptr, AREA );
+			}
 		}
 		break;
 
@@ -12722,8 +13313,11 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 		break;
 
 	case WM_VOICEOFSIREN:
-		if (flag&1)
-			sc_start2(src,bl,type,skill_area_temp[5],skill_lv,src->id,skill_area_temp[6]);
+		if (flag&1) {
+			// Apply only on success; otherwise do not touch existing statuses (e.g. Sleep/Deep Sleep).
+			if (rnd()%100 < skill_area_temp[5])
+				sc_start2(src,bl,type,100,skill_lv,src->id,skill_area_temp[6]);
+		}
 		else {
 			// Success chance: (Skill Level x 6) + (Voice Lesson Skill Level x 2) + (Caster's Job Level / 2) %
 			skill_area_temp[5] = skill_lv * 6 + ((sd) ? pc_checkskill(sd, WM_LESSON) : 1) * 2 + (sd ? sd->status.job_level : 50) / 2;
@@ -12748,10 +13342,10 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 	case WM_SATURDAY_NIGHT_FEVER:
 		if( flag&1 ) {
 			sc_start(src,bl,type,100,skill_lv,skill_get_time(skill_id,skill_lv));
-		} else if (sd) {
-			if( rnd()%100 < sstatus->int_ / 6 + sd->status.job_level / 5 + skill_lv * 4 + pc_checkskill(sd, WM_LESSON) ) { // !TODO: What's the Lesson bonus?
+		} else { // Visual always on caster (even on fail); area debuff only on success.
+			clif_skill_nodamage(src,*src,skill_id,skill_lv);
+			if( sd && rnd()%100 < sstatus->int_ / 6 + sd->status.job_level / 5 + skill_lv * 4 + pc_checkskill(sd, WM_LESSON) ) { // !TODO: What's the Lesson bonus?
 				map_foreachinallrange(skill_area_sub, src, skill_get_splash(skill_id,skill_lv),BL_PC, src, skill_id, skill_lv, tick, flag|BCT_ENEMY|1, skill_castend_nodamage_id);
-				clif_skill_nodamage(src,*bl,skill_id,skill_lv);
 			}
 		}
 		break;
@@ -12774,11 +13368,13 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 
 	case WM_MELODYOFSINK:
 		if( flag&1 ) {
-			sc_start(src,bl,type,100,skill_lv,skill_get_time(skill_id,skill_lv));
-		} else {	// These affect to all targets around the caster.
-			if( rnd()%100 < 5 + 5 * skill_lv + pc_checkskill(sd, WM_LESSON) ) { // !TODO: What's the Lesson bonus?
+			// val1 = skill_lv, val2 = WM_LESSON (for INT / SP% drain formulas)
+			sc_start2(src, bl, type, 100, skill_lv, sd ? pc_checkskill(sd, WM_LESSON) : 0, skill_get_time(skill_id, skill_lv));
+		} else {	// Visual always on caster (attempt visible even on fail); area debuff only on success.
+			clif_skill_nodamage(src,*src,skill_id,skill_lv);
+			// Chance = [(SkillLv * 5) + 5] + (Musical Lesson / 2) %
+			if( sd && rnd()%100 < (skill_lv * 5 + 5) + pc_checkskill(sd, WM_LESSON) / 2 ) {
 				map_foreachinallrange(skill_area_sub, src, skill_get_splash(skill_id,skill_lv),BL_PC, src, skill_id, skill_lv, tick, flag|BCT_ENEMY|1, skill_castend_nodamage_id);
-				clif_skill_nodamage(src,*bl,skill_id,skill_lv);
 			}
 		}
 		break;
@@ -12954,9 +13550,12 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 	case WM_LULLABY_DEEPSLEEP:
 		if (flag&1) {
 			int32 rate = 4 * skill_lv + (sd ? pc_checkskill(sd, WM_LESSON) * 2 : 0) + status_get_lv(src) / 15 + (sd ? sd->status.job_level / 5 : 0);
-			int32 duration = 60000; // Fixed 60 seconds, unaffected by target resistance.
+			// Duration = 60.000 - {[(Target BaseLv ÷ 20) + (Target INT ÷ 20)] × 1.000} seconds
+			// 1.000 = 1 second => values below are in milliseconds.
+			int32 duration = 60000 - ((status_get_lv(bl) / 20 + status_get_int(bl) / 20) * 1000);
+			duration = cap_value(duration, 0, 60000);
 
-			// Keep the fixed duration (no duration reduction from target resistance).
+			// Keep the fixed-by-formula duration (no duration reduction from target resistance).
 			status_change_start(src, bl, type, 100 * rate, skill_lv, 0, 0, 0, duration, SCSTART_NOTICKDEF, 0);
 		} else {
 			clif_skill_nodamage(src, *bl, skill_id, skill_lv);
@@ -13625,9 +14224,12 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 		break;
 
 	case AB_VITUPERATUM:
-		if (flag&1)
-			clif_skill_nodamage(src, *bl, skill_id, skill_lv, sc_start(src, bl, type, 100, skill_lv, skill_get_time(skill_id, skill_lv)));
-		else {
+		if (flag&1) {
+			if (tsc && (tsc->getSCE(SC_FREEZE) || tsc->getSCE(SC_STONE)))
+				clif_skill_nodamage(src, *bl, skill_id, skill_lv, 0);
+			else
+				clif_skill_nodamage(src, *bl, skill_id, skill_lv, sc_start(src, bl, type, 100, skill_lv, skill_get_time(skill_id, skill_lv)));
+		} else {
 			map_foreachinrange(skill_area_sub, bl, skill_get_splash(skill_id, skill_lv), BL_CHAR, src, skill_id, skill_lv, tick, flag|BCT_ENEMY|1, skill_castend_nodamage_id);
 			clif_skill_nodamage(src, *bl, skill_id, skill_lv);
 		}
@@ -14187,10 +14789,10 @@ int32 skill_castend_nodamage_id (struct block_list *src, struct block_list *bl, 
 		}
 	}
 
-	if (skill_id != SR_CURSEDCIRCLE && skill_id != NPC_SR_CURSEDCIRCLE) {
-		if (sc && sc->getSCE(SC_CURSEDCIRCLE_ATKER)) // Should only remove after the skill had been casted.
-			status_change_end(src,SC_CURSEDCIRCLE_ATKER);
-	}
+    if (skill_id != SR_CURSEDCIRCLE && skill_id != NPC_SR_CURSEDCIRCLE && skill_id != ALL_EQSWITCH) {
+        if (sc && sc->getSCE(SC_CURSEDCIRCLE_ATKER)) // Should only remove after the skill had been casted.
+            status_change_end(src,SC_CURSEDCIRCLE_ATKER);
+    }
 
 	if (dstmd) { //Mob skill event for no damage skills (damage ones are handled in battle_damage/skill_attack) [Skotlex]
 		if (battle_config.exp_bonus_nodamage_attacker != 0)
@@ -14425,6 +15027,21 @@ TIMER_FUNC( skill_keep_using ){
 	return 0;
 }
 
+static bool skill_is_sc_masquerade(uint16 skill_id)
+{
+	switch (skill_id) {
+		case SC_ENERVATION:
+		case SC_GROOMY:
+		case SC_LAZINESS:
+		case SC_UNLUCKY:
+		case SC_WEAKNESS:
+		case SC_IGNORANCE:
+			return true;
+		default:
+			return false;
+	}
+}
+
 /**
  * Check & process skill to target on castend. Determines if skill is 'damage' or 'nodamage'
  * @param tid
@@ -14485,6 +15102,9 @@ TIMER_FUNC(skill_castend_id){
 	do {
 		bool fail = false;
 		int8 res = USESKILL_FAIL_LEVEL;
+		uint16 masq_skill_id = 0;
+		uint8 masq_skill_lv = 0;
+		const bool is_sc_masquerade_cast = skill_is_sc_masquerade(ud->skill_id);
 
 		if (status_isdead(*src))
 			break;
@@ -14590,6 +15210,24 @@ TIMER_FUNC(skill_castend_id){
 			}
 		}
 
+		// Sacrifice / Redenção: use the same Chebyshev + line-of-sight rules as SC_DEVOTION val3 (client cast range can be 1 tile loose on axis).
+		if (src != target && (ud->skill_id == CR_DEVOTION || ud->skill_id == ML_DEVOTION)) {
+			int32 devotion_range = skill_get_range2(src, ud->skill_id, ud->skill_lv, true);
+			if (!check_distance_bl(src, target, devotion_range)) {
+				if (sd)
+					clif_skill_fail(*sd, ud->skill_id);
+				break;
+			}
+			{
+				int32 d = distance_bl(src, target);
+				if (d >= 2 && d <= AREA_SIZE && !path_search_long(nullptr, src->m, src->x, src->y, target->x, target->y, CELL_CHKWALL)) {
+					if (sd)
+						clif_skill_fail(*sd, ud->skill_id);
+					break;
+				}
+			}
+		}
+
 		if (src != target && battle_config.skill_add_range &&
 			!check_distance_bl(src, target, skill_get_range2(src, ud->skill_id, ud->skill_lv, true) + battle_config.skill_add_range))
 		{
@@ -14673,8 +15311,14 @@ TIMER_FUNC(skill_castend_id){
 		if (ud->walktimer != INVALID_TIMER && ud->skill_id != TK_RUN && ud->skill_id != RA_WUGDASH)
 			unit_stop_walking( src, USW_FIXPOS );
 
-		if (!sd || sd->skillitem != ud->skill_id || skill_get_delay(ud->skill_id, ud->skill_lv))
-			ud->canact_tick = i64max(tick + skill_delayfix(src, ud->skill_id, ud->skill_lv), ud->canact_tick - SECURITY_CASTTIME);
+		if (!is_sc_masquerade_cast) {
+			if (!sd || sd->skillitem != ud->skill_id || skill_get_delay(ud->skill_id, ud->skill_lv))
+				ud->canact_tick = i64max(tick + skill_delayfix(src, ud->skill_id, ud->skill_lv), ud->canact_tick - SECURITY_CASTTIME);
+		} else {
+			// AfterCastActDelay from skill_db is applied only if the masquerade lands (see below).
+			if (!sd || sd->skillitem != ud->skill_id)
+				ud->canact_tick = i64max(tick, ud->canact_tick - SECURITY_CASTTIME);
+		}
 
 		switch (src->type) {
 			case BL_PC:
@@ -14716,7 +15360,7 @@ TIMER_FUNC(skill_castend_id){
 			break;
 		}
 
-		if( battle_config.display_status_timers && sd )
+		if( battle_config.display_status_timers && sd && !is_sc_masquerade_cast )
 			clif_status_change(src, EFST_POSTDELAY, 1, skill_delayfix(src, ud->skill_id, ud->skill_lv), 0, 0, 0);
 		if( sd )
 		{
@@ -14764,12 +15408,26 @@ TIMER_FUNC(skill_castend_id){
 		if (sd)
 			toy7_log_skill_use(sd, ud->skill_id);
 
+		if (is_sc_masquerade_cast) {
+			ud->sc_mask_aftercast_success = 0;
+			masq_skill_id = ud->skill_id;
+			masq_skill_lv = static_cast<uint8>(ud->skill_lv);
+		}
+
 		map_freeblock_lock();
 
 		if (skill_get_casttype(ud->skill_id) == CAST_NODAMAGE)
 			skill_castend_nodamage_id(src,target,ud->skill_id,ud->skill_lv,tick,flag);
 		else
 			skill_castend_damage_id(src,target,ud->skill_id,ud->skill_lv,tick,flag);
+
+		if (is_sc_masquerade_cast && sd && ud->sc_mask_aftercast_success != 0 && masq_skill_id != 0) {
+			const int32 masq_dly = skill_delayfix(src, masq_skill_id, masq_skill_lv);
+			ud->canact_tick = i64max(tick + masq_dly, ud->canact_tick);
+			if (battle_config.display_status_timers)
+				clif_status_change(src, EFST_POSTDELAY, 1, masq_dly, 0, 0, 0);
+		}
+		ud->sc_mask_aftercast_success = 0;
 
 		if( sd && sd->skill_keep_using.tid == INVALID_TIMER && sd->skill_keep_using.skill_id > 0 && sd->skill_keep_using.skill_id == ud->skill_id && !skill_isNotOk(ud->skill_id, *sd) && skill_check_condition_castbegin(*sd, ud->skill_id, ud->skill_lv) ){
 			sd->skill_keep_using.tid = add_timer( sd->ud.canact_tick + 100, skill_keep_using, sd->id, 0 );
@@ -14899,7 +15557,12 @@ TIMER_FUNC(skill_castend_pos){
 			if (md->skill_idx >= 0 && md->db->skill[md->skill_idx]->emotion >= ET_SURPRISE && md->db->skill[md->skill_idx]->emotion < ET_MAX)
 				clif_emotion(*src, static_cast<emotion_type>(md->db->skill[md->skill_idx]->emotion));
 		}  
-	if (skill_get_type(ud->skill_id) == BF_MAGIC && ud->skill_id != SA_LANDPROTECTOR && ud->skill_id != SC_ESCAPE) {  
+	if (skill_get_type(ud->skill_id) == BF_MAGIC &&
+		ud->skill_id != SA_LANDPROTECTOR &&
+		ud->skill_id != SC_ESCAPE &&
+		ud->skill_id != SA_VOLCANO &&
+		ud->skill_id != SA_DELUGE &&
+		ud->skill_id != SA_VIOLENTGALE) {
 		if (map_getcell(src->m, ud->skillx, ud->skilly, CELL_CHKLANDPROTECTOR)) {  
 			if (sd) {  
 				clif_skill_fail(*sd, ud->skill_id, USESKILL_FAIL);  
@@ -14907,6 +15570,12 @@ TIMER_FUNC(skill_castend_pos){
 			break; // Falha o lançamento  
 		}  
 	}
+		// King's Grace cannot be placed on Land Protector (before SP/cooldown consume).
+		if (ud->skill_id == LG_KINGS_GRACE && map_getcell(src->m, ud->skillx, ud->skilly, CELL_CHKLANDPROTECTOR)) {
+			if (sd)
+				clif_skill_fail(*sd, ud->skill_id, USESKILL_FAIL);
+			break;
+		}
 
 		// Bloody Lust: only block when the ground target (center) is on Land Protector — caster may stand on LP
 		// and target outside (edge interaction). skill_castend_pos2: clear CD if placement fully fails.
@@ -15161,10 +15830,41 @@ int32 skill_castend_pos2(struct block_list* src, int32 x, int32 y, uint16 skill_
 		break;
 	}
 
+	case SA_LANDPROTECTOR: {
+		std::shared_ptr<s_skill_unit_group> lp = skill_unitsetting(src, skill_id, skill_lv, x, y, 0);
+		if (lp != nullptr && lp->unit != nullptr && lp->unit_count > 0) {
+			int16 minx = lp->unit[0].x, maxx = lp->unit[0].x;
+			int16 miny = lp->unit[0].y, maxy = lp->unit[0].y;
+			for (int32 ui = 1; ui < lp->unit_count; ++ui) {
+				minx = min(minx, lp->unit[ui].x);
+				maxx = max(maxx, lp->unit[ui].x);
+				miny = min(miny, lp->unit[ui].y);
+				maxy = max(maxy, lp->unit[ui].y);
+			}
+
+			// LP renew should "cleanse" Vacuum immob on LP cells and prevent Vacuum from reapplying while on LP.
+			map_foreachinallarea(skill_lp_vacuum_suppress_group_sub, src->m, minx, miny, maxx, maxy, BL_SKILL);
+			// Additionally, any Vacuum tiles inside LP must become permanently non-applying for the rest of Vacuum lifetime.
+			// We mark those cells suppressed and remove the Vacuum tiles (LP takes cell/visual priority).
+			map_foreachinallarea(skill_lp_vacuum_mark_cells_sub, src->m, minx, miny, maxx, maxy, BL_SKILL);
+			// Also suppress SC on the whole LP rectangle for any Vacuum group whose 7x7 footprint intersects this LP area.
+			map_foreachinallarea(skill_vacuum_extreme_suppress_mask_rect_sub, src->m, minx-3, miny-3, maxx+3, maxy+3, BL_SKILL,
+				minx, miny, maxx, maxy);
+			map_foreachinallarea(skill_lp_clear_vacuum_sc_on_chars_sub, src->m, minx, miny, maxx, maxy, BL_CHAR);
+		}
+		break;
+	}
+
 	case SC_BLOODYLUST:
 		flag |= 1;
 		if( (sg = skill_unitsetting(src, skill_id, skill_lv, x, y, 0)) == nullptr && sd != nullptr )
 			skill_blockpc_clear_one(*sd, skill_id);
+		break;
+
+	case LG_KINGS_GRACE:
+		// Devotion is canceled only for targets actually affected by King's Grace area.
+		flag |= 1;
+		skill_unitsetting(src, skill_id, skill_lv, x, y, 0);
 		break;
 
 	// Skill Unit Setting
@@ -15211,7 +15911,6 @@ int32 skill_castend_pos2(struct block_list* src, int32 x, int32 y, uint16 skill_
 	case WE_CALLPARTNER:
 	case WE_CALLPARENT:
 	case WE_CALLBABY:
-	case SA_LANDPROTECTOR:
 #ifndef RENEWAL
 	case BD_LULLABY:
 	case BD_RICHMANKIM:
@@ -15282,7 +15981,6 @@ int32 skill_castend_pos2(struct block_list* src, int32 x, int32 y, uint16 skill_
 	case MH_POISON_MIST:
 	case MH_STEINWAND:
 	case MH_XENO_SLASHER:
-	case LG_KINGS_GRACE:
 	case SJ_BOOKOFCREATINGSTAR:
 	case RL_B_TRAP:
 	case NPC_STORMGUST2:
@@ -15537,6 +16235,10 @@ int32 skill_castend_pos2(struct block_list* src, int32 x, int32 y, uint16 skill_
 			clif_skill_poseffect( *src, skill_id, skill_lv, x, y, tick );
 			i = skill_get_splash(skill_id, skill_lv);
 			map_foreachinallarea(skill_cell_overlap, src->m, x-i, y-i, x+i, y+i, BL_SKILL, HW_GANBANTEIN, &dummy, src, skill_lv);
+			// Suppress Vacuum re-application on all burned cells for any Vacuum group whose 7x7 footprint intersects this AoE.
+			map_foreachinallarea(skill_vacuum_extreme_suppress_mask_rect_sub, src->m, x-i-3, y-i-3, x+i+3, y+i+3, BL_SKILL, x-i, y-i, x+i, y+i);
+			// Burned cells must release Vacuum immob on chars in the AoE (LP or not).
+			map_foreachinallarea(skill_clear_vacuum_sc_on_chars_sub, src->m, x-i, y-i, x+i, y+i, BL_CHAR);
 		} else {
 			if (sd) clif_skill_fail( *sd, skill_id );
 			return 1;
@@ -15787,7 +16489,9 @@ int32 skill_castend_pos2(struct block_list* src, int32 x, int32 y, uint16 skill_
 
 	case WM_GREAT_ECHO:
 		i = skill_get_splash(skill_id,skill_lv);
+		skill_devotion_aoe_snapshot_push_area(src->m, x - i, y - i, x + i, y + i);
 		map_foreachinarea(skill_area_sub,src->m,x-i,y-i,x+i,y+i,BL_CHAR,src,skill_id,skill_lv,tick,flag|BCT_ENEMY|1,skill_castend_damage_id);
+		skill_devotion_aoe_snapshot_pop();
 		break;
 
 	case WM_SEVERE_RAINSTORM:
@@ -16992,6 +17696,8 @@ std::shared_ptr<s_skill_unit_group> skill_unitsetting(struct block_list *src, ui
 	group->val1 = val1;
 	group->val2 = val2;
 	group->val3 = val3;
+	if (skill_id == SO_VACUUM_EXTREME)
+		group->vacuum_sc_suppressed_mask = 0;
 	group->link_group_id = link_group_id;
 	group->target_flag = target;
 	group->bl_flag = skill_get_unit_bl_target(skill_id);
@@ -17365,6 +18071,14 @@ static int32 skill_unit_onplace(struct skill_unit *unit, struct block_list *bl, 
 
 	std::shared_ptr<s_skill_db> skill = skill_db.find(sg->skill_id);
 
+	// Cloud Kill: no damage ticks while the caster is hidden (e.g. TF_HIDING).
+	if (sg->skill_id == SO_CLOUD_KILL || sg->skill_id == NPC_CLOUD_KILL) {
+		status_change *ssc = status_get_sc(ss);
+
+		if (ssc != nullptr && (ssc->option & OPTION_HIDE || ssc->getSCE(SC_HIDING) != nullptr))
+			return 0;
+	}
+
 	if( (skill->inf2[INF2_ISSONG] || skill->inf2[INF2_ISENSEMBLE]) && map_getcell(bl->m, bl->x, bl->y, CELL_CHKBASILICA) )
 		return 0; //Songs don't work in Basilica
 
@@ -17374,7 +18088,8 @@ static int32 skill_unit_onplace(struct skill_unit *unit, struct block_list *bl, 
 		return 0; //Hidden characters are immune to AoE skills except to these. [Skotlex]
 
 	// Vacuum SC must not end just because another ground skill (e.g. Land Protector) triggers onplace while the PC stands on LP.
-	// It ends when the vacuum unit group is deleted (skill_delunitgroup: SO_VACUUM_EXTREME), e.g. LP cast on the vacuum cells.
+	// It ends when the vacuum unit group is deleted (skill_delunitgroup: SO_VACUUM_EXTREME), except LP on any tile of the footprint
+	// removes only the ground units (vacuum_lp_skip_sc_clear) and keeps SC for those already affected.
 
 	if (sc && sc->getSCE(SC_HOVERING) && skill->inf2[INF2_IGNOREHOVERING])
 		return 0; // Under Hovering characters are immune to select trap and ground target skills.
@@ -17634,8 +18349,10 @@ static int32 skill_unit_onplace(struct skill_unit *unit, struct block_list *bl, 
 
 				if (!map_flag_vs(ss->m) && !map_flag_gvg2(ss->m))
 					state |= BCT_GUILD;
-				if (battle_check_target(unit, bl, BCT_SELF|BCT_PARTY|state) > 0)
-					sc_start4(ss, bl, type, 100, sg->skill_lv, 0, ss->id, 0, sg->limit);
+				if (battle_check_target(unit, bl, BCT_SELF|BCT_PARTY|state) > 0) {
+					if (sc_start4(ss, bl, type, 100, sg->skill_lv, 0, ss->id, 0, sg->limit))
+						status_change_end(bl, SC_DEVOTION); // Official: cancel Devotion from immobilized targets in range.
+				}
 			}
 			break;
 
@@ -17726,6 +18443,11 @@ int32 skill_unit_onplace_timer(struct skill_unit *unit, struct block_list *bl, t
 	if (sc && sc->getSCE(SC_VOICEOFSIREN) && sc->getSCE(SC_VOICEOFSIREN)->val2 == bl->id && inf2[INF2_ISTRAP])
 		return 0; // Traps cannot be activated by the Maestro or Wanderer that enticed the trapper with this skill.
 
+	// Cloud Kill: no damage ticks while the caster is hidden (sc = status of skill source ss).
+	if ((skill_id == SO_CLOUD_KILL || skill_id == NPC_CLOUD_KILL) && sc != nullptr &&
+	    (sc->option & OPTION_HIDE || sc->getSCE(SC_HIDING) != nullptr))
+		return skill_id;
+
 	if (tsc && tsc->getSCE(SC_HOVERING) && inf2[INF2_IGNOREHOVERING])
 		return 0; // Under Hovering characters are immune to trap and ground target skills.
 
@@ -17770,13 +18492,34 @@ int32 skill_unit_onplace_timer(struct skill_unit *unit, struct block_list *bl, t
 #ifndef RENEWAL
  		case UNT_GRAVITATION:
 #endif	
-		case UNT_FEINTBOMB:  
-		case UNT_PSYCHIC_WAVE:		
-		if (map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))  
-			break; // Não causa dano no Land Protector  
-		skill_attack(skill_get_type(sg->skill_id),ss,unit,bl,sg->skill_id,sg->skill_lv,tick,0);  
-		break; 		
-		case UNT_EARTHSTRAIN:   
+		case UNT_FEINTBOMB:
+			if (map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))
+				break;
+			skill_attack(skill_get_type(sg->skill_id), ss, unit, bl, sg->skill_id, sg->skill_lv, tick, 0);
+			break;
+		case UNT_PSYCHIC_WAVE:
+			if (map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR))
+				break;
+			{
+				const int32 spl = skill_devotion_aoe_uses_snapshot(sg->skill_id) ? skill_get_splash(sg->skill_id, sg->skill_lv) : 0;
+				if (spl > 0)
+					skill_devotion_aoe_snapshot_push_range((block_list *)unit, spl);
+				skill_attack(skill_get_type(sg->skill_id), ss, unit, bl, sg->skill_id, sg->skill_lv, tick, 0);
+				if (spl > 0)
+					skill_devotion_aoe_snapshot_pop();
+			}
+			break;
+		case UNT_EARTHSTRAIN:
+			if (skill_devotion_aoe_uses_snapshot(sg->skill_id)) {
+				const int32 spl = skill_get_splash(sg->skill_id, sg->skill_lv);
+				if (spl > 0)
+					skill_devotion_aoe_snapshot_push_range((block_list *)unit, spl);
+				skill_attack(skill_get_type(sg->skill_id), ss, unit, bl, sg->skill_id, sg->skill_lv, tick, 0);
+				if (spl > 0)
+					skill_devotion_aoe_snapshot_pop();
+			} else
+				skill_attack(skill_get_type(sg->skill_id), ss, unit, bl, sg->skill_id, sg->skill_lv, tick, 0);
+			break;
 		case UNT_FIREWALK:
 		case UNT_ELECTRICWALK:
 		case UNT_LAVA_SLIDE:
@@ -17880,8 +18623,15 @@ int32 skill_unit_onplace_timer(struct skill_unit *unit, struct block_list *bl, t
 				case SOA_TALISMAN_OF_BLACK_TORTOISE:
 					skill_attack( skill_get_type(sg->skill_id), ss, ss, bl, sg->skill_id, sg->skill_lv, tick, 0 );
 					break;
-				default:
-					skill_attack(skill_get_type(sg->skill_id),ss,unit,bl,sg->skill_id,sg->skill_lv,tick,0);
+				default: {
+					const int32 spl = skill_devotion_aoe_uses_snapshot(sg->skill_id) ? skill_get_splash(sg->skill_id, sg->skill_lv) : 0;
+					if (spl > 0)
+						skill_devotion_aoe_snapshot_push_range((block_list *)unit, spl);
+					skill_attack(skill_get_type(sg->skill_id), ss, unit, bl, sg->skill_id, sg->skill_lv, tick, 0);
+					if (spl > 0)
+						skill_devotion_aoe_snapshot_pop();
+				}
+					break;
 			}
 			break;
 
@@ -18459,13 +19209,29 @@ int32 skill_unit_onplace_timer(struct skill_unit *unit, struct block_list *bl, t
 
 		case UNT_VACUUM_EXTREME:{  
     if (tsc && (tsc->getSCE(SC_HALLUCINATIONWALK) || tsc->getSCE(SC_NPC_HALLUCINATIONWALK) || tsc->getSCE(SC_HOVERING) || tsc->getSCE(SC_VACUUM_EXTREME) ||  
-        (tsc->getSCE(SC_VACUUM_EXTREME_POSTDELAY) && tsc->getSCE(SC_VACUUM_EXTREME_POSTDELAY)->val2 == sg->group_id)))  
+        tsc->getSCE(SC_VACUUM_EXTREME_POSTDELAY)))  
         return 0;  
+
+	// Per-cell suppression for Vacuum (burned/cleansed cells must not reapply while the Vacuum exists).
+	{
+		const int16 cx = (int16)sg->val1;
+		const int16 cy = (int16)sg->val2;
+		const int16 dx = (int16)(bl->x - (cx - 3));
+		const int16 dy = (int16)(bl->y - (cy - 3));
+		if (dx >= 0 && dx < 7 && dy >= 0 && dy < 7) {
+			const uint32 idx = (uint32)dx + 7u * (uint32)dy;
+			if (idx < 64 && (sg->vacuum_sc_suppressed_mask & (1ULL << idx)))
+				break;
+		}
+	}
   
     // Verifica se o alvo está no Land Protector  
     bool in_landprotector = map_getcell(bl->m, bl->x, bl->y, CELL_CHKLANDPROTECTOR);  
       
     if (in_landprotector) {  
+		// If Land Protector was recast on the Vacuum center, Vacuum must not re-apply SC on LP cells.
+		if (sg->state.vacuum_lp_suppress_sc_on_lp)
+			break;
         // Aplica status com parâmetros originais mas sem efeito de puxo  
         sc_start4(ss, bl, type, 100, sg->skill_lv, sg->group_id, 0, 0, skill_get_time(sg->skill_id, sg->skill_lv));  
         break;  
@@ -18826,6 +19592,9 @@ int32 skill_unit_onleft(uint16 skill_id, struct block_list *bl, t_tick tick)
 					}
 				}
 			}
+			break;
+		case WM_POEMOFNETHERWORLD:
+			// Land Protector clears only the floor; SC_NETHERWORLD on targets persists until its duration ends.
 			break;
 		case GD_LEADERSHIP:
 		case GD_GLORYWOUNDS:
@@ -19332,6 +20101,12 @@ bool skill_check_condition_castbegin( map_session_data& sd, uint16 skill_id, uin
 	{
 		if( sd.state.abra_flag ) // Hocus-Pocus was used. [Inkfish]
 			sd.state.abra_flag = 0;
+		else if( skill_is_rk_rune_skill(skill_id) ) {
+			// Runestones: script uses unitskilluseid + skillitem; pc_useitem already removed IT_USABLE (DELAYCONSUME_NONE) before run_script.
+			// The branch below expects delay-consume items still in inventory — would always fail and cancel the skill after the rune vanished.
+			sd.itemid = 0;
+			sd.itemindex = -1;
+		}
 		else
 		{ // When a target was selected, consume items that were skipped in pc_use_item [Skotlex]
 			if( (i = sd.itemindex) == -1 ||
@@ -20113,8 +20888,15 @@ bool skill_check_condition_castbegin( map_session_data& sd, uint16 skill_id, uin
 				sd.ud.canmove_tick = gettick(); //When using a combo, cancel the can't move delay to enable the skill. [Skotlex]
 
 			if (!unit_can_move(&sd)) {
-				clif_skill_fail( sd, skill_id );
-				return false;
+				// Emergency Escape while rooted by WM_POEMOFNETHERWORLD: allow cast; SC_NETHERWORLD keeps NoMove.
+				// Ally-cast poem may not apply SC_NETHERWORLD (unit Target: Enemy) but the floor still roots; also allow on poem tiles.
+				// Cross Impact: allow targeting/dash while immobilized (traps, ankle, etc.); statuses stay — only the leap executes.
+				if (!((skill_id == SC_ESCAPE && ((sc != nullptr && sc->getSCE(SC_NETHERWORLD) != nullptr)
+					|| map_find_skill_unit_oncell(&sd, sd.x, sd.y, WM_POEMOFNETHERWORLD, nullptr, 0) != nullptr))
+					|| skill_id == GC_CROSSIMPACT)) {
+					clif_skill_fail( sd, skill_id );
+					return false;
+				}
 			}
 			break;
 		case ST_WATER:
@@ -20611,6 +21393,18 @@ bool skill_check_condition_castend( map_session_data& sd, uint16 skill_id, uint1
 				break;
 			default:
 				break;
+		}
+	}
+
+	// NC_HOVERING must still have Hovering Booster (2801) equipped when the cast finishes
+	if (skill_id == NC_HOVERING) {
+		for (const t_itemid reqeqit : require.eqItem) {
+			if (!reqeqit)
+				break;
+			if (!pc_checkequip2(&sd, reqeqit, EQI_ACC_L, EQI_MAX)) {
+				clif_skill_fail(sd, skill_id, USESKILL_FAIL_NEED_EQUIPMENT, 0, reqeqit);
+				return false;
+			}
 		}
 	}
 
@@ -21277,8 +22071,14 @@ int32 skill_vfcastfix(struct block_list *bl, double time, uint16 skill_id, uint1
 	if (time < 0)
 		return 0;
 
-	if (bl->type == BL_MOB || bl->type == BL_NPC)
+	if (bl->type == BL_NPC)
 		return (int32)time;
+
+	if (bl->type == BL_MOB) {
+		mob_data *vf_gate = BL_CAST( BL_MOB, bl );
+		if (vf_gate == nullptr || vf_gate->mob_id != MOB_ID_ARENA_BOT_SHURA_1V1)
+			return (int32)time;
+	}
 
 	status_change *sc = status_get_sc(bl);
 	map_session_data *sd = BL_CAST(BL_PC, bl);
@@ -21392,6 +22192,24 @@ int32 skill_vfcastfix(struct block_list *bl, double time, uint16 skill_id, uint1
 	// Apply Variable CastTime calculation by INT & DEX
 	if (!(flag&1))
 		time = time * (1 - sqrt(((float)(status_get_dex(bl) * 2 + status_get_int(bl)) / battle_config.vcast_stat_scale)));
+
+	if (bl->type == BL_MOB) {
+		mob_data *vf_md = BL_CAST( BL_MOB, bl );
+		if (vf_md != nullptr && vf_md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1) {
+			// Temporal DEX boots (DEX>=120 in build): -0.5s fixed cast; Motor Ilusión B: ~10% variable cut.
+			if (fixed > 500)
+				fixed -= 500;
+			else
+				fixed = 0;
+			reduce_cast_rate += 10;
+			// Zen / Absorb / Windmill: slightly snappier (Potadora buffs stack here too).
+			if ( skill_id == CH_SOULCOLLECT || skill_id == MO_ABSORBSPIRITS || skill_id == SR_WINDMILL ) {
+				reduce_cast_rate += 22;
+				if ( fixed > 250 )
+					fixed = fixed * 55 / 100;
+			}
+		}
+	}
 
 	time = time * (1 - (float)min(reduce_cast_rate, 100) / 100);
 	time = max((int32)time, 0) + (1 - (float)min(fixcast_r, 100) / 100) * max(fixed, 0); //Underflow checking/capping
@@ -21508,6 +22326,14 @@ int32 skill_delayfix(struct block_list *bl, uint16 skill_id, uint16 skill_lv)
 
 	if (battle_config.delay_rate != 100)
 		time = time * battle_config.delay_rate / 100;
+
+	if (bl->type == BL_MOB) {
+		mob_data *dly_md = BL_CAST( BL_MOB, bl );
+		if (dly_md != nullptr && dly_md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1) {
+			// Keep bot pacing close to a normal geared player; avoid making specific skills "too instant".
+			time *= 0.90; // mild global reduction only
+		}
+	}
 
 	//ShowInfo("Delay delayfix = %f\n",time);
 
@@ -22301,11 +23127,38 @@ static int32 skill_cell_overlap(struct block_list *bl, va_list ap)
 					return 1;
 				}
 
+				// WM_POEMOFNETHERWORLD is IsTrap, so it is skipped by the generic LP purge below; still remove the floor tiles.
+				if( unit->group->skill_id == WM_POEMOFNETHERWORLD ) {
+					if( skill_get_unit_flag(WM_POEMOFNETHERWORLD, UF_RANGEDSINGLEUNIT) ) {
+						if( unit->val2 & (1 << UF_RANGEDSINGLEUNIT) )
+							skill_delunitgroup(unit->group);
+						else
+							skill_delunit(unit);
+					} else
+						skill_delunit(unit);
+					return 1;
+				}
+
 				std::shared_ptr<s_skill_db> skill = skill_db.find(unit->group->skill_id);
 
-				// It deletes everything except traps and barriers.
-				// Exception requested: recasting Land Protector must remove SC_ESCAPE trap.
-				if (((!skill->inf2[INF2_ISTRAP] && !skill->inf2[INF2_IGNORELANDPROTECTOR]) || unit->group->skill_id == WZ_FIREPILLAR || unit->group->skill_id == SC_ESCAPE)) {
+				// It deletes everything except traps and barriers (INF2_ISTRAP), plus Fire Pillar overlap rule.
+				if (((!skill->inf2[INF2_ISTRAP] && !skill->inf2[INF2_IGNORELANDPROTECTOR]) || unit->group->skill_id == WZ_FIREPILLAR)) {
+					// UF_RANGEDSINGLEUNIT normally removes the whole group only when LP hits the center tile;
+					// for Vacuum Extreme (7x7 footprint) LP on any overlapping cell must strip the ground effect,
+					// while skill_delunitgroup keeps SC_VACUUM_EXTREME on players already inside (vacuum_lp_skip_sc_clear).
+					if (unit->group->skill_id == SO_VACUUM_EXTREME) {
+						// Custom behavior (server-specific):
+						// - Recasting Land Protector over any Vacuum Extreme tile must REMOVE the Vacuum status (immobile)
+						//   from affected characters.
+						// - Additionally, after LP recast overlaps ANY Vacuum tile, Vacuum must not re-apply SC on LP cells
+						//   for this Vacuum group. This prevents "status clears but immediately re-applies" while the target stays on LP.
+						unit->group->state.vacuum_lp_suppress_sc_on_lp = 1;
+						if (map_getmapdata(unit->m) != nullptr)
+							map_foreachinmap(skill_vacuum_extreme_group_del_sub, unit->m, BL_CHAR, unit->group->group_id);
+						// Remove only the overlapped Vacuum tile so LP visuals/cell control are not covered by Vacuum.
+						skill_delunit(unit);
+						return 1;
+					}
 					if (skill->unit_flag[UF_RANGEDSINGLEUNIT]) {
 						if (unit->val2&(1 << UF_RANGEDSINGLEUNIT))
 							skill_delunitgroup(unit->group);
@@ -22326,6 +23179,47 @@ static int32 skill_cell_overlap(struct block_list *bl, va_list ap)
 			const bool vacuum = (vacgrp->skill_id == SO_VACUUM_EXTREME);
 			const int32 vac_gid = vacuum ? vacgrp->group_id : 0;
 			const int16 vac_m = vacuum ? su->m : 0;
+
+			// Custom behavior for Vacuum Extreme:
+			// - Burning without hitting the center must REMOVE the Vacuum status (immobile) on that burned cell and
+			//   delete that Vacuum tile (opens a hole), so the status does not immediately re-apply.
+			// - Burning the center removes the whole Vacuum group and clears SC for that group_id.
+			if (vacuum) {
+				const bool center = (su->x == (int16)vacgrp->val1 && su->y == (int16)vacgrp->val2);
+				if (!center) {
+					// Mark this Vacuum cell as suppressed (no re-apply) for the rest of this Vacuum's lifetime.
+					{
+						const int16 cx = (int16)vacgrp->val1;
+						const int16 cy = (int16)vacgrp->val2;
+						const int16 dx = (int16)(su->x - (cx - 3));
+						const int16 dy = (int16)(su->y - (cy - 3));
+						if (dx >= 0 && dx < 7 && dy >= 0 && dy < 7) {
+							const uint32 idx = (uint32)dx + 7u * (uint32)dy;
+							if (idx < 64)
+								vacgrp->vacuum_sc_suppressed_mask |= (1ULL << idx);
+						}
+					}
+
+					// After burning any Vacuum cell, do not let the remaining Vacuum tiles keep re-applying SC on LP cells.
+					vacgrp->state.vacuum_lp_suppress_sc_on_lp = 1;
+
+					// Remove status only for chars standing on the burned cell.
+					map_foreachincell(skill_vacuum_extreme_group_del_sub, su->m, su->x, su->y, BL_CHAR, vac_gid);
+					// Remove only this vacuum unit cell; keep the rest of the group active.
+					skill_delunit(su);
+
+					// Also release chars standing on LP cells within this Vacuum's 7x7 footprint (LP-like behavior).
+					map_foreachinallarea(skill_vacuum_extreme_group_del_on_lp_cell_sub, vac_m,
+						(int16)vacgrp->val1 - 3, (int16)vacgrp->val2 - 3, (int16)vacgrp->val1 + 3, (int16)vacgrp->val2 + 3,
+						BL_CHAR, vac_gid);
+					return 1;
+				}
+
+				skill_delunitgroup(vacgrp);
+				if (skill_id2group(vac_gid) == nullptr && map_getmapdata(vac_m) != nullptr)
+					map_foreachinmap(skill_vacuum_extreme_group_del_sub, vac_m, BL_CHAR, vac_gid);
+				return 1;
+			}
 
 			// Officially songs/dances are removed
 			if (skill_get_unit_flag(vacgrp->skill_id, UF_RANGEDSINGLEUNIT)) {
@@ -22400,6 +23294,41 @@ static int32 skill_cell_overlap(struct block_list *bl, va_list ap)
 				std::bitset<UF_MAX> uf = skill_db.find(unit->group->skill_id)->unit_flag;
 
 				if (uf[UF_REMOVEDBYFIRERAIN]) {
+					// Same "burn cell" behavior as Earth Drive for Vacuum Extreme.
+					// Burn border cells: clear Vacuum status on that cell and delete that Vacuum tile (hole).
+					// Burn center cell: remove whole Vacuum group and clear SC by group_id.
+					if (unit->group->skill_id == SO_VACUUM_EXTREME) {
+						const int32 vac_gid = unit->group->group_id;
+						const bool center = (unit->x == (int16)unit->group->val1 && unit->y == (int16)unit->group->val2);
+						if (!center) {
+							// Mark this Vacuum cell as suppressed (no re-apply) for the rest of this Vacuum's lifetime.
+							{
+								const int16 cx = (int16)unit->group->val1;
+								const int16 cy = (int16)unit->group->val2;
+								const int16 dx = (int16)(unit->x - (cx - 3));
+								const int16 dy = (int16)(unit->y - (cy - 3));
+								if (dx >= 0 && dx < 7 && dy >= 0 && dy < 7) {
+									const uint32 idx = (uint32)dx + 7u * (uint32)dy;
+									if (idx < 64)
+										unit->group->vacuum_sc_suppressed_mask |= (1ULL << idx);
+								}
+							}
+
+							unit->group->state.vacuum_lp_suppress_sc_on_lp = 1;
+							map_foreachincell(skill_vacuum_extreme_group_del_sub, unit->m, unit->x, unit->y, BL_CHAR, vac_gid);
+							skill_delunit(unit);
+							map_foreachinallarea(skill_vacuum_extreme_group_del_on_lp_cell_sub, unit->m,
+								(int16)unit->group->val1 - 3, (int16)unit->group->val2 - 3, (int16)unit->group->val1 + 3, (int16)unit->group->val2 + 3,
+								BL_CHAR, vac_gid);
+							return 1;
+						}
+						std::shared_ptr<s_skill_unit_group> vacgrp = unit->group;
+						skill_delunitgroup(vacgrp);
+						if (skill_id2group(vac_gid) == nullptr && map_getmapdata(unit->m) != nullptr)
+							map_foreachinmap(skill_vacuum_extreme_group_del_sub, unit->m, BL_CHAR, vac_gid);
+						return 1;
+					}
+
 					if (uf[UF_RANGEDSINGLEUNIT]) {
 						if (unit->val2&(1 << UF_RANGEDSINGLEUNIT))
 							skill_delunitgroup(unit->group);
@@ -23186,7 +24115,8 @@ int32 skill_delunitgroup_(std::shared_ptr<s_skill_unit_group> group, const char*
 				int16 vm = src->m;
 				if (group->unit != nullptr && group->unit_count > 0)
 					vm = group->unit[0].m;
-				map_foreachinmap(skill_vacuum_extreme_group_del_sub, vm, BL_CHAR, group->group_id);
+				if (!group->state.vacuum_lp_skip_sc_clear)
+					map_foreachinmap(skill_vacuum_extreme_group_del_sub, vm, BL_CHAR, group->group_id);
 			}
 			break;
 	}
@@ -25946,6 +26876,24 @@ int32 skill_block_check(struct block_list *bl, sc_type type , uint16 skill_id) {
  * @param skill_id: Skill to toggle
  * @return True on success or false otherwise
  */
+bool skill_is_rk_rune_skill(uint16 skill_id) {
+	switch (skill_id) {
+		case RK_GIANTGROWTH:
+		case RK_VITALITYACTIVATION:
+		case RK_STORMBLAST:
+		case RK_STONEHARDSKIN:
+		case RK_FIGHTINGSPIRIT:
+		case RK_ABUNDANCE:
+		case RK_CRUSHSTRIKE:
+		case RK_REFRESH:
+		case RK_MILLENNIUMSHIELD:
+		case RK_LUXANIMA:
+			return true;
+		default:
+			return false;
+	}
+}
+
 bool skill_disable_check(status_change &sc, uint16 skill_id) {
 	std::shared_ptr<s_skill_db> skill = skill_db.find(skill_id);
 
@@ -25985,7 +26933,7 @@ int32 skill_get_elemental_type( uint16 skill_id , uint16 skill_lv ) {
  * @param check_flag Flags: 1:Check for BG maps, 2:Check for GVG maps on WOE times, 4:Check for GVG maps regardless Agit flags
  * @return True:If unit can be moved, False:If check on flags are met or unit cannot be moved.
  **/
-static bool skill_check_unit_movepos(uint8 check_flag, struct block_list *bl, int16 dst_x, int16 dst_y, int32 easy, bool checkpath) {
+static bool skill_check_unit_movepos(uint8 check_flag, struct block_list *bl, int16 dst_x, int16 dst_y, int32 easy, bool checkpath, bool ignore_sc_move_lock) {
 	status_change *sc;
 
 	nullpo_retr(false, bl);
@@ -26000,7 +26948,7 @@ static bool skill_check_unit_movepos(uint8 check_flag, struct block_list *bl, in
 		return false;
 
 	sc = status_get_sc(bl);
-	if (sc && sc->getSCE(SC_SV_ROOTTWIST))
+	if (!ignore_sc_move_lock && sc && sc->getSCE(SC_SV_ROOTTWIST))
 		return false;
 
 	return unit_movepos(bl, dst_x, dst_y, easy, checkpath);

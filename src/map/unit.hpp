@@ -19,6 +19,11 @@ enum clr_type : uint8;
 extern const int16 dirx[DIR_MAX]; ///lookup to know where will move to x according dir
 extern const int16 diry[DIR_MAX]; ///lookup to know where will move to y according dir
 
+/// PC: last hostile target still valid for proactive KN_AUTOCOUNTER after auto-attack stops (ms).
+#ifndef KN_AUTOCOUNTER_TARGET_GRACE_MS
+#define KN_AUTOCOUNTER_TARGET_GRACE_MS 2000
+#endif
+
 struct unit_data {
 	struct block_list *bl; ///link to owner object BL_PC|BL_MOB|BL_PET|BL_NPC|BL_HOM|BL_MER|BL_ELEM
 	struct walkpath_data walkpath;
@@ -34,6 +39,9 @@ struct unit_data {
 	int32 skilltimer;
 	int32 target;
 	int32 target_to;
+	/// Last enemy target for KN_AUTOCOUNTER grace after auto-attack is cleared (see KN_AUTOCOUNTER_TARGET_GRACE_MS).
+	int32 autocounter_grace_target;
+	t_tick autocounter_grace_tick;
 	int32 attacktimer;
 	int32 walktimer;
 	int32 chaserange;
@@ -42,6 +50,8 @@ struct unit_data {
 	uint16 stepskill_id, stepskill_lv; //Remembers skill that should be casted on step [Playtester]
 	t_tick attackabletime;
 	t_tick canact_tick;
+	/// SC masquerade: set in skill_castend_nodamage_id when debuff lands; skill_castend_id applies AfterCastActDelay only then.
+	uint8 sc_mask_aftercast_success = 0;
 	t_tick canmove_tick;
 	t_tick endure_tick; // Time until which unit cannot be stopped
 	t_tick dmg_tick; // Last time the unit was damaged by a source
@@ -178,6 +188,7 @@ int32 unit_skillcastcancel(struct block_list *bl, char type);
 
 int32 unit_counttargeted(struct block_list *bl);
 int32 unit_set_target(struct unit_data* ud, int32 target_id);
+void unit_autocounter_grace_refresh(struct block_list *src, struct block_list *target);
 
 // unit_data
 void unit_dataset(struct block_list *bl);

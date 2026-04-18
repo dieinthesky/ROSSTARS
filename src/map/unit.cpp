@@ -987,6 +987,11 @@ int32 unit_walktobl(struct block_list *bl, struct block_list *tbl, int32 range, 
 	ud->target_to = tbl->id;
 	ud->chaserange = range; // Note that if flag&2, this SHOULD be attack-range
 	ud->state.attack_continue = flag&2?1:0; // Chase to attack.
+	if( bl->type == BL_MOB ) {
+		mob_data *mdw = BL_CAST( BL_MOB, bl );
+		if( mdw != nullptr && mdw->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1 )
+			ud->state.attack_continue = 0;
+	}
 	unit_stop_attack(bl); //Sets target to 0
 
 	status_change *sc = status_get_sc(bl);
@@ -2135,6 +2140,18 @@ int32 unit_skilluse_id2(struct block_list *src, int32 target_id, uint16 skill_id
 	} else if (target_id == src->id && inf&INF_SELF_SKILL && skill->inf2[INF2_NOTARGETSELF]) {
 		target_id = ud->target; // Auto-select target. [Skotlex]
 		combo = 1;
+	} else if (skill_id == KN_AUTOCOUNTER && target_id == src->id && sd != nullptr) {
+		// Self skill in DB; use current target or recent enemy (grace after auto-attack stops).
+		int32 ac_tid = 0;
+		if (ud->target > 0 && ud->target != src->id)
+			ac_tid = ud->target;
+		else if (ud->autocounter_grace_target > 0 && DIFF_TICK(gettick(), ud->autocounter_grace_tick) <= KN_AUTOCOUNTER_TARGET_GRACE_MS)
+			ac_tid = ud->autocounter_grace_target;
+		if (ac_tid > 0) {
+			struct block_list *at = map_id2bl(ac_tid);
+			if (at != nullptr && at->prev != nullptr && src->m == at->m && battle_check_target(src, at, BCT_ENEMY) > 0)
+				target_id = ac_tid;
+		}
 	}
 
 	if (sd) {
@@ -2274,15 +2291,15 @@ int32 unit_skilluse_id2(struct block_list *src, int32 target_id, uint16 skill_id
 				break;
 			case CR_DEVOTION:
 				if (target->type == BL_PC) {
-					uint8 i = 0, count = min(skill_lv, MAX_DEVOTION);
-
-					ARR_FIND(0, count, i, sd->devotion[i] == target_id);
-					if (i == count) {
-						ARR_FIND(0, count, i, sd->devotion[i] == 0);
-						if (i == count) { // No free slots, skill Fail
-							clif_skill_fail( *sd, skill_id );
-							return 0;
-						}
+					map_session_data *tsd = BL_CAST(BL_PC, target);
+					if (tsd != nullptr && pc_is_devotion_blocked_by_stealth(tsd)) {
+						clif_skill_fail( *sd, skill_id );
+						return 0;
+					}
+					uint8 count = min(skill_lv, MAX_DEVOTION);
+					if (pc_devotion_resolve_slot(sd, target_id, count, false) < 0) {
+						clif_skill_fail( *sd, skill_id );
+						return 0;
 					}
 				}
 				break;
@@ -2368,8 +2385,25 @@ int32 unit_skilluse_id2(struct block_list *src, int32 target_id, uint16 skill_id
 		} else if( src->type == BL_MER && skill_id == MA_REMOVETRAP ) {
 			if( !battle_check_range(battle_get_master(src), target, range + 1) )
 				return 0; // Aegis calc remove trap based on Master position, ignoring mercenary O.O
+		} else if( skill_id == CR_DEVOTION || skill_id == ML_DEVOTION ) {
+			// Match SC_DEVOTION val3 (Chebyshev). Client circular range can allow +1 tile in a straight line at max range.
+			if( src->m != target->m || !check_distance_bl(src, target, range) )
+				return 0;
+			{
+				int32 d = distance_bl(src, target);
+				if( d >= 2 && d <= AREA_SIZE && !path_search_long(nullptr, src->m, src->x, src->y, target->x, target->y, CELL_CHKWALL) )
+					return 0;
+			}
 		} else if( !battle_check_range(src, target, range) )
 			return 0; // Arrow-path check failed.
+	}
+
+	// KN_CHARGEATK: same line as skill_castend — fail before cast/cooldown if blocked (wall/corner).
+	if (skill_id == KN_CHARGEATK && src->id != target_id
+		&& !path_search_long_strict(nullptr, src->m, src->x, src->y, target->x, target->y, CELL_CHKNOPASS)) {
+		if (sd)
+			clif_skill_fail(*sd, skill_id, USESKILL_FAIL_POS);
+		return 0;
 	}
 
 	if (!combo) // Stop attack on non-combo skills [Skotlex]
@@ -2693,13 +2727,18 @@ int32 unit_skilluse_pos2( struct block_list *src, int16 skill_x, int16 skill_y, 
 		unit_stop_stepaction(src);
 	// Remember the skill request from the client while walking to the next cell
 	if(src->type == BL_PC && ud->walktimer != INVALID_TIMER && (!battle_check_range(src, &bl, range-1) || ignore_range)) {
-		struct map_data *md = &map[src->m];
-		// Convert coordinates to target_to so we can use it as target later
-		ud->stepaction = true;
-		ud->target_to = (skill_x + skill_y*md->xs);
-		ud->stepskill_id = skill_id;
-		ud->stepskill_lv = skill_lv;
-		return 0; // Attacking will be handled by unit_walktoxy_timer in this case
+		// SC_ESCAPE under Poem: NoMove / ally floor (no SC_NETHERWORLD) can leave walktimer without a completing step;
+		// deferring to stepaction would never run — execute Emergency Escape immediately.
+		if (!(skill_id == SC_ESCAPE && sd != nullptr && ((sc != nullptr && sc->getSCE(SC_NETHERWORLD) != nullptr)
+			|| map_find_skill_unit_oncell(sd, sd->x, sd->y, WM_POEMOFNETHERWORLD, nullptr, 0) != nullptr))) {
+			struct map_data *md = &map[src->m];
+			// Convert coordinates to target_to so we can use it as target later
+			ud->stepaction = true;
+			ud->target_to = (skill_x + skill_y*md->xs);
+			ud->stepskill_id = skill_id;
+			ud->stepskill_lv = skill_lv;
+			return 0; // Attacking will be handled by unit_walktoxy_timer in this case
+		}
 	}
 
 	if (!ignore_range) {
@@ -2810,7 +2849,32 @@ int32 unit_set_target(struct unit_data* ud, int32 target_id)
 
 	ud->target = target_id;
 
+	// Remember recent enemy target for KN_AUTOCOUNTER (skill start clears ud->target via unit_stop_attack).
+	if (ud->bl != nullptr && ud->bl->type == BL_PC && target_id > 0) {
+		struct block_list *t = map_id2bl(target_id);
+		if (t != nullptr && battle_check_target(ud->bl, t, BCT_ENEMY) > 0) {
+			ud->autocounter_grace_target = target_id;
+			ud->autocounter_grace_tick = gettick();
+		}
+	}
+
 	return 0;
+}
+
+void unit_autocounter_grace_refresh(struct block_list *src, struct block_list *target)
+{
+	if (src == nullptr || target == nullptr)
+		return;
+	map_session_data *sd = BL_CAST(BL_PC, src);
+	if (sd == nullptr)
+		return;
+	if (battle_check_target(src, target, BCT_ENEMY) <= 0)
+		return;
+	unit_data *ud = unit_bl2ud(src);
+	if (ud == nullptr)
+		return;
+	ud->autocounter_grace_target = target->id;
+	ud->autocounter_grace_tick = gettick();
 }
 
 /**
@@ -2923,6 +2987,9 @@ int32 unit_attack(struct block_list *src,int32 target_id,int32 continuous)
 		return USW_NONE;
 
 	mob_data* md = BL_CAST(BL_MOB, src);
+
+	if( md != nullptr && md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1 )
+		return USW_NONE;
 
 	// Check for special monster random target mode, function might overwrite the original target
 	if (md != nullptr && !mob_randomtarget(*md, target_id))
@@ -3217,6 +3284,12 @@ static int32 unit_attack_timer_sub(struct block_list* src, int32 tid, t_tick tic
 
 	sd = BL_CAST(BL_PC, src);
 	md = BL_CAST(BL_MOB, src);
+
+	// Arena Shura: no battle_weapon_attack (includes immediate call with tid==INVALID_TIMER).
+	if (md != nullptr && md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1) {
+		unit_stop_attack(src);
+		return 0;
+	}
 
 	// Make sure attacktimer is removed before doing anything else
 	ud->attacktimer = INVALID_TIMER;

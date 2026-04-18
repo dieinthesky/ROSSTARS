@@ -6,6 +6,8 @@
 #include <fstream>
 #include <iostream>
 #include <ostream>
+#include <string>
+#include <filesystem>
 
 #include <common/showmsg.hpp>
 #include <common/socket.hpp>
@@ -18,6 +20,50 @@
 // Max size is 50kb for gif
 #define MAX_EMBLEM_SIZE 50000
 #define START_VERSION 1
+
+namespace {
+std::string bin_to_hex(const std::string& in) {
+	static const char* kHex = "0123456789ABCDEF";
+	std::string out;
+	out.reserve(in.size() * 2);
+	for (unsigned char c : in) {
+		out.push_back(kHex[(c >> 4) & 0x0F]);
+		out.push_back(kHex[c & 0x0F]);
+	}
+	return out;
+}
+
+void export_emblem_cache_files(int32 guild_id, int32 emblem_id, const std::string& img, const std::string& imgtype) {
+	const char* dir = std::getenv("ROSTARS_EMBLEM_EXPORT_DIR");
+	if (dir == nullptr || *dir == '\0') {
+		return;
+	}
+	try {
+		std::filesystem::path base(dir);
+		std::filesystem::create_directories(base);
+		std::string ext = "bmp";
+		if (imgtype == "GIF") {
+			ext = "gif";
+		}
+		const std::filesystem::path p_gid = base / (std::to_string(guild_id) + "." + ext);
+		const std::filesystem::path p_eid = base / (std::to_string(emblem_id) + "." + ext);
+
+		std::ofstream f1(p_gid, std::ios::binary | std::ios::trunc);
+		if (f1.good()) {
+			f1.write(img.data(), static_cast<std::streamsize>(img.size()));
+			f1.close();
+		}
+		std::ofstream f2(p_eid, std::ios::binary | std::ios::trunc);
+		if (f2.good()) {
+			f2.write(img.data(), static_cast<std::streamsize>(img.size()));
+			f2.close();
+		}
+		ShowInfo("Emblem export cache: guild_id=%d emblem_id=%d dir=\"%s\"\n", guild_id, emblem_id, dir);
+	} catch (...) {
+		ShowWarning("Emblem export cache failed: guild_id=%d emblem_id=%d dir=\"%s\"\n", guild_id, emblem_id, dir);
+	}
+}
+}
 
 HANDLER_FUNC(emblem_download) {
 	if (!isAuthorized(req, false)) {
@@ -270,6 +316,29 @@ HANDLER_FUNC(emblem_upload) {
 		res.set_content("Error", "text/plain");
 		return;
 	}
+
+	// Sync imediato para a tabela nativa `guild` usada pelo map/char servers.
+	// IMPORTANTE: este stack salva emblem_data em HEX-string (2 chars por byte),
+	// e nao blob binario cru.
+	int32 emblem_len = static_cast<int32>(length);
+	int32 emblem_id = static_cast<int32>(version);
+	std::string emblem_hex = bin_to_hex(img);
+	if (SQL_SUCCESS != stmt.Prepare(
+			"UPDATE `guild` SET `emblem_data` = ?, `emblem_len` = ?, `emblem_id` = ? WHERE `guild_id` = ?")
+		|| SQL_SUCCESS != stmt.BindParam(0, SQLDT_STRING, (void*)emblem_hex.c_str(), emblem_hex.size())
+		|| SQL_SUCCESS != stmt.BindParam(1, SQLDT_INT32, &emblem_len, sizeof(emblem_len))
+		|| SQL_SUCCESS != stmt.BindParam(2, SQLDT_INT32, &emblem_id, sizeof(emblem_id))
+		|| SQL_SUCCESS != stmt.BindParam(3, SQLDT_INT32, &guild_id, sizeof(guild_id))
+		|| SQL_SUCCESS != stmt.Execute()
+	) {
+		SqlStmt_ShowDebug(stmt);
+		sl.unlock();
+		res.status = HTTP_BAD_REQUEST;
+		res.set_content("Error", "text/plain");
+		return;
+	}
+
+	export_emblem_cache_files(guild_id, emblem_id, img, imgtype_str);
 
 	sl.unlock();
 

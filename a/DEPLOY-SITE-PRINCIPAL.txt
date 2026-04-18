@@ -1,0 +1,44 @@
+RO STARS — ro-stats-hub como site principal
+===========================================
+
+1) Build do React
+   cd ro-stats-hub-main
+   npm install
+   npm run build
+   → pasta dist/
+
+2) No servidor web (Apache/Nginx), na MESMA raiz do site coloque:
+   - Todo o conteúdo de dist/ (index.html, assets/, .htaccess, data/, Icones Habilidades/, …)
+   - Pasta completa "api/" do projeto "Site Ranking ROS" (PHP + config.local.php)
+   Estrutura típica:
+     public_html/
+       index.html          ← do dist
+       assets/             ← do dist
+       .htaccess           ← do public/ (SPA)
+       data/skills.json    ← do dist/public
+       Icones Habilidades/ ← PNGs (opcional)
+       api/
+         db.php
+         guilds.php
+         ranking.php
+         …
+         config.local.php
+
+3) API no mesmo domínio
+   O hub chama /api/guilds.php (caminho relativo). Não precisa de VITE_API_BASE_URL no build de produção.
+   CORS não é necessário (mesma origem).
+
+4) MySQL
+   - config.local.php na api/ com DB_NAME=ranking_ros, RATHENA_DB_NAME=ragnarok, etc.
+   - ranking_ros: importar api/schema.sql (phpMyAdmin)
+   - ragnarok: tabelas das arenas (já do servidor)
+
+5) Desenvolvimento local (npm run dev)
+   O Vite não serve PHP. Opções:
+   - .env com VITE_API_BASE_URL=https://SEU_IP/.../api
+   - ou VITE_USE_MOCK=1 para ver dados fictícios
+
+6) Subpasta (ex. site.com/ros/)
+   npm run build -- --base=/ros/
+   Ajuste RewriteBase no .htaccess para /ros/
+   A API deve ficar em site.com/ros/api/

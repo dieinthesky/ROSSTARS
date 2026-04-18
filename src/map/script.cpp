@@ -61,6 +61,7 @@
 #include "pc_groups.hpp"
 #include "pet.hpp"
 #include "quest.hpp"
+#include "skill.hpp"
 #include "storage.hpp"
 
 using namespace rathena;
@@ -5408,6 +5409,86 @@ BUILDIN_FUNC(callfunc)
 	struct script_code* scr;
 	const char* str = script_getstr(st,2);
 	struct reg_db *ref = nullptr;
+
+	/* Some script caches / parser edge cases emit callfunc("Lmes"/"Lsel", ...) instead of mes/select. */
+	if( !strcmp( str, "Lmes" ) ) {
+		TBL_PC* sd;
+		if( !script_rid2sd(sd) )
+			return SCRIPT_CMD_SUCCESS;
+		if( !script_hasdata(st, 4) ) {
+			if( !script_hasdata(st, 3) )
+				return SCRIPT_CMD_SUCCESS;
+			clif_scriptmes( *sd, st->oid, script_getstr( st, 3 ) );
+		} else {
+			for( i = 3; script_hasdata(st, i); i++ )
+				clif_scriptmes( *sd, st->oid, script_getstr( st, i ) );
+		}
+		st->mes_active = 1;
+		return SCRIPT_CMD_SUCCESS;
+	}
+	if( !strcmp( str, "Lsel" ) ) {
+		const char* text;
+		TBL_PC* sd;
+
+		if( !script_rid2sd(sd) )
+			return SCRIPT_CMD_SUCCESS;
+
+#ifdef SECURE_NPCTIMEOUT
+		sd->npc_idle_type = NPCT_MENU;
+#endif
+
+		if( sd->state.menu_or_input == 0 ) {
+			struct StringBuf buf;
+
+			StringBuf_Init(&buf);
+			sd->npc_menu = 0;
+			for( i = 3; i <= script_lastdata(st); ++i ) {
+				text = script_getstr(st, i);
+
+				if( sd->npc_menu > 0 )
+					StringBuf_AppendStr(&buf, ":");
+
+				StringBuf_AppendStr(&buf, text);
+				sd->npc_menu += menu_countoptions(text, 0, nullptr);
+			}
+
+			st->state = RERUNLINE;
+			sd->state.menu_or_input = 1;
+
+			if( StringBuf_Length(&buf) >= 2047 ) {
+				struct npc_data * nd = map_id2nd(st->oid);
+				char* menu;
+				CREATE(menu, char, 2048);
+				safestrncpy(menu, StringBuf_Value(&buf), 2047);
+				ShowWarning("buildin_select(Lsel shim): NPC Menu too long! (source:%s / length:%d)\n",nd?nd->name:"Unknown",StringBuf_Length(&buf));
+				clif_scriptmenu( *sd, st->oid, menu );
+				aFree(menu);
+			} else
+				clif_scriptmenu( *sd, st->oid, StringBuf_Value( &buf ) );
+
+			if( sd->npc_menu >= 0xff ) {
+				ShowWarning("buildin_select(Lsel shim): Too many options specified (current=%d, max=254).\n", sd->npc_menu);
+				script_reportsrc(st);
+			}
+		} else if( sd->npc_menu == 0xff ) {
+			sd->state.menu_or_input = 0;
+			st->state = END;
+		} else {
+			int32 menu = 0;
+
+			sd->state.menu_or_input = 0;
+			for( i = 3; i <= script_lastdata(st); ++i ) {
+				text = script_getstr(st, i);
+				sd->npc_menu -= menu_countoptions(text, sd->npc_menu, &menu);
+				if( sd->npc_menu <= 0 )
+					break;
+			}
+			pc_setreg(sd, add_str("@menu"), menu);
+			script_pushint(st, menu);
+			st->state = RUN;
+		}
+		return SCRIPT_CMD_SUCCESS;
+	}
 
 	scr = (struct script_code*)strdb_get(userfunc_db, str);
 	if(!scr) {
@@ -20286,7 +20367,25 @@ BUILDIN_FUNC(unitskilluseid)
 			else
 				status_calc_npc(((TBL_NPC*)bl), SCO_NONE);
 		}
-		unit_skilluse_id2(bl, target_id, skill_id, skill_lv, (casttime * 1000) + skill_castfix(bl, skill_id, skill_lv), cancel, ignore_range);
+		// Runestone scripts use unitskilluseid(self) instead of itemskill; without skillitem,
+		// skill_check_condition_castbegin blocks under SC__IGNORANCE / SC__SHADOWFORM while itemskill does not.
+		if (bl->type == BL_PC && unit_id == target_id && skill_is_rk_rune_skill(skill_id)) {
+			map_session_data *sd = BL_CAST(BL_PC, bl);
+			const int16 prev_item = sd->skillitem;
+			const int16 prev_lv = sd->skillitemlv;
+			const bool prev_keep = sd->skillitem_keep_requirement;
+			sd->skillitem = skill_id;
+			sd->skillitemlv = skill_lv;
+			sd->skillitem_keep_requirement = false;
+			const int32 ok = unit_skilluse_id2(bl, target_id, skill_id, skill_lv, (casttime * 1000) + skill_castfix(bl, skill_id, skill_lv), cancel, ignore_range);
+			if (ok == 0) {
+				sd->skillitem = prev_item;
+				sd->skillitemlv = prev_lv;
+				sd->skillitem_keep_requirement = prev_keep;
+			}
+		} else {
+			unit_skilluse_id2(bl, target_id, skill_id, skill_lv, (casttime * 1000) + skill_castfix(bl, skill_id, skill_lv), cancel, ignore_range);
+		}
 	}
 
 	return SCRIPT_CMD_SUCCESS;
@@ -21523,6 +21622,86 @@ BUILDIN_FUNC(bg_updatescore)
 	mapdata->bgscore_eagle = script_getnum(st,4);
 
 	clif_bg_updatescore(m);
+	return SCRIPT_CMD_SUCCESS;
+}
+
+// rostars_hud_bg_from_bg("<map>", <bg_id_blue>, <bg_id_red>, <flags>, <remaining_sec>, <survived_blue>, <survived_red>)
+// Sends the custom ROSSTARS HUD packet (0x7BFE) to all players on the map.
+// Prefer throttling (e.g. 1/s via NPC sleep loop); avoid also calling on every death right after bg_updatescore (0x02DE)
+// to reduce client parser / plugin filter stress in large BGs. (Arenas ROS2026: bg_updatescore no OnHudLoop, nao no OnDie.)
+BUILDIN_FUNC(rostars_hud_bg_from_bg)
+{
+	const char* mapname = script_getstr(st, 2);
+	int16 m = map_mapname2mapid(mapname);
+	if (m < 0)
+		return SCRIPT_CMD_SUCCESS;
+
+	int32 bg_blue_id = script_getnum(st, 3);
+	int32 bg_red_id  = script_getnum(st, 4);
+	uint16 flags = static_cast<uint16>(script_getnum(st, 5));
+	int32 remaining_sec = script_getnum(st, 6);
+	uint16 survived_blue = static_cast<uint16>(script_getnum(st, 7));
+	uint16 survived_red  = static_cast<uint16>(script_getnum(st, 8));
+
+	int32 gid_blue = 0;
+	int32 gid_red = 0;
+	int32 eid_blue = 0;
+	int32 eid_red = 0;
+	char gname_blue[24] = {};
+	char gname_red[24] = {};
+
+	auto bg_blue = util::umap_find(bg_team_db, bg_blue_id);
+	auto bg_red  = util::umap_find(bg_team_db, bg_red_id);
+
+	auto pick_team_guild = [](const std::shared_ptr<s_battleground_data>& bg, int32& out_gid) {
+		out_gid = 0;
+		if (!bg)
+			return;
+		for (const auto& member : bg->members) {
+			if (member.sd == nullptr)
+				continue;
+			if (member.sd->status.guild_id > 0) {
+				out_gid = member.sd->status.guild_id;
+				return;
+			}
+		}
+	};
+	pick_team_guild(bg_blue, gid_blue);
+	pick_team_guild(bg_red, gid_red);
+
+	auto fill_guild_meta = [](int32 gid, int32& out_eid, char out_name[24]) {
+		out_eid = 0;
+		std::memset(out_name, 0, 24);
+		if (gid <= 0)
+			return;
+		auto g = guild_search(gid);
+		if (!g)
+			return;
+		out_eid = g->guild.emblem_id;
+		safestrncpy(out_name, g->guild.name, 24);
+	};
+	fill_guild_meta(gid_blue, eid_blue, gname_blue);
+	fill_guild_meta(gid_red, eid_red, gname_red);
+
+	// Packet fields are (red first, blue second).
+	clif_rostars_hud_bg(
+		m,
+		flags,
+		remaining_sec,
+		survived_red,
+		survived_blue,
+		gname_red,
+		gname_blue,
+		gid_red,
+		gid_blue,
+		eid_red,
+		eid_blue);
+
+	// NOTE: Do not send custom emblem blobs from script.
+	// Some clients treat unknown/overlapping opcodes as variable-length packets (len at +2),
+	// and a custom blob can desync the packet stream causing disconnects (often visible at warp/end).
+	// The client plugin can load emblems from disk (_tmpEmblem/emblem) using guild_id/emblem_id hints.
+
 	return SCRIPT_CMD_SUCCESS;
 }
 
@@ -28286,6 +28465,7 @@ struct script_function buildin_func[] = {
 	BUILDIN_DEF(bg_get_data,"ii"),
 	BUILDIN_DEF(bg_getareausers,"isiiii"),
 	BUILDIN_DEF(bg_updatescore,"sii"),
+	BUILDIN_DEF(rostars_hud_bg_from_bg,"siiiiii"),
 	BUILDIN_DEF(bg_join,"i????"),
 	BUILDIN_DEF(bg_create,"sii??"),
 	BUILDIN_DEF(bg_reserve,"s?"),

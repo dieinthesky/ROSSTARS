@@ -309,6 +309,7 @@ struct s_addeffect {
 	int16 arrow_rate; /// Arrow rate
 	unsigned char flag; /// Flag
 	uint32 duration; /// Duration the effect applied
+	t_itemid source_card; /// Item/card that registered this row (0 = script without card context)
 };
 
 /// AddEffOnSkill bonus struct
@@ -515,6 +516,7 @@ public:
 	uint16 mapindex;
 	unsigned char head_dir; //0: Look forward. 1: Look right, 2: Look left.
 	t_tick client_tick;
+	t_tick zc_ping_sent_tick; ///< tick when server sent ZC_PING_LIVE
 	int32 npc_id,npc_shopid; //for script follow scriptoid;   ,npcid
 	std::vector<int32> npc_id_dynamic;
 	std::vector<int32> areanpc, npc_ontouch_;	///< Array of OnTouch and OnTouch_ NPC ID
@@ -1195,6 +1197,32 @@ static bool pc_cant_act( map_session_data* sd ){
 #define pc_ishiding(sd)       ( (sd)->sc.option&(OPTION_HIDE|OPTION_CLOAK|OPTION_CHASEWALK) )
 #define pc_iscloaking(sd)     ( !((sd)->sc.option&OPTION_CHASEWALK) && ((sd)->sc.option&OPTION_CLOAK) )
 #define pc_ischasewalk(sd)    ( (sd)->sc.option&OPTION_CHASEWALK )
+
+/**
+ * Devotion target check: fail like vs TF Hiding — no Sacrifice on targets in hide/cloak/invis. and similar.
+ */
+static inline bool pc_is_devotion_blocked_by_stealth(map_session_data *sd) {
+	if (sd == nullptr)
+		return false;
+	if (sd->sc.getSCE(SC_HIDING) || sd->sc.getSCE(SC_CLOAKING) || sd->sc.getSCE(SC_CLOAKINGEXCEED)
+	    || sd->sc.getSCE(SC_CAMOUFLAGE) || sd->sc.getSCE(SC__INVISIBILITY) || sd->sc.getSCE(SC_STEALTHFIELD)
+	    || sd->sc.getSCE(SC_STEALTHFIELD_MASTER) || sd->sc.getSCE(SC_NEWMOON) || sd->sc.getSCE(SC_CHASEWALK)
+	    || sd->sc.getSCE(SC_CHASEWALK2) || sd->sc.getSCE(SC__SHADOWFORM) || sd->sc.getSCE(SC_SUHIDE))
+		return true;
+	return (sd->sc.option & (OPTION_HIDE | OPTION_CLOAK | OPTION_CHASEWALK)) != 0;
+}
+
+/// Ends SC_DEVOTION on every devotee listed by sd who is past val3 range (or invalid link). Used when Redenção completes.
+void pc_devotion_cancel_all_out_of_range(map_session_data *sd);
+
+/**
+ * Resolves which devotion slot would be used for CR_DEVOTION.
+ * @param count Effective slot window from skill_lv (min(skill_lv, MAX_DEVOTION)); custom reclaim/cancel-OOR rules
+ *        tied to "5 jogadores" use devotion[] having five non-zero entries, not this number alone.
+ * @param reclaim If true, orphans/out-of-range devotees are cleared or ended so the slot is free; if false, read-only preview (cast begin).
+ * @return slot index [0, count) or -1 if every slot is held by someone still in range.
+ */
+int32 pc_devotion_resolve_slot(map_session_data *sd, int32 target_id, uint8 count, bool reclaim);
 #ifdef VIP_ENABLE
 	#define pc_isvip(sd)      ( (sd)->vip.enabled ? true : false )
 #else

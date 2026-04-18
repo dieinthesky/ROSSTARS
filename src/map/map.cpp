@@ -51,6 +51,7 @@
 #include "skill.hpp"
 #include "pet.hpp"
 #include "quest.hpp"
+#include "rostars_bg_overlay_api.hpp"
 #include "storage.hpp"
 #include "trade.hpp"
 
@@ -2108,6 +2109,9 @@ int32 map_addflooritem(struct item *item, int32 amount, int16 m, int16 x, int16 
 	struct flooritem_data *fitem = nullptr;
 
 	nullpo_ret(item);
+
+	if (battle_config.flooritem_disable)
+		return 0;
 
 	if (!(flags&4) && battle_config.item_onfloor && (itemdb_traderight(item->nameid).trade))
 		return 0; //can't be dropped
@@ -4304,6 +4308,8 @@ int32 map_config_read(const char *cfgName)
 			safestrncpy(console_log_filepath, w2, sizeof(console_log_filepath));
 		else if (strcmpi(w1, "import") == 0)
 			map_config_read(w2);
+		else if (rostars_bg_overlay_config_parse(w1, w2))
+			;
 		else
 			ShowWarning("Unknown setting '%s' in file %s\n", w1, cfgName);
 	}
@@ -5106,6 +5112,7 @@ static int32 cleanup_db_sub(DBKey key, DBData *data, va_list va)
  *------------------------------------------*/
 void MapServer::finalize(){
 	ShowStatus("Terminating...\n");
+	rostars_bg_overlay_final();
 	channel_config.closing = true;
 
 	//Ladies and babies first.
@@ -5545,6 +5552,7 @@ bool MapServer::initialize( int32 argc, char *argv[] ){
 	do_init_quest();
 	do_init_achievement();
 	do_init_battleground();
+	rostars_bg_overlay_init();
 	do_init_npc();
 	do_init_unit();
 	do_init_duel();

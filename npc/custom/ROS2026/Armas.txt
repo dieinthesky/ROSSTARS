@@ -1,12 +1,12 @@
 // NPC Loja de Armas Consolidada    
 turbo_room,93,134,4	script	Armas#weaponshop	10572,{    
-    switch(select("Machados:Livros e Cajados:Arcos/Chicotes/Violinos:Adagas e Katars:Punhos e Ma?as:Lan?as:Espadas:Cancelar")) {    
+    switch(select("Machados:Livros e Cajados:Arcos/Chicotes/Violinos:Adagas e Katars:Punhos e Macas:Lancas:Espadas:Cancelar")) {    
         case 1: callshop "mercado_machados", 1; end;    
         case 2: callshop "mercado_livros", 1; end;    
         case 3: callshop "mercado_arcos", 1; end;    
         case 4: callshop "mercado_katars", 1; end;    
         case 5: callshop "mercado_maca", 1; end;    
-        case 6: callshop "mercado_lan?a", 1; end;    
+        case 6: callshop "mercado_lanca", 1; end;    
         case 7: callshop "mercado_espada", 1; end;    
         case 8: end;    
     }    
@@ -25,5 +25,5 @@ OnTimer1000:
 -	shop	mercado_arcos	-1,1705:30000,1746:120000,18178:120000,18179:120000,18180:120000,1951:30000,1979:90000,1902:30000,1926:50000,1919:50000,1920:70000    
 -	shop	mercado_katars	-1,1208:30000,1230:70000,1228:100000,1234:70000,1231:100000,1264:30000,1266:100000,1285:80000,1284:80000,28038:120000    
 -	shop	mercado_maca	-1,1822:30000,1802:500000,1862:120000,1505:30000,1549:70000,1522:70000,16001:90000,16003:100000,16088:120000,16089:120000    
--	shop	mercado_lan?a	-1,1408:30000,1415:90000,1418:90000,1433:70000,1421:70000,1422:70000,1476:50000,1490:70000,32019:120000    
+-	shop	mercado_lanca	-1,1408:30000,1415:90000,1418:90000,1433:70000,1421:70000,1422:70000,1476:50000,1490:70000,32019:120000
 -	shop	mercado_espada	-1,1117:30000,13412:100000,13413:100000,1181:100000,1185:100000,21047:120000,13493:120000

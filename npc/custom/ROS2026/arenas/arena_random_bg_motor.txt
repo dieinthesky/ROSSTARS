@@ -8,10 +8,39 @@
 OnInit:
 	set $@arenaRandomBG, 0;
 	set $@arenaRandomBG_Victory, 0;
+	// Garante que os NPCs de entrada estejam ativos apos reload/restart.
+	enablenpc "ArenaRandom_WR_Blue";
+	enablenpc "ArenaRandom_WR_Red";
 	end;
 
 OnBlueQuit:
-	set BG_Delay_Tick, gettimetick(2) + 2000;
+	if ($@arenaRandomBG != 1 && $@arenaRandomBG != 2)
+		end;
+	.@pname$ = strcharinfo(0);
+	.@gid = getcharid(2);
+	if (.@gid)
+		.@gname$ = getguildname(.@gid);
+	else
+		.@gname$ = "sem guild";
+	mapannounce $@arenaRandomMap$,"[Arena Aleatoria] O player "+.@pname$+" da guild "+.@gname$+" se desconectou da partida!",bc_yellow;
+	soundeffectall "bandonou.wav",0,.arena_sound_map$;
+	if ($@arenaRandomBG == 2) {
+		set .Blue_Count, .Blue_Count - 1;
+		set .Red_Score, .Red_Score + 1;
+		if (.Blue_Count < 1) {
+			.@elapsed = gettimetick(2) - .fight_start_sec;
+			if (.@elapsed < 0) set .@elapsed, 0;
+			.@rem = 420 - .@elapsed;
+			if (.@rem < 0) set .@rem, 0;
+			bg_updatescore $@arenaRandomMap$,.Blue_Count,.Red_Count;
+			if ($@rostars_hud_bg_arenas)
+				rostars_hud_bg_from_bg $@arenaRandomMap$,$@arenaRandomBG_id1,$@arenaRandomBG_id2,1,.@rem,.Blue_Count,.Red_Count;
+			donpcevent "ArenaRandom_BG::OnRedWin";
+		}
+	} else if ($@arenaRandomBG == 1) {
+		// Durante preparacao (countdown), qualquer desconexao encerra a partida.
+		donpcevent "ArenaRandom_BG::OnRedWin";
+	}
 	end;
 
 OnBlueDie:
@@ -19,14 +48,47 @@ OnBlueDie:
 		message strcharinfo(0), "[ARENA] Voce foi morto na arena. Aguarde o fim da partida para retornar!";
 		set .Blue_Count, .Blue_Count - 1;
 		set .Red_Score, .Red_Score + 1;
-		bg_updatescore $@arenaRandomMap$,.Blue_Count,.Red_Count;
-		if (.Blue_Count < 1)
+		if (.Blue_Count < 1) {
+			.@elapsed = gettimetick(2) - .fight_start_sec;
+			if (.@elapsed < 0) set .@elapsed, 0;
+			.@rem = 420 - .@elapsed;
+			if (.@rem < 0) set .@rem, 0;
+			bg_updatescore $@arenaRandomMap$,.Blue_Count,.Red_Count;
+			if ($@rostars_hud_bg_arenas)
+				rostars_hud_bg_from_bg $@arenaRandomMap$,$@arenaRandomBG_id1,$@arenaRandomBG_id2,1,.@rem,.Blue_Count,.Red_Count;
 			donpcevent "ArenaRandom_BG::OnRedWin";
+		}
 	}
 	end;
 
 OnRedQuit:
-	set BG_Delay_Tick, gettimetick(2) + 2000;
+	if ($@arenaRandomBG != 1 && $@arenaRandomBG != 2)
+		end;
+	.@pname$ = strcharinfo(0);
+	.@gid = getcharid(2);
+	if (.@gid)
+		.@gname$ = getguildname(.@gid);
+	else
+		.@gname$ = "sem guild";
+	mapannounce $@arenaRandomMap$,"[Arena Aleatoria] O player "+.@pname$+" da guild "+.@gname$+" se desconectou da partida!",bc_yellow;
+	soundeffectall "bandonou.wav",0,.arena_sound_map$;
+	if ($@arenaRandomBG == 2) {
+		set .Red_Count, .Red_Count - 1;
+		set .Blue_Score, .Blue_Score + 1;
+		if (.Red_Count < 1) {
+			.@elapsed = gettimetick(2) - .fight_start_sec;
+			if (.@elapsed < 0) set .@elapsed, 0;
+			.@rem = 420 - .@elapsed;
+			if (.@rem < 0) set .@rem, 0;
+			bg_updatescore $@arenaRandomMap$,.Blue_Count,.Red_Count;
+			if ($@rostars_hud_bg_arenas)
+				rostars_hud_bg_from_bg $@arenaRandomMap$,$@arenaRandomBG_id1,$@arenaRandomBG_id2,1,.@rem,.Blue_Count,.Red_Count;
+			donpcevent "ArenaRandom_BG::OnBlueWin";
+		}
+	} else if ($@arenaRandomBG == 1) {
+		// Durante preparacao (countdown), qualquer desconexao encerra a partida.
+		donpcevent "ArenaRandom_BG::OnBlueWin";
+	}
 	end;
 
 OnRedDie:
@@ -34,15 +96,26 @@ OnRedDie:
 		message strcharinfo(0), "[ARENA] Voce foi morto na arena. Aguarde o fim da partida para retornar!";
 		set .Red_Count, .Red_Count - 1;
 		set .Blue_Score, .Blue_Score + 1;
-		bg_updatescore $@arenaRandomMap$,.Blue_Count,.Red_Count;
-		if (.Red_Count < 1)
+		if (.Red_Count < 1) {
+			.@elapsed = gettimetick(2) - .fight_start_sec;
+			if (.@elapsed < 0) set .@elapsed, 0;
+			.@rem = 420 - .@elapsed;
+			if (.@rem < 0) set .@rem, 0;
+			bg_updatescore $@arenaRandomMap$,.Blue_Count,.Red_Count;
+			if ($@rostars_hud_bg_arenas)
+				rostars_hud_bg_from_bg $@arenaRandomMap$,$@arenaRandomBG_id1,$@arenaRandomBG_id2,1,.@rem,.Blue_Count,.Red_Count;
 			donpcevent "ArenaRandom_BG::OnBlueWin";
+		}
 	}
 	end;
 
 OnStart:
 	announce "[Arena Aleatoria] Arena sorteada: "+$@arenaRandomName$+".",bc_yellow;
 	set $@arenaRandomBG_Victory, 0;
+	set .arena_sound_map$, $@arenaRandomMap$;
+	// Some com os NPCs de entrada durante a partida aleatoria.
+	disablenpc "ArenaRandom_WR_Blue";
+	disablenpc "ArenaRandom_WR_Red";
 	bg_warp $@arenaRandomBG_id1,$@arenaRandomMap$,$@arenaRandomBlueX,$@arenaRandomBlueY;
 	bg_warp $@arenaRandomBG_id2,$@arenaRandomMap$,$@arenaRandomRedX,$@arenaRandomRedY;
 	callsub S_CloseWalls;
@@ -50,23 +123,55 @@ OnStart:
 	sleep 100;
 	set .Blue_Count, bg_get_data($@arenaRandomBG_id1, 0);
 	set .Red_Count,  bg_get_data($@arenaRandomBG_id2, 0);
-	bg_updatescore $@arenaRandomMap$,.Blue_Count,.Red_Count;
+	// Nao inicializa HUD no countdown; enviar apenas no inicio real da luta.
 
-	set .Countdown, 24;
+	set .remaining, 30;
 	set .Elapsed, 0;
-	mapannounce $@arenaRandomMap$,"A batalha comecara em 25 segundos!",bc_yellow;
+	set .start_msg_sent, 0;
+	set .hud_tick_on, 0;
+	set .fight_start_sec, 0;
+	set .fight_start_ms, 0;
+	// Aviso + 30s.wav no 1º tick do timer (como nas outras arenas): map_foreachinmap so conta quem ja esta no mapa.
 	initnpctimer;
 	end;
 
 OnTimer1000:
 	if ($@arenaRandomBG == 1) {
-		if (.Countdown > 0) {
-			mapannounce $@arenaRandomMap$,"A batalha comecara em "+.Countdown+" segundos!",bc_yellow;
-			set .Countdown, .Countdown - 1;
-		} else {
+		if (.remaining == 30) {
+			mapannounce .arena_sound_map$,"[Arena Aleatoria] O confronto ira comecar em 30 segundos!!",bc_yellow;
+			soundeffectall "30s.wav",0,.arena_sound_map$;
+			set .remaining, 29;
+			initnpctimer;
+			end;
+		}
+		set .remaining, .remaining - 1;
+		if (.remaining == 25)
+			mapannounce $@arenaRandomMap$,"[Arena Aleatoria] O confronto ira comecar em 25 segundos!!",bc_yellow;
+		else if (.remaining == 15)
+			mapannounce $@arenaRandomMap$,"[Arena Aleatoria] O confronto ira comecar em 15 segundos!!",bc_yellow;
+		else if (.remaining == 10)
+			mapannounce $@arenaRandomMap$,"[Arena Aleatoria] O confronto ira comecar em 10 segundos!!",bc_yellow;
+		else if (.remaining == 5)
+			mapannounce $@arenaRandomMap$,"[Arena Aleatoria] O confronto ira comecar em 5 segundos!!",bc_yellow;
+		else if (.remaining == 4)
+			mapannounce $@arenaRandomMap$,"[Arena Aleatoria] O confronto ira comecar em 4 segundos!!",bc_yellow;
+		else if (.remaining == 3)
+			mapannounce $@arenaRandomMap$,"[Arena Aleatoria] O confronto ira comecar em 3 segundos!!",bc_yellow;
+		else if (.remaining == 2)
+			mapannounce $@arenaRandomMap$,"[Arena Aleatoria] O confronto ira comecar em 2 segundos!!",bc_yellow;
+		else if (.remaining == 1)
+			mapannounce $@arenaRandomMap$,"[Arena Aleatoria] O confronto ira comecar em 1 segundo!!",bc_yellow;
+		else if (.remaining == 0) {
 			set $@arenaRandomBG, 2;
 			callsub S_OpenWalls;
-			mapannounce $@arenaRandomMap$,"["+ $@arenaRandomName$ +"] A batalha comecou! Boa sorte aos dois times!",bc_yellow;
+			soundeffectall "tropas-liberadas.wav",0,.arena_sound_map$;
+			set .fight_start_sec, gettimetick(2);
+			set .hud_tick_on, 1;
+			donpcevent "ArenaRandom_BG::OnHudLoop";
+			if (!.start_msg_sent) {
+				set .start_msg_sent, 1;
+				mapannounce $@arenaRandomMap$,"[Arena Aleatoria] Boa sorte as equipes!",bc_yellow;
+			}
 		}
 		initnpctimer;
 		end;
@@ -74,11 +179,15 @@ OnTimer1000:
 
 	if ($@arenaRandomBG == 2) {
 		set .Elapsed, .Elapsed + 1;
+		if (.Elapsed == 1 && !.start_msg_sent) {
+			set .start_msg_sent, 1;
+			mapannounce $@arenaRandomMap$,"[Arena Aleatoria] Boa sorte as equipes!",bc_yellow;
+		}
 
-		if (.Elapsed == 330)
-			mapannounce $@arenaRandomMap$,"["+ $@arenaRandomName$ +"] A batalha terminara em 30 segundos!",bc_yellow;
+		if (.Elapsed == 390)
+			mapannounce $@arenaRandomMap$,"["+ $@arenaRandomName$ +"] O confronto terminara em 30 segundos!",bc_yellow;
 
-		if (.Elapsed >= 360) {
+		if (.Elapsed >= 420) {
 			if (.Red_Count > .Blue_Count)
 				donpcevent "ArenaRandom_BG::OnRedWin";
 			else if (.Red_Count < .Blue_Count)
@@ -90,6 +199,22 @@ OnTimer1000:
 	}
 
 	initnpctimer;
+	end;
+
+OnHudLoop:
+	sleep 1500;
+	// Intervalo 2s: .@rem pelo relogio.
+	while ($@arenaRandomBG == 2 && .hud_tick_on) {
+		.@elapsed = gettimetick(2) - .fight_start_sec;
+		if (.@elapsed < 0) set .@elapsed, 0;
+		.@rem = 420 - .@elapsed;
+		if (.@rem < 0) set .@rem, 0;
+		bg_updatescore $@arenaRandomMap$,.Blue_Count,.Red_Count;
+		if ($@rostars_hud_bg_arenas)
+			rostars_hud_bg_from_bg $@arenaRandomMap$,$@arenaRandomBG_id1,$@arenaRandomBG_id2,1,.@rem,.Blue_Count,.Red_Count;
+		if (.@rem <= 0) break;
+		sleep 2000;
+	}
 	end;
 
 OnDraw:
@@ -104,9 +229,23 @@ OnDraw:
 OnBlueWin:
 	set $@arenaRandomBG, 3;
 	set $@arenaRandomBG_Victory, 1;
+	getmapunits BL_PC, $@arenaRandomMap$, .@uids;
+	set .@blue_gid, 0;
+	for (.@i = 0; .@i < getarraysize(.@uids); .@i++) {
+		if (!attachrid(.@uids[.@i])) continue;
+		if (getcharid(4) == $@arenaRandomBG_id1 && !.@blue_gid)
+			set .@blue_gid, getcharid(2);
+		detachrid;
+		if (.@blue_gid) break;
+	}
+	if (.@blue_gid)
+		set .@blue_gname$, getguildname(.@blue_gid);
 	stopnpctimer;
 	sleep 1000;
-	announce "[Arena Aleatoria] Time Azul venceu em "+$@arenaRandomName$+"!",bc_all,0x00bfff;
+	if (.@blue_gid && .@blue_gname$ != "")
+		announce "[Arena Aleatoria] Guild "+.@blue_gname$+" venceu pelo Time Azul em "+$@arenaRandomName$+"!",bc_all,0x00bfff;
+	else
+		announce "[Arena Aleatoria] Time Azul venceu em "+$@arenaRandomName$+"!",bc_all,0x00bfff;
 	sleep 3000;
 	donpcevent "ArenaRandom_BG::OnStop";
 	end;
@@ -114,15 +253,43 @@ OnBlueWin:
 OnRedWin:
 	set $@arenaRandomBG, 3;
 	set $@arenaRandomBG_Victory, 2;
+	getmapunits BL_PC, $@arenaRandomMap$, .@uids;
+	set .@red_gid, 0;
+	for (.@i = 0; .@i < getarraysize(.@uids); .@i++) {
+		if (!attachrid(.@uids[.@i])) continue;
+		if (getcharid(4) == $@arenaRandomBG_id2 && !.@red_gid)
+			set .@red_gid, getcharid(2);
+		detachrid;
+		if (.@red_gid) break;
+	}
+	if (.@red_gid)
+		set .@red_gname$, getguildname(.@red_gid);
 	stopnpctimer;
 	sleep 1000;
-	announce "[Arena Aleatoria] Time Vermelho venceu em "+$@arenaRandomName$+"!",bc_all,0xff6347;
+	if (.@red_gid && .@red_gname$ != "")
+		announce "[Arena Aleatoria] Guild "+.@red_gname$+" venceu pelo Time Vermelho em "+$@arenaRandomName$+"!",bc_all,0xff6347;
+	else
+		announce "[Arena Aleatoria] Time Vermelho venceu em "+$@arenaRandomName$+"!",bc_all,0xff6347;
 	sleep 3000;
 	donpcevent "ArenaRandom_BG::OnStop";
 	end;
 
 OnStop:
+	set .hud_tick_on, 0;
+	if ($@arenaRandomMap$ != "")
+		rostars_hud_bg_from_bg $@arenaRandomMap$,$@arenaRandomBG_id1,$@arenaRandomBG_id2,0,0,.Blue_Count,.Red_Count;
 	callsub S_OpenWalls;
+	if ($@arenaRandomMap$ != "") {
+		getmapunits BL_PC, $@arenaRandomMap$, .@uids;
+		for (.@i = 0; .@i < getarraysize(.@uids); .@i++)
+			unitkill .@uids[.@i];
+		recovery 3,$@arenaRandomMap$,4;
+		for (.@i = 0; .@i < getarraysize(.@uids); .@i++) {
+			if (!attachrid(.@uids[.@i])) continue;
+			bonus_script_clear 1;
+			detachrid;
+		}
+	}
 	mapwarp $@arenaRandomMap$,"turbo_room",100,100;
 	donpcevent "ArenaRandom_BG::OnReset";
 	end;
@@ -134,8 +301,12 @@ OnReset:
 	set .Red_Count, 0;
 	set .Blue_Score, 0;
 	set .Red_Score, 0;
-	set .Countdown, 0;
+	set .remaining, 0;
 	set .Elapsed, 0;
+	set .start_msg_sent, 0;
+	set .hud_tick_on, 0;
+	set .fight_start_sec, 0;
+	set .fight_start_ms, 0;
 	set $@arenaRandomBG_Victory, 0;
 
 	if ($@arenaRandomMap$ != "")
@@ -152,6 +323,10 @@ OnReset:
 	set $@arenaRandomRedX, 0;
 	set $@arenaRandomRedY, 0;
 	set $@arenaRandomBG, 0;
+	set .arena_sound_map$, "";
+	// Reaparece com os NPCs de entrada quando a aleatoria fica livre.
+	enablenpc "ArenaRandom_WR_Blue";
+	enablenpc "ArenaRandom_WR_Red";
 	end;
 
 S_CloseWalls:
@@ -181,7 +356,7 @@ turbo_room,135,85,5	script	Arena Aleatoria Azul::ArenaRandom_WR_Blue	417,{
 	end;
 
 OnInit:
-	waitingroom "Arena Aleatoria - Azul",3,"ArenaRandom_Wait_BG::OnBlueJoin",1;
+	waitingroom "[7] Arena Aleatoria",8,"ArenaRandom_Wait_BG::OnBlueJoin",1;
 	end;
 
 OnEnterBG:
@@ -200,7 +375,7 @@ turbo_room,64,85,5	script	Arena Aleatoria Vermelho::ArenaRandom_WR_Red	414,{
 	end;
 
 OnInit:
-	waitingroom "Arena Aleatoria - Vermelho",3,"ArenaRandom_Wait_BG::OnRedJoin",1;
+	waitingroom "[7] Arena Aleatoria",8,"ArenaRandom_Wait_BG::OnRedJoin",1;
 	end;
 
 OnEnterBG:
@@ -225,7 +400,7 @@ OnInit:
 	set .busy_notice_tick, 0;
 
 	setarray .MapName$[0],"25ros03_01","2025arena1","2025arena2","2025arena3","2025arena4","2025arena5";
-	setarray .ArenaName$[0],"Arena Toy Factory","Arena GlastHeim","Arena NifHeim","Arena NightFall","Arena Ayothaya","Somatology Laboratory";
+	setarray .ArenaName$[0],"Fabrica Toy Pesadelo","Arena Glastheim","Arena Niflheim","Arena NightFall","Arena Ayothaya","Laboratorio Somatologia";
 	setarray .BlueX[0],46,234,156,158,249,161;
 	setarray .BlueY[0],80,156,80,101,152,80;
 	setarray .RedX[0],152,118,46,41,105,33;
@@ -250,13 +425,13 @@ OnReadyCheck:
 	set .@red,  getwaitingroomstate(0,"ArenaRandom_WR_Red");
 
 	if (.@blue != .last_blue || .@red != .last_red) {
-		areaannounce "turbo_room",0,70,99,120,"[Arena Aleatoria] Vermelho: "+.@red+"/3 | Azul: "+.@blue+"/3",bc_map,0xff6347;
-		areaannounce "turbo_room",100,70,199,120,"[Arena Aleatoria] Vermelho: "+.@red+"/3 | Azul: "+.@blue+"/3",bc_map,0x00bfff;
+		areaannounce "turbo_room",0,70,99,120,"[Arena Aleatoria] Vermelho: "+.@red+"/7 | Azul: "+.@blue+"/7",bc_map,0xff6347;
+		areaannounce "turbo_room",100,70,199,120,"[Arena Aleatoria] Vermelho: "+.@red+"/7 | Azul: "+.@blue+"/7",bc_map,0x00bfff;
 		set .last_blue, .@blue;
 		set .last_red, .@red;
 	}
 
-	if ((.@blue < 2) || (.@red < 2))
+	if ((.@blue < 7) || (.@red < 7))
 		end;
 
 	deletearray .@pool[0], getarraysize(.@pool);

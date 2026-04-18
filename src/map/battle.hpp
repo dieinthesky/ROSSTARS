@@ -584,6 +584,7 @@ struct Battle_Config
 	int32 max_walk_path;
 	int32 item_enabled_npc;
 	int32 item_onfloor; // Whether to drop an undroppable item on the map or destroy it if inventory is full.
+	int32 flooritem_disable; // If set, map_addflooritem never spawns floor items (player drop, mobs, skills, scripts).
 	int32 bowling_bash_area;
 	int32 drop_rateincrease;
 	int32 feature_auction;

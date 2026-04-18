@@ -1,429 +1,181 @@
 function	script	F_GetITEM	{
-	.@skip_cons = (getargcount() > 0 && getarg(0));
-
 	switch (Class) {
-	// Classes sem kit (a configurar): case 4061 Warlock | case 4065 Guillotine Cross | case 4078 Genetic
+	// Classes sem kit: case 4065 Guillotine Cross | case 4078 Genetic
 	case 4060: // Rune Knight
-			getitem2 18570,1,1,4,0,4411,0,0,0; equip 18570;  // Top - Arta's Decora��o Dourada +4 - Carta Vanberk 4411
-			getitem2 18519,1,1,0,0,4411,0,0,0; equip 18519;  // Mid - Arta's Orelhas Malignas - Carta Vanberk 4411
-			getitem 5361,1; equip 5361;                      // Lower - M�scara de Fugitivo
-			getitem2 15376,1,1,4,0,4387,0,0,0; equip 15376;  // Armadura - Colete Ilusi�n A +4 - Carta Mimico Antigo 4387
-			getitem2 21047,1,1,4,0,31024,31024,0,0; equip 21047;   // Arma - Claymore-OS +4 - 2x Carta Cavaleiro Imortal 31024
-			getitem2 20933,1,1,4,0,4359,0,0,0; equip 20933;  // Capa - Motor Ilusi�n A +4 - Carta Algoz Eremes 4359
-			getitem2 22011,1,1,4,0,27152,0,0,0; equip 22011; // Cal�ado - Prompt Botas Temporais +4 - Carta Fofinho 27152
-			getitem2 32207,1,1,0,0,4044,0,0,0; equip 32207;  // Acc Direito - Hiding Turbina Ilusi�n A-D - Carta Fumacento 4044
-			getitem2 2910,1,1,0,0,0,0,0,0; equip 2910;       // Acc Esquerdo - Tatuagem Amuleto de Bakonawa
-			if (.@skip_cons)
-				break;
-			// Consum�veis Cavaleiro R�nico - Runas (3 de cada) + 22540 (2x)
-			getitem 12725,3;
-			getitem 12726,3;
-			getitem 12727,3;
-			getitem 12728,3;
-			getitem 12729,3;
-			getitem 12730,3;
-			getitem 12731,3;
-			getitem 12732,3;
-			getitem 12733,3;
-			getitem 22540,2;
-			// Demais consum�veis (po��es, comidas, etc.)
-			getitem 11548,80;    // Po��o Branca GdE
-			getitem 12427,60;    // Po��o Grande de SP
-			getitem 12424,1;     // Po��o Grande de HP
-			getitem 12436,1;     // Po��o Vitata 500
-			getitem 12437,1;     // Suco Celular Enriquecido
-			getitem 506,7;       // Po��o Verde
-			getitem 523,7;       // �gua Benta
-			getitem 657,5;       // Po��o da Furia Selvagem
-			getitem 12114,5;     // Conversor Elemental de Fogo
-			getitem 12117,5;     // Conversor Elemental de Vento
-			getitem 12118,1;     // Po��o Anti Fogo
-			getitem 12119,1;     // Po��o Anti �gua
-			getitem 12120,1;     // Po��o Anti Vento
-			getitem 12121,1;     // Po��o Anti Terra
-			getitem 12429,1;     // Churrasco Selvagem
-			getitem 12430,1;     // Coquetel Uivante
-			getitem 12431,1;     // Carne ao Vinho
-			getitem 12432,1;     // Ch� Gelado de Siroma
-			getitem 12433,1;     // Cozido de Drosera
-			getitem 12434,1;     // Macarr�o com Petite
+			getitem2 18570,1,1,4,0,4411,0,0,0; equip 18570;
+			getitem2 18519,1,1,0,0,4411,0,0,0; equip 18519;
+			getitem 5361,1; equip 5361;
+			getitem2 15376,1,1,4,0,4387,0,0,0; equip 15376;
+			getitem2 21047,1,1,4,0,31024,31024,0,0; equip 21047;
+			getitem2 20933,1,1,4,0,4359,0,0,0; equip 20933;
+			getitem2 22011,1,1,4,0,27152,0,0,0; equip 22011;
+			getitem2 32207,1,1,0,0,4044,0,0,0; equip 32207;
+			getitem2 2910,1,1,0,0,0,0,0,0; equip 2910;
 		break;
 	case 4063: // Arch Bishop
-			getitem2 18959,1,1,0,0,4403,0,0,0; equip 18959;  // Top - Chap�u Dighi Titica - Carta Kiel-D-01 4403
-			getitem 18894,1; equip 18894;   // Mid - Diadema Arco-�ris
-			getitem 18670,1; equip 18670;   // Lower - Len�o da Compaix�o
-			getitem2 15048,1,1,4,0,4042,0,0,0; equip 15048;   // Armadura - Manto de Cerco +4 - Carta Chonchon de A�o 4042
-			getitem2 1505,1,1,7,0,4002,4002,4002,4002; equip 1505;   // Ma�a +7 - 4x Carta Fabre 4002
-			getitem2 2115,1,1,4,0,4058,0,0,0; equip 2115;   // Escudo - Cranial Valqu�ria +4 - Carta Thara 4058
-			getitem2 2587,1,1,4,0,4359,0,0,0; equip 2587;   // Capa - Sobrepeliz de Cerco +4 - Carta Eremes 4359
-			getitem2 2485,1,1,4,0,4381,0,0,0; equip 2485;   // Cal�ado - Sapatos de Cerco +4 - Carta Ferus Verde 4381
-			getitem2 22008,1,1,4,0,4381,0,0,0;   // Botas Temporais DES +4 (invent�rio, n�o equipar)
-			getitem2 2701,1,1,0,0,4064,0,0,0; equip 2701;   // Acc - Luvas de Orleans - Carta Zerom 4064
-			getitem2 2701,1,1,0,0,4044,0,0,0; equip 2701;   // Acc - Luvas de Orleans - Carta Fumacento 4044
-			if (.@skip_cons)
-				break;
-			// Consum�veis Arcebispo
-			getitem 11548,80;   // Po��o Branca GdE
-			getitem 12427,65;   // Po��o Grande de SP
-			getitem 12424,2;    // Po��o Grande de HP
-			getitem 12436,2;    // Po��o Vitata 500
-			getitem 506,4;      // Po��o Verde
-			getitem 645,4;      // Po��o Despertar
-			getitem 523,1;      // �gua Benta
-			getitem 506,11;     // Po��o Verde
-			getitem 12114,5;    // Conversor Elemental de Fogo
-			getitem 12118,1;    // Po��o Anti Fogo
-			getitem 12119,1;    // Po��o Anti �gua
-			getitem 12120,1;    // Po��o Anti Vento
-			getitem 12121,1;    // Po��o Anti Terra
-			getitem 12429,1;    // Churrasco Selvagem
-			getitem 12430,1;    // Coquetel Uivante
-			getitem 12431,1;    // Carne ao Vinho
-			getitem 12432,1;    // Ch� Gelado de Siroma
-			getitem 12433,1;    // Cozido de Drosera
-			getitem 12434,1;    // Macarr�o com Petite
+			getitem2 18959,1,1,0,0,4403,0,0,0; equip 18959;
+			getitem 18894,1; equip 18894;
+			getitem 18670,1; equip 18670;
+			getitem2 15048,1,1,4,0,4042,0,0,0; equip 15048;
+			getitem2 1505,1,1,7,0,4002,4002,4002,4002; equip 1505;
+			getitem2 2115,1,1,4,0,4058,0,0,0; equip 2115;
+			getitem2 2587,1,1,4,0,4359,0,0,0; equip 2587;
+			getitem2 2485,1,1,4,0,4381,0,0,0; equip 2485;
+			getitem2 22008,1,1,4,0,4381,0,0,0;
+			getitem2 2701,1,1,0,0,4064,0,0,0; equip 2701;
+			getitem2 2701,1,1,0,0,4044,0,0,0; equip 2701;
 		break;
-	case 4061: // Warlock (Bruxo) � sem kit, em aberto
+	case 4061: // Warlock (Bruxo) — 5362 e mascara: usar getitem, nao getitem2 (parse exige 9 args no getitem2)
+			getitem2 18570,1,1,4,0,4517,0,0,0; equip 18570;
+			getitem2 18518,1,1,0,0,4403,0,0,0; equip 18518;
+			getitem 5362,1; equip 5362;
+			getitem2 15377,1,1,4,0,4141,0,0,0; equip 15377; // Carta Druida
+			getitem2 26151,1,1,4,0,4474,4474,0,0; equip 26151;
+			getitem2 2161,1,1,4,0,4058,0,0,0; equip 2161;
+			getitem2 20934,1,1,4,0,4359,0,0,0; equip 20934;
+			getitem2 22197,1,1,4,0,4097,0,0,0; equip 22197;
+			getitem2 2910,1,1,0,0,0,0,0,0; equip 2910;
+			getitem2 2701,1,1,0,0,4044,0,0,0; equip 2701;
 		break;
 	case 4064: // Mechanic
-			getitem2 18959,1,1,0,0,4403,0,0,0; equip 18959;  // Top - Chap�u Dighi Titica - Carta Kiel-D-01 4403
-			getitem2 18519,1,1,0,0,4403,0,0,0; equip 18519;  // Mid - Orelhas Malignas - Carta Kiel-D-01 4403
-			getitem 18670,1; equip 18670;   // Lower - Len�o da Compaix�o
-			getitem2 2357,1,1,4,0,4302,0,0,0; equip 2357;   // Armadura - High Risk +4 - Carta Tao Gunka 4302
-			getitem2 1505,1,1,7,0,4055,4055,4055,4055; equip 1505;   // Ma�a +7 - 4x Carta Marina 4055
-			getitem2 2124,1,1,4,0,4058,0,0,0; equip 2124;   // Escudo - Cranial Escudo Farpado +4 - Carta Thara 4058
-			getitem2 2589,1,1,4,0,0,0,0,0; equip 2589;   // Capa - Asas de Arcanjo Ca�do +4
-			getitem2 22008,1,1,4,0,4107,0,0,0; equip 22008; // Cal�ado - Botas Temporais +4 - Carta Verit 4107
-			getitem2 2801,1,1,0,0,4044,0,0,0; equip 2801;   // Acc - Planador - Carta Fumacento 4044 (Mec�nico)
-			getitem2 2702,1,1,0,0,4064,0,0,0; equip 2702;   // Acc - Chifres de Bis�o - Carta Zerom 4064
-			// Itens no invent�rio (sem equipar)
-			getitem2 1505,1,1,7,0,4522,4522,4522,4522;   // Ma�a +7 - 4x Carta Sropho 4522
-			getitem2 1549,1,1,5,0,0,0,0,0;   // Bate-Estacas +5
-			getitem 2800,1;   // Acelerador (M.E.C.H.A.)
-			getitem 2802,1;   // Detonador (M.E.C.H.A.)
-			getitem 2805,1;   // Gerador de Magnetismo (M.E.C.H.A.)
-			getitem 2806,1;   // Gerador de Barreira (M.E.C.H.A.)
-			getitem 2808,1;   // Gerador de Camuflagem (M.E.C.H.A.)
-			if (.@skip_cons)
-				break;
-			// Consum�veis Mec�nico
-			getitem 11548,50;  // Po��o Branca GdE
-			getitem 12427,50;  // Po��o Grande de SP
-			getitem 12424,1;   // Po��o Grande de HP
-			getitem 12436,1;   // Po��o Vitata 500
-			getitem 12437,2;   // Suco Celular Enriquecido
-			getitem 656,3;     // Po��o Despertar
-			getitem 523,7;     // �gua Benta
-			getitem 506,7;     // Po��o Verde
-			getitem 12118,1;   // Po��o Anti Fogo
-			getitem 12119,1;   // Po��o Anti �gua
-			getitem 12120,1;   // Po��o Anti Vento
-			getitem 12121,1;   // Po��o Anti Terra
-			getitem 12429,1;   // Churrasco Selvagem
-			getitem 12430,1;   // Coquetel Uivante
-			getitem 12431,1;   // Carne ao Vinho
-			getitem 12432,1;   // Ch� Gelado de Siroma
-			getitem 12433,1;   // Cozido de Drosera
-			getitem 12434,1;   // Macarr�o com Petite
-			getitem 12114,1;   // Conversor Elemental de Fogo
-			getitem 12116,1;   // Conversor Elemental de Terra
-			getitem 12117,1;   // Conversor Elemental de Vento
-			getitem 612,1;     // Mini Fornalha
-			getitem 615,1;     // ID 615
-			getitem 756,5;     // ID 756
-			getitem 998,8;     // ID 998
-			getitem 999,6;     // ID 999
-			getitem 6146,200;  // ID 6146
-			getitem 6145,100;  // ID 6145
-			getitem 6147,30;   // ID 6147
+			getitem2 18959,1,1,0,0,4403,0,0,0; equip 18959;
+			getitem2 18519,1,1,0,0,4403,0,0,0; equip 18519;
+			getitem 18670,1; equip 18670;
+			getitem2 2357,1,1,4,0,4302,0,0,0; equip 2357;
+			getitem2 1505,1,1,7,0,4055,4055,4055,4055; equip 1505;
+			getitem2 2124,1,1,4,0,4058,0,0,0; equip 2124;
+			getitem2 2589,1,1,4,0,0,0,0,0; equip 2589;
+			getitem2 22008,1,1,4,0,4107,0,0,0; equip 22008;
+			getitem2 2801,1,1,0,0,4044,0,0,0; equip 2801;
+			getitem2 2702,1,1,0,0,4064,0,0,0; equip 2702;
+			getitem2 1505,1,1,7,0,4522,4522,4522,4522;
+			getitem2 1549,1,1,5,0,0,0,0,0;
+			getitem 2800,1;
+			getitem 2802,1;
+			getitem 2805,1;
+			getitem 2806,1;
+			getitem 2808,1;
 		break;
 	case 4062: // Ranger
-			getitem2 18570,1,1,4,0,4403,0,0,0; equip 18570;  // Top - Decora��o Dourada Antiga +4 - Carta Kiel-D-01 4403
-			getitem 2291,1; equip 2291;   // Mid - Disfarce
-			getitem 5361,1; equip 5361;   // Lower - M�scara de Fugitivo
-			getitem2 15376,1,1,4,0,4392,0,0,0; equip 15376;  // Armadura - Colete Ilusi�n A +4 - Carta Dama da Guarda 4392
-			getitem2 18178,1,1,4,0,4035,4035,0,0; equip 18178;  // Arco Bi Bloody Virtual-OS +4 - 2x Carta Hidra 4035
-			getitem2 20933,1,1,4,0,4359,0,0,0; equip 20933;  // Capa - Motor Ilusi�n A +4 - Carta Algoz Eremes 4359
-			getitem2 22008,1,1,4,0,4381,0,0,0; equip 22008;  // Botas Temporais DES +4 - Carta Ferus Verde 4381
-			getitem2 32207,1,1,0,0,4044,0,0,0; equip 32207;  // Acc Dir - Turbina Ilusi�n A-D - Carta Fumarento 4044
-			getitem2 2910,1,1,0,0,0,0,0,0; equip 2910;    // Acc Esq - Tatuagem Amuleto de Bakunawa
-			if (.@skip_cons)
-				break;
-			// Consum�veis Sentinela
-			getitem 11548,15;  // Po��o Branca GdE
-			getitem 12427,15;  // Po��o Grande de SP
-			getitem 12424,1;   // Po��o Grande de HP
-			getitem 12436,1;   // Po��o Vitata 500
-			getitem 12437,1;   // Suco Celular Enriquecido
-			getitem 656,3;     // Po��o Despertar
-			getitem 523,4;     // �gua Benta
-			getitem 506,4;     // Po��o Verde
-			getitem 12118,1;   // Po��o Anti Fogo
-			getitem 12119,1;   // Po��o Anti �gua
-			getitem 12120,1;   // Po��o Anti Vento
-			getitem 12121,1;   // Po��o Anti Terra
-			getitem 12429,1;   // Churrasco Selvagem
-			getitem 12430,1;   // Coquetel Uivante
-			getitem 12431,1;   // Carne ao Vinho
-			getitem 12432,1;   // Ch� Gelado de Siroma
-			getitem 12433,1;   // Cozido de Drosera
-			getitem 12434,1;   // Macarr�o com Petite
-			getitem 12114,5;   // Conversor Elemental de Fogo
-			getitem 12116,5;   // Conversor Elemental de Terra
-			getitem 12117,3;   // Conversor Elemental de Vento
-			getitem 1765,400;  // Flecha de Oridecon
-			getitem 1065,6;    // Armadilha
+			getitem2 18570,1,1,4,0,4403,0,0,0; equip 18570;
+			getitem 2291,1; equip 2291;
+			getitem 5361,1; equip 5361;
+			getitem2 15376,1,1,4,0,4392,0,0,0; equip 15376;
+			getitem2 18178,1,1,4,0,4035,4035,0,0; equip 18178;
+			getitem2 20933,1,1,4,0,4359,0,0,0; equip 20933;
+			getitem2 22008,1,1,4,0,4381,0,0,0; equip 22008;
+			getitem2 32207,1,1,0,0,4044,0,0,0; equip 32207;
+			getitem2 2910,1,1,0,0,0,0,0,0; equip 2910;
 		break;
-	case 4065: // Guillotine Cross (Carrasco) � sem kit, em aberto
+	case 4065: // Guillotine Cross
 		break;
 	case 4073: // Royal Guard
-			getitem2 18959,1,1,0,0,4412,0,0,0; equip 18959;  // Top - Chap�u de Dighi Titica - Carta Isilla 4412
-			getitem 18894,1; equip 18894;   // Mid - Diadema Arco-�ris
-			getitem 18670,1; equip 18670;   // Lower - Len�o da Compaix�o
-			getitem2 2357,1,1,4,0,4302,0,0,0; equip 2357;   // Armadura - High Risk +4 - Carta Tao Gunka 4302
-			getitem2 1228,1,1,4,0,0,0,0,0; equip 1228;      // Arma - Faca de Combate +4
-			getitem2 2124,1,1,4,0,4058,0,0,0; equip 2124;   // Escudo - Cranial Escudo Farpado +4 - Carta Thara 4058
-			getitem2 2524,1,1,4,0,4402,0,0,0; equip 2524;   // Capa - Strange Manto Valqu�rias +4 - Carta Aliot 4402
-			getitem2 22008,1,1,4,0,4381,0,0,0; equip 22008; // Cal�ado - Botas Temporais DES +4 - Carta Ferus Verde 4381
-			getitem2 2702,1,1,0,0,4252,0,0,0; equip 2702;   // Acc - Chifres de Bis�o - Carta Crocodilo 4252
-			getitem2 2703,1,1,0,0,4044,0,0,0; equip 2703;   // Acc - Anel do Especialista - Carta Fumacento 4044
-			getitem2 1408,1,1,0,0,4522,4522,4522,4522;   // Pique 1x - 4x Carta Sropho 4522 (invent�rio)
-			if (.@skip_cons)
-				break;
-			// Consum�veis Guardi�o Real
-			getitem 11548,340;  // Po��o Branca GdE
-			getitem 12427,65;   // Po��o Grande de SP
-			getitem 12424,1;    // Po��o Grande de HP
-			getitem 12436,1;    // Po��o Vitata 500
-			getitem 12437,1;    // Suco Celular Enriquecido
-			getitem 657,2;      // Po��o da Furia Selvagem
-			getitem 523,5;      // �gua Benta
-			getitem 506,5;      // Po��o Verde
-			getitem 12117,1;    // Conversor Elemental de Vento
-			getitem 12118,1;    // Po��o Anti Fogo
-			getitem 12119,1;    // Po��o Anti �gua
-			getitem 12120,1;    // Po��o Anti Vento
-			getitem 12121,1;    // Po��o Anti Terra
-			getitem 12429,1;    // Churrasco Selvagem
-			getitem 12430,1;    // Coquetel Uivante
-			getitem 12431,1;    // Carne ao Vinho
-			getitem 12432,1;    // Ch� Gelado de Siroma
-			getitem 12433,1;    // Cozido de Drosera
-			getitem 12434,1;    // Macarr�o com Petite
+			getitem2 18959,1,1,0,0,4412,0,0,0; equip 18959;
+			getitem 18894,1; equip 18894;
+			getitem 18670,1; equip 18670;
+			getitem2 2357,1,1,4,0,4302,0,0,0; equip 2357;
+			getitem2 1228,1,1,4,0,0,0,0,0; equip 1228;
+			getitem2 2124,1,1,4,0,4058,0,0,0; equip 2124;
+			getitem2 2524,1,1,4,0,4402,0,0,0; equip 2524;
+			getitem2 22008,1,1,4,0,4381,0,0,0; equip 22008;
+			getitem2 2702,1,1,0,0,4252,0,0,0; equip 2702;
+			getitem2 2703,1,1,0,0,4044,0,0,0; equip 2703;
+			getitem2 1408,1,1,0,0,4522,4522,4522,4522;
 		break;
 	case 4077: // Sura
-			getitem2 18959,1,1,0,0,4379,0,0,0; equip 18959;  // Top - Chap�u Dighi Titica - Carta Acidus Azul 4379
-			getitem 18894,1; equip 18894;   // Mid - Diadema Arco-�ris
-			getitem 18670,1; equip 18670;   // Lower - Len�o da Compaix�o
-			getitem2 15048,1,1,4,0,4302,0,0,0; equip 15048;   // Armadura - Manto de Cerco +4 - Carta Tao Gunka 4302
-			getitem2 16003,1,1,5,0,4035,4035,0,0; equip 16003;   // Arma - Ma�a Carga +5 - 2x Carta Hidra 4035
-			getitem2 28953,1,1,4,0,4058,0,0,0; equip 28953;   // Escudo - Cranial Encoura�ado +4 - Carta Thara 4058
-			getitem2 2587,1,1,4,0,4334,0,0,0; equip 2587;   // Capa - Sobrepeliz +4 - Carta Nuvem T�xica 4334
-			getitem2 2485,1,1,4,0,4381,0,0,0; equip 2485;   // Cal�ado - Sapatos de Cerco +4 - Carta Ferus Verde 4381
-			getitem2 2729,1,1,0,0,4044,0,0,0; equip 2729;   // Acc - Anel de Diabolus - Carta Fumacento 4044
-			getitem2 2910,1,1,0,0,0,0,0,0; equip 2910;   // Acc - Tatuagem Amuleto de Bakunawa
-			// Itens no invent�rio (sem equipar)
-			getitem2 15376,1,1,4,0,4346,0,0,0;   // Colete Ilusi�n A +4 - Carta Egnigem Cenia 4346
-			getitem2 18570,1,1,4,0,4379,0,0,0;   // Decora��o Dourada Antiga +4 - Carta Acidus Azul 4379
-			getitem2 1822,1,1,5,0,4522,4522,4522,4522;   // Luva de Combo +5 - 4x Carta Sropho 4522
-			getitem2 2115,1,1,4,0,4058,0,0,0;   // Cranial Valqu�ria +4 - Carta Thara 4058
-			getitem2 20933,1,1,4,0,4402,0,0,0;   // Motor Ilusi�n A +4 - Carta Aliot 4402
-			getitem2 22196,1,1,4,0,4100,0,0,0;   // Perna Ilus�ria +4 - Carta Sohee 4100
-			if (.@skip_cons)
-				break;
-			// Consum�veis Shura
-			getitem 11548,140;  // Po��o Branca GdE
-			getitem 12427,140;  // Po��o Grande de SP
-			getitem 12424,1;   // Po��o Grande de HP
-			getitem 12436,1;   // Po��o Vitata 500
-			getitem 12437,4;   // Suco Celular Enriquecido
-			getitem 506,4;     // Po��o Verde
-			getitem 656,1;     // Po��o Despertar
-			getitem 506,11;    // Po��o Verde
-			getitem 523,4;     // �gua Benta
-			getitem 12114,5;   // Conversor Elemental de Fogo
-			getitem 12116,5;   // Conversor Elemental de Terra
-			getitem 12118,1;   // Po��o Anti Fogo
-			getitem 12119,1;   // Po��o Anti �gua
-			getitem 12120,1;   // Po��o Anti Vento
-			getitem 12121,1;   // Po��o Anti Terra
-			getitem 12429,1;   // Churrasco Selvagem
-			getitem 12430,1;   // Coquetel Uivante
-			getitem 12431,1;   // Carne ao Vinho
-			getitem 12432,1;   // Ch� Gelado de Siroma
-			getitem 12433,1;   // Cozido de Drosera
-			getitem 12434,1;   // Macarr�o com Petite
+			getitem2 18959,1,1,0,0,4379,0,0,0; equip 18959;
+			getitem 18894,1; equip 18894;
+			getitem 18670,1; equip 18670;
+			getitem2 15048,1,1,4,0,4302,0,0,0; equip 15048;
+			getitem2 16003,1,1,5,0,4035,4035,0,0; equip 16003;
+			getitem2 28953,1,1,4,0,4058,0,0,0; equip 28953;
+			getitem2 2587,1,1,4,0,4334,0,0,0; equip 2587;
+			getitem2 2485,1,1,4,0,4381,0,0,0; equip 2485;
+			getitem2 2729,1,1,0,0,4044,0,0,0; equip 2729;
+			getitem2 2910,1,1,0,0,0,0,0,0; equip 2910;
+			getitem2 15376,1,1,4,0,4346,0,0,0;
+			getitem2 18570,1,1,4,0,4379,0,0,0;
+			getitem2 1822,1,1,5,0,4522,4522,4522,4522;
+			getitem2 2115,1,1,4,0,4058,0,0,0;
+			getitem2 20933,1,1,4,0,4402,0,0,0;
+			getitem2 22196,1,1,4,0,4100,0,0,0;
 		break;
 	case 4074: // Sorcerer
-			getitem2 18959,1,1,0,0,4198,0,0,0; equip 18959;  // Top - Chap�u Dighi Titica - Carta Maya Macho 4198
-			getitem 18894,1; equip 18894;   // Mid - Diadema Arco-�ris
-			getitem 18670,1; equip 18670;   // Lower - Len�o da Compaix�o
-			getitem2 15048,1,1,4,0,4042,0,0,0; equip 15048;   // Armadura - Manto de Cerco +4 - Carta Chonchon de A�o 4042
-			getitem2 1228,1,1,4,0,0,0,0,0; equip 1228;   // Arma - Faca de Combate +4
-			getitem2 2115,1,1,4,0,4058,0,0,0; equip 2115;   // Escudo - Cranial Valqu�ria +4 - Carta Thara 4058
-			getitem2 2587,1,1,4,0,4334,0,0,0; equip 2587;   // Capa - Sobrepeliz +4 - Carta Nuvem T�xica 4334
-			getitem2 2485,1,1,4,0,27152,0,0,0; equip 2485;   // Cal�ado - Sapatos de Cerco +4 - Carta Fofinho 27152
-			getitem2 2701,1,1,0,0,4044,0,0,0; equip 2701;   // Acc - Luvas de Orleans - Carta Fumacento 4044
-			getitem2 2701,1,1,0,0,4064,0,0,0; equip 2701;   // Acc - Luvas de Orleans - Carta Zerom 4064
-			// Itens no invent�rio (sem equipar)
-			getitem 715,90;    // Gema Amarela
-			getitem 717,100;   // Gema Azul
-			getitem 716,100;   // Gema Vermelha
-			getitem 1025,45;   // Teia de Aranha
-			getitem 992,9;     // Frescor do Vento
-			getitem 991,6;     // Cristal Azul
-			getitem 6363,4;    // Fragmento Verde
-			getitem2 22008,1,1,4,0,4381,0,0,0;   // Botas Temporais +4 - Carta Ferus Verde (invent�rio)
-			if (.@skip_cons)
-				break;
-			// Consum�veis Feiticeiro
-			getitem 11548,120;  // Po��o Branca GdE
-			getitem 12427,30;   // Po��o Grande de SP
-			getitem 11549,3;    // Po��o Gde Azul
-			getitem 12424,1;    // Po��o Grande de HP
-			getitem 12436,1;    // Po��o Vitata 500
-			getitem 12437,1;    // Suco Celular Enriquecido
-			getitem 656,3;      // Po��o Despertar
-			getitem 523,7;      // �gua Benta
-			getitem 506,7;      // Po��o Verde
-			getitem 12118,1;    // Po��o Anti Fogo
-			getitem 12119,1;    // Po��o Anti �gua
-			getitem 12120,1;    // Po��o Anti Vento
-			getitem 12121,1;    // Po��o Anti Terra
-			getitem 12429,1;    // Churrasco Selvagem
-			getitem 12430,1;    // Coquetel Uivante
-			getitem 12431,1;    // Carne ao Vinho
-			getitem 12432,1;    // Ch� Gelado de Siroma
-			getitem 12433,1;    // Cozido de Drosera
-			getitem 12434,1;    // Macarr�o com Petite
+			getitem2 18959,1,1,0,0,4198,0,0,0; equip 18959;
+			getitem 18894,1; equip 18894;
+			getitem 18670,1; equip 18670;
+			getitem2 15048,1,1,4,0,4042,0,0,0; equip 15048;
+			getitem2 1228,1,1,4,0,0,0,0,0; equip 1228;
+			getitem2 2115,1,1,4,0,4058,0,0,0; equip 2115;
+			getitem2 2587,1,1,4,0,4334,0,0,0; equip 2587;
+			getitem2 2485,1,1,4,0,27152,0,0,0; equip 2485;
+			getitem2 2701,1,1,0,0,4044,0,0,0; equip 2701;
+			getitem2 2701,1,1,0,0,4064,0,0,0; equip 2701;
+			getitem 715,90;
+			getitem 717,100;
+			getitem 716,100;
+			getitem 1025,45;
+			getitem 992,9;
+			getitem 991,6;
+			getitem 6363,4;
+			getitem2 22008,1,1,4,0,4381,0,0,0;
 		break;
 	case 4079: // Shadow Chaser
-			getitem2 18959,1,1,0,0,4198,0,0,0; equip 18959;  // Top - Chap�u Dighi Titica - Carta Maya Macho 4198
-			getitem 18894,1; equip 18894;   // Mid - Diadema Arco-�ris
-			getitem 18670,1; equip 18670;   // Lower - Len�o da Compaix�o
-			getitem2 15047,1,1,4,0,4302,0,0,0; equip 15047;   // Armadura - T�nica de Cerco +4 - Carta Tao Gunka 4302
-			getitem2 1228,1,1,4,0,0,0,0,0; equip 1228;   // Arma - Faca de Combate +4
-			getitem2 2115,1,1,4,0,4058,0,0,0; equip 2115;   // Escudo - Cranial Valqu�ria +4 - Carta Thara 4058
-			getitem2 2586,1,1,4,0,4334,0,0,0; equip 2586;   // Capa - Manteau de Cerco +4 - Carta Nuvem T�xica 4334
-			getitem2 2484,1,1,4,0,4381,0,0,0; equip 2484;   // Cal�ado - Botas de Cerco +4 - Carta Ferus Verde 4381
-			getitem2 2701,1,1,0,0,4064,0,0,0; equip 2701;   // Acc - Luvas de Orleans - Carta Fumacento 4044
-			getitem2 2701,1,1,0,0,4064,0,0,0; equip 2701;   // Acc - Luvas de Orleans - Carta Zerom 4064
-			// Itens no invent�rio (sem equipar)
-			getitem2 18180,1,1,4,0,4035,4035,0,0;   // Arco AC-B44-OS +4 - 2x Carta Hidra 4035
-			getitem2 28953,1,1,4,0,4058,0,0,0;   // Cranial Encoura�ado +4 - Carta Thara 4058
-			getitem2 15047,1,1,4,0,4042,0,0,0;   // T�nica de Cerco +4 - Carta Chonchon de A�o 4042
-			getitem 15147,1;   // Vestimenta Exuberante
-			getitem2 22008,1,1,4,0,0,0,0,0;   // Botas Temporais DES +4
-			getitem 6122,1;   // Pincel de Grafite
-			getitem 6121,1;   // Pincel de Maquiagem
-			if (.@skip_cons)
-				break;
-			// Consum�veis Renegado (foto + extras)
-			getitem 523,6;      // �gua Benta
-			getitem 12424,1;    // Po��o Grande de HP
-			getitem 12436,1;    // Po��o Vitata 500
-			getitem 12429,1;    // Churrasco Selvagem
-			getitem 12430,1;    // Coquetel Uivante
-			getitem 12432,1;    // Ch� Gelado de Siroma
-			getitem 12433,1;    // Cozido de Drosera
-			getitem 12434,1;    // Macarr�o com Petite
-			getitem 12118,1;    // Po��o Anti Fogo
-			getitem 12119,1;    // Po��o Anti �gua
-			getitem 12120,1;    // Po��o Anti Vento
-			getitem 12121,1;    // Po��o Anti Terra
-			getitem 657,3;      // Po��o da Furia Selvagem
-			getitem 11548,80;   // Po��o Branca GdE
-			getitem 12427,65;   // Po��o Grande de SP
-			getitem 12114,5;    // Conversor Elemental de Fogo
-			getitem 7940,100;   // Armadilha Especial
-			getitem 1756,500;   // Flechas de Oridecon
-			getitem 6123,80;    // Tinta para Parede
-			getitem 6120,80;    // Tinta para Pele
+			getitem2 18959,1,1,0,0,4198,0,0,0; equip 18959;
+			getitem 18894,1; equip 18894;
+			getitem 18670,1; equip 18670;
+			getitem2 15047,1,1,4,0,4302,0,0,0; equip 15047;
+			getitem2 1228,1,1,4,0,0,0,0,0; equip 1228;
+			getitem2 2115,1,1,4,0,4058,0,0,0; equip 2115;
+			getitem2 2586,1,1,4,0,4334,0,0,0; equip 2586;
+			getitem2 2484,1,1,4,0,4381,0,0,0; equip 2484;
+			getitem2 2701,1,1,0,0,4044,0,0,0; equip 2701;
+			getitem2 2701,1,1,0,0,4064,0,0,0; equip 2701;
+			getitem2 18180,1,1,4,0,4035,4035,0,0;
+			getitem2 28953,1,1,4,0,4058,0,0,0;
+			getitem2 15047,1,1,4,0,4042,0,0,0;
+			getitem 15147,1;
+			getitem2 22008,1,1,4,0,0,0,0,0;
+			getitem 6122,1;
+			getitem 6121,1;
 		break;
-	case 4078: // Genetic (Geneticista) � sem kit, em aberto
+	case 4078: // Genetic
 		break;
-	case 4075: // Minstrel (Trovador)
-			getitem2 18959,1,1,0,0,4403,0,0,0; equip 18959;  // Top - Chap�u Dighi Titica - Carta Kiel-D-01 4403
-			getitem 18894,1; equip 18894;   // Mid - Diadema Arco-�ris
-			getitem 18670,1; equip 18670;   // Lower - Len�o da Compaix�o
-			getitem2 15377,1,1,4,0,4042,0,0,0; equip 15377;   // Armadura - Colete Ilusi�n B +4 - Carta Chonchon de A�o 4042
-			getitem2 1902,1,1,7,0,4474,4474,4474,4474; equip 1902;   // Arma - Violino +7 - 4x Carta Zakudam 4474
-			getitem2 2115,1,1,4,0,4058,0,0,0; equip 2115;   // Escudo - Cranial Valqu�ria +4 - Carta Thara 4058
-			getitem2 20934,1,1,4,0,4359,0,0,0; equip 20934;   // Capa - Motor Ilusi�n B +4 - Carta Algoz Eremes 4359
-			getitem2 22197,1,1,4,0,4381,0,0,0; equip 22197;   // Cal�ado - Perna Ilusi�n B +4 - Carta Ferus Verde 4381
-			getitem2 2899,1,1,0,0,4064,0,0,0; equip 2899;   // Acc - Amplificador de Som - Carta Zerom 4064
-			getitem2 2899,1,1,0,0,4044,0,0,0; equip 2899;   // Acc - Amplificador de Som - Carta Fumacento 4044
-			// Itens no invent�rio (sem equipar)
-			getitem2 1926,1,1,4,0,4076,4076,0,0;   // Harpa de Nepenthes +4 - 2x Carta Magn�lia 4076
-			getitem2 22008,1,1,4,0,4381,0,0,0;   // Botas Temporais DES +4 - Carta Ferus Verde 4381
-			if (.@skip_cons)
-				break;
-			// Consum�veis Trovador
-			getitem 11513,200;   // Pastilha Refrescante
-			getitem 11548,80;    // Po��o Branca GdE
-			getitem 12427,70;    // Po��o Grande de SP
-			getitem 12436,1;     // Po��o Vitata 500
-			getitem 12424,1;     // Po��o Grande de HP
-			getitem 12430,1;     // Coquetel Uivante
-			getitem 12431,1;     // Carne ao Vinho
-			getitem 12432,1;     // Ch� Gelado de Siroma
-			getitem 12433,1;     // Cozido de Drosera
-			getitem 12434,1;     // Macarr�o com Petite
-			getitem 12118,1;     // Po��o Anti Fogo
-			getitem 12119,1;     // Po��o Anti �gua
-			getitem 12120,1;     // Po��o Anti Vento
-			getitem 12121,1;     // Po��o Anti Terra
-			getitem 656,3;       // Po��o Despertar
-			getitem 523,7;       // �gua Benta
-			getitem 506,7;       // Po��o Verde
-			getitem 6144,60;     // L�grima do Arrependimento
-			getitem 1750,1000;   // Flecha
+	case 4075: // Minstrel
+			getitem2 18959,1,1,0,0,4403,0,0,0; equip 18959;
+			getitem 18894,1; equip 18894;
+			getitem 18670,1; equip 18670;
+			getitem2 15377,1,1,4,0,4042,0,0,0; equip 15377;
+			getitem2 1902,1,1,7,0,4474,4474,4474,4474; equip 1902;
+			getitem2 2115,1,1,4,0,4058,0,0,0; equip 2115;
+			getitem2 20934,1,1,4,0,4359,0,0,0; equip 20934;
+			getitem2 22197,1,1,4,0,4381,0,0,0; equip 22197;
+			getitem2 2899,1,1,0,0,4064,0,0,0; equip 2899;
+			getitem2 2899,1,1,0,0,4044,0,0,0; equip 2899;
+			getitem2 1926,1,1,4,0,4076,4076,0,0;
+			getitem2 22008,1,1,4,0,4381,0,0,0;
 		break;
-	case 4076: // Wanderer (Musa)
-			getitem2 18959,1,1,0,0,4403,0,0,0; equip 18959;  // Top - Chap�u Dighi Titica - Carta Kiel-D-01 4403
-			getitem 18894,1; equip 18894;   // Mid - Diadema Arco-�ris
-			getitem 18670,1; equip 18670;   // Lower - Len�o da Compaix�o
-			getitem2 15377,1,1,4,0,4042,0,0,0; equip 15377;   // Armadura - Colete Ilusi�n B +4 - Carta Chonchon de A�o 4042
-			getitem2 1951,1,1,7,0,4474,4474,4474,4474; equip 1951;   // Arma - Chicote +7 - 4x Carta Zakudam 4474
-			getitem2 2115,1,1,4,0,4058,0,0,0; equip 2115;   // Escudo - Cranial Valqu�ria +4 - Carta Thara 4058
-			getitem2 20934,1,1,4,0,4359,0,0,0; equip 20934;   // Capa - Motor Ilusi�n B +4 - Carta Algoz Eremes 4359
-			getitem2 22197,1,1,4,0,4381,0,0,0; equip 22197;   // Cal�ado - Perna Ilusi�n B +4 - Carta Ferus Verde 4381
-			getitem2 2899,1,1,0,0,4064,0,0,0; equip 2899;   // Acc - Amplificador de Som - Carta Zerom 4064
-			getitem2 2899,1,1,0,0,4044,0,0,0; equip 2899;   // Acc - Amplificador de Som - Carta Fumacento 4044
-			// Itens no invent�rio (sem equipar)
-			getitem2 1979,1,1,4,0,4076,4076,0,0;   // Caule de Nepenthes +4 - 2x Carta Magn�lia 4076
-			getitem2 22008,1,1,4,0,4381,0,0,0;   // Botas Temporais DES +4 - Carta Ferus Verde 4381
-			if (.@skip_cons)
-				break;
-			// Consum�veis Musa
-			getitem 11513,200;   // Pastilha Refrescante
-			getitem 11548,80;    // Po��o Branca GdE
-			getitem 12427,70;    // Po��o Grande de SP
-			getitem 12436,1;     // Po��o Vitata 500
-			getitem 12424,1;     // Po��o Grande de HP
-			getitem 12430,1;     // Coquetel Uivante
-			getitem 12431,1;     // Carne ao Vinho
-			getitem 12432,1;     // Ch� Gelado de Siroma
-			getitem 12433,1;     // Cozido de Drosera
-			getitem 12434,1;     // Macarr�o com Petite
-			getitem 12118,1;     // Po��o Anti Fogo
-			getitem 12119,1;     // Po��o Anti �gua
-			getitem 12120,1;     // Po��o Anti Vento
-			getitem 12121,1;     // Po��o Anti Terra
-			getitem 656,3;       // Po��o Despertar
-			getitem 523,7;       // �gua Benta
-			getitem 506,7;       // Po��o Verde
-			getitem 6144,60;     // L�grima do Arrependimento
-			getitem 1750,1000;   // Flecha
+	case 4076: // Wanderer
+			getitem2 18959,1,1,0,0,4403,0,0,0; equip 18959;
+			getitem 18894,1; equip 18894;
+			getitem 18670,1; equip 18670;
+			getitem2 15377,1,1,4,0,4042,0,0,0; equip 15377;
+			getitem2 1951,1,1,7,0,4474,4474,4474,4474; equip 1951;
+			getitem2 2115,1,1,4,0,4058,0,0,0; equip 2115;
+			getitem2 20934,1,1,4,0,4359,0,0,0; equip 20934;
+			getitem2 22197,1,1,4,0,4381,0,0,0; equip 22197;
+			getitem2 2899,1,1,0,0,4064,0,0,0; equip 2899;
+			getitem2 2899,1,1,0,0,4044,0,0,0; equip 2899;
+			getitem2 1979,1,1,4,0,4076,4076,0,0;
+			getitem2 22008,1,1,4,0,4381,0,0,0;
 		break;
 	default:
 		break;
 	}
-	return 1;
-	end;
+	return;
 }
 
 function	script	F_GetITEM_NoCons	{
-	callfunc "F_GetITEM", 1;
+	callfunc "F_GetITEM";
 	return;
 }

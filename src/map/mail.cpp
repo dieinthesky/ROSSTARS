@@ -403,12 +403,9 @@ int32 mail_openmail(map_session_data *sd)
 {
 	nullpo_ret(sd);
 
-	if( sd->state.storage_flag || sd->state.vending || sd->state.buyingstore || sd->state.trading )
-		return 0;
-
-	clif_Mail_window(sd->fd, 0);
-
-	return 1;
+	// Global hard-disable for RODEX/Mail.
+	clif_displaymessage(sd->fd, "RODEX is disabled on this server.");
+	return 0;
 }
 
 void mail_deliveryfail(map_session_data *sd, struct mail_message *msg){
@@ -435,6 +432,12 @@ void mail_deliveryfail(map_session_data *sd, struct mail_message *msg){
 // This function only check if the mail operations are valid
 bool mail_invalid_operation(map_session_data *sd)
 {
+	nullpo_retr(true, sd);
+
+	// Global hard-disable for every mail operation path (button, packets, @mail, etc.).
+	clif_displaymessage(sd->fd, "RODEX is disabled on this server.");
+	return true;
+
 #if PACKETVER < 20150513
 	if( !map_getmapflag(sd->m, MF_TOWN) && !pc_can_use_command(sd, "mail", COMMAND_ATCOMMAND) )
 	{

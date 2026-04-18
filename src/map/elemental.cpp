@@ -416,11 +416,15 @@ int32 elemental_change_mode_ack(s_elemental_data *ed, e_elemental_skillmode skil
 int32 elemental_change_mode(s_elemental_data *ed, int32 mode) {
 	nullpo_ret(ed);
 
+	const int32 prev_mode = ed->elemental.mode;
+
 	// Remove target
 	elemental_unlocktarget(ed);
 
-	// Removes the effects of the previous mode.
-	if(ed->elemental.mode != mode ) elemental_clean_effect(ed);
+	// Removes the effects of the previous mode, or when refreshing Passive/Assist via SO_EL_CONTROL
+	// at the same level (otherwise elemental_change_mode_ack often fails on canact/skilltimer and the skill fails).
+	if (prev_mode != mode || mode != EL_MODE_AGGRESSIVE)
+		elemental_clean_effect(ed);
 
 	ed->battle_status.mode = ed->elemental.mode = mode;
 	e_elemental_skillmode skill_mode;
@@ -431,8 +435,15 @@ int32 elemental_change_mode(s_elemental_data *ed, int32 mode) {
 	else skill_mode = EL_SKILLMODE_PASSIVE;									// Passive spirit mode -> Passive spirit skill.
 
 	// Use a skill inmediately after every change mode.
-	if( skill_mode != EL_SKILLMODE_AGGRESSIVE )
+	if( skill_mode != EL_SKILLMODE_AGGRESSIVE ) {
+		if (prev_mode == mode) {
+			// Same EL_CONTROL level again: allow EL_* mode skill to fire (ack checks skilltimer / canact_tick).
+			if (ed->ud.skilltimer != INVALID_TIMER)
+				unit_skillcastcancel(ed, 0);
+			ed->ud.canact_tick = gettick();
+		}
 		return elemental_change_mode_ack(ed, skill_mode);
+	}
 
 	return 1;
 }
@@ -560,12 +571,14 @@ static int32 elemental_ai_sub_timer(s_elemental_data *ed, map_session_data *sd, 
 				break;
 		}
 
-		if( status_get_sp(sd) < sp ){ // Can't sustain delete it.
+		// Drain applies to the elemental's own SP (spirit), not the master's SP.
+		if( status_get_sp(ed) < sp ){ // Can't sustain: delete it.
 			elemental_delete(sd->ed);
 			return 0;
 		}
 
-		status_zap(sd,0,sp);
+		status_zap(ed,0,sp);
+		clif_elemental_updatestatus(*sd, SP_SP);
 		ed->last_spdrain_time = tick;
 	}
 

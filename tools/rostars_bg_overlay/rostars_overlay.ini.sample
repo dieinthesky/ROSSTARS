@@ -1,0 +1,20 @@
+[overlay]
+; OPCIONAL — só para desenvolvimento no teu PC. Jogadores podem receber só o .exe com dados em rostars_player_build.hpp.
+; Se este ficheiro existir ao lado do .exe, estes valores substituem / completam o embed.
+host=127.0.0.1
+port=5999
+secret=change_me_to_a_long_random_string
+
+; 1 = read account_id/char_id from session file (client patch). 0 = use INI below.
+use_session_file=1
+session_subfolder=RostarsOnline
+session_max_age_sec=180
+
+; Only if use_session_file=0 (manual / testing):
+account_id=0
+char_id=0
+
+poll_ms=1000
+game_title=Ragnarok
+width=340
+height=150

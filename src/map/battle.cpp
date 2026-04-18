@@ -33,6 +33,7 @@
 #include "pc.hpp"
 #include "pc_groups.hpp"
 #include "pet.hpp"
+#include "unit.hpp"
 
 using namespace rathena;
 
@@ -76,8 +77,8 @@ bool battle_neutralbarrier_group_has_alive( status_change_entry *sce )
 
 /**
  * Ranged miss / immunity:
- * - Caster (SC_NEUTRALBARRIER_MASTER): while the group still has any alive unit — no tile check (owner may stand on cleared side).
- * - Others (SC_NEUTRALBARRIER): must be on a cell that still has a live barrier unit, and the group must still exist.
+ * - Immunity is tile-based: target must stand on a cell that still has an active Neutral Barrier unit.
+ * - If status stores a group id, the group must also still have at least one alive unit.
  */
 bool battle_neutral_barrier_ranged_immunity_active( block_list *bl )
 {
@@ -86,18 +87,19 @@ bool battle_neutral_barrier_ranged_immunity_active( block_list *bl )
 	if (sc == nullptr)
 		return false;
 
+	// Immunity only while physically inside a live Neutral Barrier tile.
+	if (map_find_skill_unit_oncell( bl, bl->x, bl->y, NC_NEUTRALBARRIER, nullptr, 0 ) == nullptr)
+		return false;
+
 	if (sc->getSCE( SC_NEUTRALBARRIER_MASTER )) {
 		int32 gid = sc->getSCE( SC_NEUTRALBARRIER_MASTER )->val2;
 
-		if (battle_neutralbarrier_group_has_alive_gid( gid ))
-			return true;
+		if (gid != 0)
+			return battle_neutralbarrier_group_has_alive_gid( gid );
+		return true; // legacy: tile already verified
 	}
 	if (sc->getSCE( SC_NEUTRALBARRIER )) {
 		status_change_entry *sce = sc->getSCE( SC_NEUTRALBARRIER );
-
-		// Non-owner: only tiles that still show the barrier (yellow) grant ranged immunity.
-		if (map_find_skill_unit_oncell( bl, bl->x, bl->y, NC_NEUTRALBARRIER, nullptr, 0 ) == nullptr)
-			return false;
 
 		if (sce->val3 != 0)
 			return battle_neutralbarrier_group_has_alive_gid( sce->val3 );
@@ -444,6 +446,9 @@ int32 battle_damage(struct block_list *src, struct block_list *target, int64 dam
 		dmg_change = status_damage(src, target, damage, 0, delay, 16, skill_id); // Coma attack
 	else if (dmg_lv > ATK_BLOCK)
 		dmg_change = status_fix_damage(src, target, damage, delay, skill_id);
+	// PC normal weapon hit: extend KN_AUTOCOUNTER proactive target window (easier after auto-attack).
+	if (sd && dmg_lv > ATK_BLOCK && damage > 0 && skill_id == 0 && (attack_type & BF_WEAPON))
+		unit_autocounter_grace_refresh(src, target);
 	if (attack_type && !status_isdead(*target) && additional_effects)
 		skill_additional_effect(src, target, skill_id, skill_lv, attack_type, dmg_lv, tick);
 	if (dmg_lv > ATK_BLOCK && attack_type && additional_effects)
@@ -1632,8 +1637,19 @@ bool battle_status_block_damage(struct block_list *src, struct block_list *targe
 	if ((sce = sc->getSCE(SC_AUTOGUARD)) && (flag & BF_WEAPON || skill_id == NC_SELFDESTRUCTION) && rnd() % 100 < sce->val2
 		&& (!skill_get_inf2(skill_id, INF2_IGNOREAUTOGUARD) || skill_id == NC_SELFDESTRUCTION)) {
 		status_change_entry *sce_d = sc->getSCE(SC_DEVOTION);
-		block_list *d_bl;
+		block_list *d_bl = nullptr;
+		bool devotion_link_ok = false;
+		bool devotion_in_range = false;
 		int32 delay;
+
+		if (sce_d && (d_bl = map_id2bl(sce_d->val1)) != nullptr) {
+			devotion_link_ok =
+				(d_bl->type == BL_MER && ((TBL_MER*)d_bl)->master && ((TBL_MER*)d_bl)->master->id == target->id) ||
+				(d_bl->type == BL_PC && sce_d->val2 >= 0 && sce_d->val2 < MAX_DEVOTION
+					&& ((TBL_PC*)d_bl)->devotion[sce_d->val2] == target->id);
+			if (devotion_link_ok)
+				devotion_in_range = check_distance_bl(target, d_bl, sce_d->val3);
+		}
 
 		// different delay depending on skill level [celest]
 		if (sce->val1 <= 5)
@@ -1645,17 +1661,17 @@ bool battle_status_block_damage(struct block_list *src, struct block_list *targe
 
 		map_session_data *sd = map_id2sd(target->id);
 
-		if (sd && pc_issit(sd))
+		if (sd && pc_issit(sd) && !sd->sc.getSCE(SC_SITDOWN_FORCE) && !sd->sc.getSCE(SC_BANANA_BOMB_SITDOWN))
 			pc_setstand(sd, true);
-		if (sce_d && (d_bl = map_id2bl(sce_d->val1)) &&
-			((d_bl->type == BL_MER && ((TBL_MER*)d_bl)->master && ((TBL_MER*)d_bl)->master->id == target->id) ||
-			(d_bl->type == BL_PC && ((TBL_PC*)d_bl)->devotion[sce_d->val2] == target->id)) &&
-			check_distance_bl(target, d_bl, sce_d->val3))
+		if (devotion_link_ok && devotion_in_range)
 		{
 			clif_skill_nodamage(d_bl, *d_bl, CR_AUTOGUARD, sce->val1);
 			unit_set_walkdelay(d_bl, gettick(), delay, 1);
 			d->dmg_lv = ATK_MISS;
 			return false;
+		}
+		if (devotion_link_ok && !devotion_in_range && sce->val4 == 1) {
+			// Paladin's Autoguard copied via Devotion: must not block when the devotee is outside devotion range.
 		} else {
 			clif_skill_nodamage(target, *target, CR_AUTOGUARD, sce->val1);
 			unit_set_walkdelay(target, gettick(), delay, 1);
@@ -1676,18 +1692,15 @@ bool battle_status_block_damage(struct block_list *src, struct block_list *targe
 		|| skill_id == CR_ACIDDEMONSTRATION
 #endif
 		)) {
-		d->dmg_lv = ATK_MISS;
-		return false;
+		status_change *ssc = status_get_sc(src);
+		if (!(ssc && ssc->getSCE(SC_STRIKING) && (skill_id == NC_VULCANARM || skill_id == NC_COLDSLOWER))) {
+			d->dmg_lv = ATK_MISS;
+			return false;
+		}
 	}
 
-	// ATK_DEF Type
+	// ATK_DEF Type: ranged physical nullify; skill ends on proc (no dash toward attacker).
 	if ((sce = sc->getSCE(SC_LIGHTNINGWALK)) && !(flag & BF_MAGIC) && flag&BF_LONG && rnd() % 100 < sce->val1) {
-		uint8 dir = map_calc_dir(target, src->x, src->y);
-
-		if (unit_movepos(target, src->x - dirx[dir], src->y - diry[dir], 1, 1)) {
-			clif_blown(target);
-			unit_setdir(target, dir);
-		}
 		d->dmg_lv = ATK_DEF;
 		status_change_end(target, SC_LIGHTNINGWALK);
 		return false;
@@ -1708,7 +1721,7 @@ bool battle_status_block_damage(struct block_list *src, struct block_list *targe
 	if (sc->getSCE(SC_DODGE) && (flag&BF_LONG || sc->getSCE(SC_SPURT)) && (skill_id != NPC_EARTHQUAKE || (skill_id == NPC_EARTHQUAKE && flag & NPC_EARTHQUAKE_FLAG)) && rnd() % 100 < 20) {
 		map_session_data *sd = map_id2sd(target->id);
 
-		if (sd && pc_issit(sd))
+		if (sd && pc_issit(sd) && !sd->sc.getSCE(SC_SITDOWN_FORCE) && !sd->sc.getSCE(SC_BANANA_BOMB_SITDOWN))
 			pc_setstand(sd, true); //Stand it to dodge.
 		clif_skill_nodamage(target, *target, TK_DODGE, 1);
 		sc_start4(src, target, SC_COMBO, 100, TK_JUMPKICK, src->id, 1, 0, 2000);
@@ -1794,6 +1807,18 @@ int64 battle_calc_damage(struct block_list *src,struct block_list *bl,struct Dam
 		&& skill_get_casttype(skill_id) == CAST_GROUND )
 		return 0;
 
+#ifdef RENEWAL
+	if ( src != nullptr && bl->type == BL_MOB && damage > 0 ) {
+		mob_data *arena_tmd = BL_CAST( BL_MOB, bl );
+		if ( arena_tmd != nullptr && arena_tmd->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1 && src->type == BL_PC ) {
+			damage -= damage * 35 / 100;
+			const int32 atk_ele = skill_get_ele( skill_id, skill_lv );
+			if ( atk_ele == ELE_WATER || atk_ele == ELE_FIRE || atk_ele == ELE_DARK || atk_ele == ELE_UNDEAD )
+				damage -= damage * 20 / 100;
+		}
+	}
+#endif
+
 	if (bl->type == BL_PC) {
 		sd=(map_session_data *)bl;
 		//Special no damage states
@@ -1871,25 +1896,27 @@ int64 battle_calc_damage(struct block_list *src,struct block_list *bl,struct Dam
 		}
 #endif
 
-		bool redirected_by_devotion = false;
-		if (damage > 0) {
-			if (status_change_entry* devotion = tsc->getSCE(SC_DEVOTION); devotion && devotion->val1
-				&& skill_id != CR_REFLECTSHIELD
+		bool devotion_redirect_in_range = false;
+		if (status_change_entry* devotion = tsc->getSCE(SC_DEVOTION); devotion && devotion->val1
+			&& skill_id != CR_REFLECTSHIELD
 #ifndef RENEWAL
-				&& skill_id != PA_PRESSURE
+			&& skill_id != PA_PRESSURE
 #endif
-				) {
-				struct block_list* d_bl = map_id2bl(devotion->val1);
-				if (d_bl && (
-					(d_bl->type == BL_MER && ((TBL_MER*)d_bl)->master && ((TBL_MER*)d_bl)->master->id == bl->id) ||
-					(d_bl->type == BL_PC && ((TBL_PC*)d_bl)->devotion[devotion->val2] == bl->id)
-					) && check_distance_bl(bl, d_bl, devotion->val3))
-					redirected_by_devotion = true;
-			}
+			) {
+			struct block_list* d_bl = map_id2bl(devotion->val1);
+			if (d_bl && (
+				(d_bl->type == BL_MER && ((TBL_MER*)d_bl)->master && ((TBL_MER*)d_bl)->master->id == bl->id) ||
+				(d_bl->type == BL_PC && ((TBL_PC*)d_bl)->devotion[devotion->val2] == bl->id)
+				) && check_distance_bl(bl, d_bl, devotion->val3))
+				devotion_redirect_in_range = true;
 		}
+		const bool redirected_by_devotion = (damage > 0 && devotion_redirect_in_range);
 
 		if( damage ) {
 			if( tsc->getSCE(SC_DEEPSLEEP) ) {
+				// WM_METALICSOUND: extra +50% here stacks with the global Deep Sleep +50% below (1.5 * 1.5 = 2.25x total vs pre-Deep-Sleep damage).
+				if( skill_id == WM_METALICSOUND )
+					damage += damage / 2;
 				damage += damage / 2; // 1.5 times more damage while in Deep Sleep.
 				// If Devotion will redirect this hit, the devoted target did not take real damage.
 				// Keep Deep Sleep active on the protected target.
@@ -1961,7 +1988,9 @@ int64 battle_calc_damage(struct block_list *src,struct block_list *bl,struct Dam
 			damage = damage * 85 / 100;
 		}
 
+		// Inherited Defender on a devotee only reduces damage while devotion redirect is in range (see skill.cpp devotion branch).
 		if (tsc->getSCE(SC_DEFENDER) &&
+			!(tsc->getSCE(SC_DEVOTION) && !devotion_redirect_in_range) &&
 			skill_id != NJ_ZENYNAGE && skill_id != KO_MUCHANAGE &&
 #ifdef RENEWAL
 			((flag&(BF_LONG|BF_WEAPON)) == (BF_LONG|BF_WEAPON) || skill_id == GN_FIRE_EXPANSION_ACID))
@@ -2036,10 +2065,12 @@ int64 battle_calc_damage(struct block_list *src,struct block_list *bl,struct Dam
 		if( (sce=tsc->getSCE(SC_MAGMA_FLOW)) && (rnd()%100 <= sce->val2) )
 			skill_castend_damage_id(bl,src,MH_MAGMA_FLOW,sce->val1,gettick(),0);
 
-		if( damage > 0 && (sce = tsc->getSCE(SC_STONEHARDSKIN)) ) {
+		if( damage > 0 && (sce = tsc->getSCE(SC_STONEHARDSKIN)) &&
+			(flag & (BF_SHORT | BF_WEAPON)) == (BF_SHORT | BF_WEAPON) && skill_id == 0 ) {
+			// Hagalaz / Stonehard Skin: only melee basic attacks break the attacker's weapon (not skills, not bow/ranged).
 			if( src->type == BL_MOB ) //using explicit call instead break_equip for duration
 				sc_start(src,src, SC_STRIPWEAPON, 30, 0, skill_get_time2(RK_STONEHARDSKIN, sce->val1));
-			else if (flag&(BF_WEAPON|BF_SHORT))
+			else
 				skill_break_equip(src,src, EQP_WEAPON, 3000, BCT_SELF);
 		}
 
@@ -2139,6 +2170,17 @@ int64 battle_calc_damage(struct block_list *src,struct block_list *bl,struct Dam
 			damage += damage * sc->getSCE(SC_DANCEWITHWUG)->val1 / 100;
 		if (sc->getSCE(SC_UNLIMITEDHUMMINGVOICE) && flag&BF_MAGIC)
 			damage += damage * sc->getSCE(SC_UNLIMITEDHUMMINGVOICE)->val3 / 100;
+		if (sc->getSCE(SC_UNLIMIT) && (flag&(BF_LONG|BF_WEAPON)) == (BF_LONG|BF_WEAPON)) {
+			switch (skill_id) {
+				case RA_WUGDASH:
+				case RA_WUGSTRIKE:
+				case RA_WUGBITE:
+					break;
+				default:
+					damage += damage * sc->getSCE(SC_UNLIMIT)->val2 / 100;
+					break;
+			}
+		}
 
 		if (tsd && (sce = sc->getSCE(SC_SOULREAPER))) {
 			if (rnd()%100 < sce->val2 && tsd->soulball < MAX_SOUL_BALL) {
@@ -3192,12 +3234,7 @@ static bool is_attack_critical(struct Damage* wd, struct block_list *src, struct
 				status_change_end(src, SC_AUTOCOUNTER);
 				[[fallthrough]];
 			case KN_AUTOCOUNTER:
-				if(battle_config.auto_counter_type &&
-					(battle_config.auto_counter_type&src->type))
-					return true;
-				else
-					cri *= 2;
-				break;
+				return true; // Counter (reactive or proactive) is always a critical hit
 			case SN_SHARPSHOOTING:
 			case MA_SHARPSHOOTING:
 #ifdef RENEWAL
@@ -3368,8 +3405,10 @@ static bool is_attack_hitting(struct Damage* wd, struct block_list *src, struct 
 	else if (nk[NK_IGNOREFLEE])
 		return true;
 
-	if( battle_neutral_barrier_ranged_immunity_active(target) && (wd->flag&(BF_LONG|BF_MAGIC)) == BF_LONG )
-		return false;
+	if (battle_neutral_barrier_ranged_immunity_active(target) && (wd->flag&(BF_LONG|BF_MAGIC)) == BF_LONG) {
+		if (!(sc && sc->getSCE(SC_STRIKING) && (skill_id == NC_VULCANARM || skill_id == NC_COLDSLOWER)))
+			return false;
+	}
 
 	flee = tstatus->flee;
 #ifdef RENEWAL
@@ -3931,9 +3970,20 @@ static int32 battle_get_spiritball_damage(struct Damage& wd, struct block_list& 
 
 	map_session_data* sd = BL_CAST(BL_PC, &src);
 
-	// Return 0 for non-players
-	if (!sd)
-		return 0;
+	// Arena Shura bot (mob 31997): emulate spirit sphere bonus damage using virtual spheres.
+	if (!sd) {
+		mob_data* md = BL_CAST(BL_MOB, &src);
+		if (md == nullptr || md->mob_id != MOB_ID_ARENA_BOT_SHURA_1V1)
+			return 0;
+
+		const int32 mob_balls = std::min<int32>(15, std::max<int32>(0, mob_arena_shura_virtballs(md)));
+		if (mob_balls <= 0)
+			return 0;
+
+		// Approximate the same +3 per sphere logic used for PCs.
+		// We keep the default behavior (spiritball, spiritball_old) as "all current spheres" for the bot.
+		return mob_balls * 3;
+	}
 
 	int32 damage = 0;
 
@@ -4662,6 +4712,12 @@ static void battle_calc_multi_attack(struct Damage* wd, struct block_list *src,s
 	}
 
 	switch (skill_id) {
+		case RK_SONICWAVE:
+			// Wiki: ATK% = Base_Damage × BaseLv/100 (total for all hits). HitCount>1 with a positive div_
+			// makes DAMAGE_DIV_FIX multiply damage by hit count; negate div_ so total matches the table.
+			if (wd->div_ > 1)
+				wd->div_ *= -1;
+			break;
 		case RK_WINDCUTTER:
 			if (sd && sd->weapontype1 == W_2HSWORD)
 				wd->div_ = 2;
@@ -4812,11 +4868,11 @@ static int32 battle_calc_attack_skill_ratio(struct Damage* wd, struct block_list
 				status_change_end(src, SC_POISONREACT);
 			}
 			if (sc->getSCE(SC_CRUSHSTRIKE)) {
-				if (sd) { //ATK [{Weapon Level * (Weapon Upgrade Level + 6) * 100} + (Weapon ATK) + (Weapon Weight)]%
+				if (sd) { // ATK% = [Nv. arma × (Refino + 6) × 100] + ATQ arma + Peso arma
 					int16 index = sd->equip_index[EQI_HAND_R];
 
 					if (index >= 0 && sd->inventory_data[index] && sd->inventory_data[index]->type == IT_WEAPON)
-						skillratio += -100 + sd->inventory_data[index]->weight / 10 + sd->inventory_data[index]->atk +
+						skillratio += -100 + sd->inventory_data[index]->weight + sd->inventory_data[index]->atk +
 							100 * sd->inventory_data[index]->weapon_level * (sd->inventory.u.items_inventory[index].refine + 6);
 				}
 				status_change_end(src,SC_CRUSHSTRIKE);
@@ -5356,6 +5412,7 @@ static int32 battle_calc_attack_skill_ratio(struct Damage* wd, struct block_list
 			skillratio += ((skill_lv - 1) % 5 + 1) * 100;
 			break;
 		case RK_SONICWAVE:
+			// Dano base (tabela iRO): 1200%–2550%; ATQ = Dano base × (BaseLv/100) via RE_LVL_DMOD.
 			skillratio += -100 + 1050 + 150 * skill_lv;
 			RE_LVL_DMOD(100);
 			break;
@@ -5402,7 +5459,8 @@ static int32 battle_calc_attack_skill_ratio(struct Damage* wd, struct block_list
 				skillratio += -100 + 500 * skill_lv;
 			break;
 		case RK_STORMBLAST:
-			skillratio += -100 + (((sd) ? pc_checkskill(sd,RK_RUNEMASTERY) : 0) + sstatus->str / 6) * 100; // ATK = [{Rune Mastery Skill Level + (Caster's STR / 6)} x 100] %
+			// ATK% = [(Rune Mastery + STR/8) × 140] × BaseLv/100 (RE_LVL_DMOD when RENEWAL_LVDMG).
+			skillratio += -100 + (((sd) ? pc_checkskill(sd,RK_RUNEMASTERY) : 0) + sstatus->str / 8) * 140;
 			RE_LVL_DMOD(100);
 			break;
 		case RK_PHANTOMTHRUST: // ATK = [{(Skill Level x 50) + (Spear Master Level x 10)} x Caster's Base Level / 150] %
@@ -5458,16 +5516,20 @@ static int32 battle_calc_attack_skill_ratio(struct Damage* wd, struct block_list
 			break;
 		case RA_ARROWSTORM:
 			if (sc && sc->getSCE(SC_FEARBREEZE))
-				skillratio += -100 + 200 + 250 * skill_lv;
+				// skillratio += -100 + 200 + 250 * skill_lv;//original
+				skillratio += -100 + 200 + 225 * skill_lv;
 			else
-				skillratio += -100 + 200 + 180 * skill_lv;
+				// skillratio += -100 + 200 + 180 * skill_lv;//original
+				skillratio += -100 + 200 + 162 * skill_lv;
 			RE_LVL_DMOD(100);
 			break;
 		case RA_AIMEDBOLT:
 			if (sc && sc->getSCE(SC_FEARBREEZE))
-				skillratio += -100 + 800 + 35 * skill_lv;
+				// skillratio += -100 + 800 + 35 * skill_lv;//original
+				skillratio += -100 + 800 + 32 * skill_lv;
 			else
-				skillratio += -100 + 500 + 20 * skill_lv;	
+				// skillratio += -100 + 500 + 20 * skill_lv;//original
+				skillratio += -100 + 500 + 18 * skill_lv;
 			RE_LVL_DMOD(100);
 			break;
 		case RA_CLUSTERBOMB:
@@ -6966,18 +7028,6 @@ static void battle_attack_sc_bonus(struct Damage* wd, struct block_list *src, st
 				RE_ALLATK_ADD(wd, hd->homunculus.spiritball * 3);
 			}
 		}
-		if(sc->getSCE(SC_UNLIMIT) && (wd->flag&(BF_LONG|BF_MAGIC)) == BF_LONG) {
-			switch(skill_id) {
-				case RA_WUGDASH:
-				case RA_WUGSTRIKE:
-				case RA_WUGBITE:
-					break;
-				default:
-					ATK_ADDRATE(wd->damage, wd->damage2, sc->getSCE(SC_UNLIMIT)->val2);
-					RE_ALLATK_ADDRATE(wd, sc->getSCE(SC_UNLIMIT)->val2);
-					break;
-			}
-		}
 		if (sc->getSCE(SC_HEAT_BARREL)) {
 			ATK_ADDRATE(wd->damage, wd->damage2, sc->getSCE(SC_HEAT_BARREL)->val3);
 			RE_ALLATK_ADDRATE(wd, sc->getSCE(SC_HEAT_BARREL)->val3);
@@ -7486,6 +7536,37 @@ static void battle_calc_attack_gvg_bg(struct Damage* wd, struct block_list *src,
 	}
 }
 
+/**
+ * Same devotion_in_range as battle_weapon_attack: master still linked, same map, within val3 range.
+ * While true, melee damage is absorbed by devotion (not the devotee's HP). Crescent Elbow must never proc here.
+ *
+ * Intentionally does not require wd damage > 0: multi-hit / per-div passes can carry 0 in wd while devotion
+ * is still active; requiring damage let the second+ proc slip through.
+ */
+static bool battle_devotion_absorbs_hits_for_target(struct block_list *target, status_change *tsc, uint16 skill_id)
+{
+	if (tsc == nullptr)
+		return false;
+	if (skill_id == CR_REFLECTSHIELD)
+		return false;
+#ifndef RENEWAL
+	if (skill_id == PA_PRESSURE)
+		return false;
+#endif
+	status_change_entry *sce = tsc->getSCE(SC_DEVOTION);
+	if (sce == nullptr || sce->val1 == 0)
+		return false;
+	struct block_list *d_bl = map_id2bl(sce->val1);
+
+	const bool devotion_master_link_ok = d_bl != nullptr && (
+		(d_bl->type == BL_MER && ((TBL_MER*)d_bl)->master && ((TBL_MER*)d_bl)->master->id == target->id) ||
+		(d_bl->type == BL_PC && sce->val2 >= 0 && sce->val2 < MAX_DEVOTION
+			&& ((TBL_PC*)d_bl)->devotion[sce->val2] == target->id)
+	);
+
+	return devotion_master_link_ok && target->m == d_bl->m && check_distance_bl(target, d_bl, sce->val3);
+}
+
 /*==========================================
  * final ATK modifiers - after BG/GvG calc
  *------------------------------------------
@@ -7535,7 +7616,8 @@ static void battle_calc_weapon_final_atk_modifiers(struct Damage* wd, struct blo
 		}
 	}
 
-	if( tsc && tsc->getSCE(SC_CRESCENTELBOW) && wd->flag&BF_SHORT && rnd()%100 < tsc->getSCE(SC_CRESCENTELBOW)->val2 ) {
+	if( tsc && tsc->getSCE(SC_CRESCENTELBOW) && wd->flag&BF_SHORT && rnd()%100 < tsc->getSCE(SC_CRESCENTELBOW)->val2
+		&& !battle_devotion_absorbs_hits_for_target(target, tsc, skill_id) ) {
 		//ATK [{(Target HP / 100) x Skill Level} x Caster Base Level / 125] % + [Received damage x {1 + (Skill Level x 0.2)}]
 		int64 rdamage = 0;
 		// ATK uses CrescentElbow target HP (the one who has SC_CRESCENTELBOW), not the attacker's HP.
@@ -7548,8 +7630,14 @@ static void battle_calc_weapon_final_atk_modifiers(struct Damage* wd, struct blo
 		clif_skill_damage( *target, *src, gettick(), status_get_amotion(src), 0, rdamage,
 			1, SR_CRESCENTELBOW_AUTOSPELL, tsc->getSCE(SC_CRESCENTELBOW)->val1, DMG_SINGLE ); // This is how official does
 		battle_fix_damage(target, src, rdamage, 0, SR_CRESCENTELBOW);
-		// The target should only take 10% of the received damage.
-		wd->damage = received_damage / 10;
+		// Custom: Shura takes the full incoming hit on this swing, plus 10% of Crescent Elbow return damage as self recoil
+		// (e.g. 100k from the attack + 30k from 10% of 300k rdamage). Item/skill reflect after this still uses wd->damage.
+		{
+			const int64 recoil = rdamage / 10;
+			if (recoil > 0)
+				battle_fix_damage(target, target, recoil, 0, SR_CRESCENTELBOW);
+		}
+		wd->damage = received_damage;
 		wd->damage2 = 0;
 		status_change_end(target, SC_CRESCENTELBOW);
 	}
@@ -8226,6 +8314,16 @@ static struct Damage battle_calc_weapon_attack(struct block_list *src, struct bl
 		return wd;
 	}
 
+	// LG_HESPERUSLIT: same total damage vs players, but 7 multi-hits (skill_db HitCount stays for mobs).
+	if (skill_id == LG_HESPERUSLIT && target->type == BL_PC && wd.div_ > 1 && (wd.damage > 0 || wd.damage2 > 0)) {
+		const int16 hesperus_pc_hits = 7;
+		if (wd.damage)
+			wd.damage *= wd.div_;
+		if (wd.damage2)
+			wd.damage2 *= wd.div_;
+		wd.div_ = -hesperus_pc_hits;
+	}
+
 	//Apply DAMAGE_DIV_FIX and check for min damage
 	battle_apply_div_fix(&wd, skill_id);
 
@@ -8775,8 +8873,9 @@ struct Damage battle_calc_magic_attack(struct block_list *src,struct block_list 
 						break;
 					case WM_METALICSOUND:
 						skillratio += -100 + 120 * skill_lv + 60 * ((sd) ? pc_checkskill(sd, WM_LESSON) : 1);
-						if (tsc && tsc->getSCE(SC_SLEEP))
+						if (tsc && !tsc->getSCE(SC_DEEPSLEEP) && tsc->getSCE(SC_SLEEP))
 							skillratio += 100; // !TODO: Confirm target sleeping bonus
+						// Deep Sleep + Metallic Sound: extra multiplier with global Deep Sleep is in battle_calc_damage (2.25x total).
 						RE_LVL_DMOD(100);
 						if (tsc && tsc->getSCE(SC_SOUNDBLEND))
 							skillratio += skillratio * 50 / 100;
@@ -10307,6 +10406,7 @@ int64 battle_calc_return_damage(struct block_list* tbl, struct block_list *src, 
 
 	map_session_data *tsd = BL_CAST(BL_PC, tbl);
 	int64 rdamage = 0, damage = *dmg;
+	bool deathbound_reflect = false;
 
 	if (flag & BF_SHORT) {//Bounces back part of the damage.
 		if ( (skill_get_inf2(skill_id, INF2_ISTRAP) || !status_reflect) && tsd && tsd->bonus.short_weapon_damage_return ) {
@@ -10337,6 +10437,7 @@ int64 battle_calc_return_damage(struct block_list* tbl, struct block_list *src, 
 					skill_blown(tbl, src, skill_get_blewcount(RK_DEATHBOUND, tsc->getSCE(SC_DEATHBOUND)->val1), unit_getdir(src), BLOWN_NONE);
 					status_change_end(tbl, SC_DEATHBOUND);
 					rdamage += rd1 * 70 / 100; // Target receives 70% of the amplified damage. [Rytech]
+					deathbound_reflect = true; // Do not cap below to max_hp; amplified reflect exceeds defender HP by design.
 				}
 			}
 		}
@@ -10388,6 +10489,8 @@ int64 battle_calc_return_damage(struct block_list* tbl, struct block_list *src, 
 
 	if (rdamage == 0)
 		return 0; // No reflecting damage calculated.
+	else if (deathbound_reflect)
+		return i64max(rdamage, 1);
 	else
 		return cap_value(rdamage, 1, status_get_max_hp(tbl));
 }
@@ -10929,10 +11032,14 @@ enum damage_lv battle_weapon_attack(struct block_list* src, struct block_list* t
 			struct status_change_entry *sce = tsc->getSCE(SC_DEVOTION);
 			struct block_list *d_bl = map_id2bl(sce->val1);
 
-			if( d_bl && (
+			const bool devotion_master_link_ok = d_bl != nullptr && (
 				(d_bl->type == BL_MER && ((TBL_MER*)d_bl)->master && ((TBL_MER*)d_bl)->master->id == target->id) ||
-				(d_bl->type == BL_PC && ((TBL_PC*)d_bl)->devotion[sce->val2] == target->id)
-				) && check_distance_bl(target, d_bl, sce->val3) )
+				(d_bl->type == BL_PC && sce->val2 >= 0 && sce->val2 < MAX_DEVOTION
+					&& ((TBL_PC*)d_bl)->devotion[sce->val2] == target->id)
+			);
+			const bool devotion_in_range = devotion_master_link_ok && target->m == d_bl->m && check_distance_bl(target, d_bl, sce->val3);
+
+			if( devotion_in_range )
 			{
 				// Only trigger if the devoted player was hit
 				if( damage > 0 ){
@@ -10955,8 +11062,11 @@ enum damage_lv battle_weapon_attack(struct block_list* src, struct block_list* t
 					battle_fix_damage(src, d_bl, devotion_damage, 0, CR_DEVOTION);
 				}
 			}
-			else
-				status_change_end(target, SC_DEVOTION);
+			else {
+				// Custom: keep SC_DEVOTION while out of range until the devotee actually receives HP damage from this blow.
+				if (!devotion_master_link_ok || damage > 0)
+					status_change_end(target, SC_DEVOTION);
+			}
 		}
 		if (target->type == BL_PC && (wd.flag&BF_SHORT) && tsc->getSCE(SC_CIRCLE_OF_FIRE_OPTION)) {
 			s_elemental_data *ed = ((TBL_PC*)target)->ed;
@@ -11502,8 +11612,8 @@ int32 battle_check_target( struct block_list *src, struct block_list *target,int
 			sd = BL_CAST(BL_PC, t_bl);
 			sc = status_get_sc(t_bl);
 
-			if( ((sd->state.block_action & PCBLOCK_IMMUNE) || (sc->getSCE(SC_KINGS_GRACE) && s_bl->type != BL_PC)) && flag&BCT_ENEMY )
-				return 0; // Global immunity only to Attacks
+			if( ((sd->state.block_action & PCBLOCK_IMMUNE) || (sc && sc->getSCE(SC_KINGS_GRACE))) && flag&BCT_ENEMY )
+				return 0; // Global immunity (King's Grace: includes PvP / PC attackers)
 			if( sd->status.karma && s_bl->type == BL_PC && ((TBL_PC*)s_bl)->status.karma )
 				state |= BCT_ENEMY; // Characters with bad karma may fight amongst them
 			if( sd->state.killable ) {
@@ -12184,6 +12294,7 @@ static const struct _battle_data {
 	{ "item_enabled_npc",                   &battle_config.item_enabled_npc,                1,      0,      1,              },
 #endif
 	{ "item_flooritem_check",               &battle_config.item_onfloor,                    1,      0,      1,              },
+	{ "flooritem_disable",                  &battle_config.flooritem_disable,               0,      0,      1,              },
 	{ "bowling_bash_area",                  &battle_config.bowling_bash_area,               0,      0,      20,             },
 	{ "drop_rateincrease",                  &battle_config.drop_rateincrease,               0,      0,      1,              },
 	{ "feature.auction",                    &battle_config.feature_auction,                 0,      0,      2,              },

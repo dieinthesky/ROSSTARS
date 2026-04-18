@@ -53,6 +53,7 @@
 #include "mob.hpp"
 #include "npc.hpp"
 #include "party.hpp" // party_search()
+#include "path.hpp"
 #include "pc_groups.hpp"
 #include "pet.hpp" // pet_unlocktarget()
 #include "quest.hpp"
@@ -65,6 +66,147 @@
 #include "vending.hpp" // struct s_vending
 
 using namespace rathena;
+
+/// All devotion slots used and every devotee still linked and within snapshotted range — no new cast / refresh until someone leaves range or a slot frees.
+static bool pc_devotion_fully_locked_in_range(map_session_data *sd, uint8 count)
+{
+	for (int32 i = 0; i < count; i++) {
+		if (sd->devotion[i] == 0)
+			return false;
+	}
+	for (int32 i = 0; i < count; i++) {
+		map_session_data *tsd = map_id2sd(sd->devotion[i]);
+		if (tsd == nullptr)
+			return false;
+		status_change_entry *sce = tsd->sc.getSCE(SC_DEVOTION);
+		if (sce == nullptr || sce->val1 != sd->id)
+			return false;
+		if (tsd->m != sd->m || !check_distance_bl(tsd, sd, sce->val3))
+			return false;
+	}
+	return true;
+}
+
+/// True when the master has five different characters listed in devotion[] (all MAX_DEVOTION rows non-zero).
+/// This is "5 jogadores na devotion", not CR_DEVOTION skill level — skill_lv only limits how many rows the cast uses elsewhere.
+static bool pc_devotion_has_five_listed_devotees(map_session_data *sd)
+{
+	if (sd == nullptr)
+		return false;
+	for (int32 i = 0; i < MAX_DEVOTION; i++) {
+		if (sd->devotion[i] == 0)
+			return false;
+	}
+	return true;
+}
+
+void pc_devotion_cancel_all_out_of_range(map_session_data *sd)
+{
+	if (sd == nullptr)
+		return;
+
+	for (int32 i = 0; i < MAX_DEVOTION; i++) {
+		if (sd->devotion[i] == 0)
+			continue;
+		map_session_data *tsd = map_id2sd(sd->devotion[i]);
+		if (tsd == nullptr) {
+			sd->devotion[i] = 0;
+			continue;
+		}
+		status_change_entry *sce = tsd->sc.getSCE(SC_DEVOTION);
+		if (sce == nullptr || sce->val1 != sd->id) {
+			sd->devotion[i] = 0;
+			continue;
+		}
+		if (tsd->m != sd->m || !check_distance_bl(tsd, sd, sce->val3))
+			status_change_end(tsd, SC_DEVOTION);
+	}
+}
+
+/// Ends SC_DEVOTION on every devotee who is out of val3 range, excluding `except_target_id`.
+/// Only runs when devotion[] lists five players (see pc_devotion_has_five_listed_devotees).
+static void pc_devotion_end_all_oor_other_than(map_session_data *sd, int32 except_target_id, bool reclaim)
+{
+	if (sd == nullptr || !reclaim || !pc_devotion_has_five_listed_devotees(sd))
+		return;
+
+	for (int32 i = 0; i < MAX_DEVOTION; i++) {
+		if (sd->devotion[i] == 0 || sd->devotion[i] == except_target_id)
+			continue;
+		map_session_data *tsd = map_id2sd(sd->devotion[i]);
+		if (tsd == nullptr)
+			continue;
+		status_change_entry *sce = tsd->sc.getSCE(SC_DEVOTION);
+		if (sce == nullptr || sce->val1 != sd->id)
+			continue;
+		if (tsd->m != sd->m || !check_distance_bl(tsd, sd, sce->val3))
+			status_change_end(tsd, SC_DEVOTION);
+	}
+}
+
+/**
+ * After pc_devotion_cancel_all_out_of_range on cast success, reclaim branch mainly handles orphans.
+ */
+int32 pc_devotion_resolve_slot(map_session_data *sd, int32 target_id, uint8 count, bool reclaim)
+{
+	if (sd == nullptr || count == 0 || count > MAX_DEVOTION)
+		return -1;
+
+	// All slots full and everyone still in snapshotted range: no new cast and no refresh (custom).
+	if (pc_devotion_fully_locked_in_range(sd, count))
+		return -1;
+
+	int32 i;
+
+	// Already devoted to this paladin in the active slot window: refresh / re-cast on that row.
+	ARR_FIND(0, count, i, sd->devotion[i] == target_id);
+	if (i < count) {
+		map_session_data *tsd = map_id2sd(target_id);
+		if (tsd != nullptr) {
+			status_change_entry *sce = tsd->sc.getSCE(SC_DEVOTION);
+			const bool linked = (sce != nullptr && sce->val1 == sd->id);
+			const bool target_oor = linked && (tsd->m != sd->m || !check_distance_bl(tsd, sd, sce->val3));
+
+			// Só com 5 jogadores na devotion (5 IDs em devotion[]): ao redentar em quem está no range, remove devotion
+			// de todos os que estiverem fora do range (não o alvo). Menos de 5 listados → isso não roda.
+			if (linked && !target_oor)
+				pc_devotion_end_all_oor_other_than(sd, target_id, reclaim);
+		}
+		return i;
+	}
+
+	ARR_FIND(0, count, i, sd->devotion[i] == 0);
+	if (i < count)
+		return i;
+
+	for (i = 0; i < count; i++) {
+		if (sd->devotion[i] == 0)
+			continue;
+		map_session_data *tsd = map_id2sd(sd->devotion[i]);
+		if (tsd == nullptr) {
+			if (reclaim)
+				sd->devotion[i] = 0;
+			return i;
+		}
+		status_change_entry *sce = tsd->sc.getSCE(SC_DEVOTION);
+		if (sce == nullptr || sce->val1 != sd->id) {
+			if (reclaim)
+				sd->devotion[i] = 0;
+			return i;
+		}
+		if (tsd->m != sd->m || !check_distance_bl(tsd, sd, sce->val3)) {
+			// Custom: keep Devotion links while out of range (they only drop on damage),
+			// but reclaim one OOR slot only when devotion[] has five listed players (not nível da skill).
+			if (pc_devotion_has_five_listed_devotees(sd)) {
+				if (reclaim)
+					status_change_end(tsd, SC_DEVOTION);
+				return i;
+			}
+			continue;
+		}
+	}
+	return -1;
+}
 
 JobDatabase job_db;
 
@@ -1457,6 +1599,7 @@ void pc_setnewpc(map_session_data *sd, uint32 account_id, uint32 char_id, int32 
 	sd->login_id1 = login_id1;
 	sd->login_id2 = 0; // at this point, we can not know the value :(
 	sd->client_tick = client_tick;
+	sd->zc_ping_sent_tick = 0;
 	sd->state.active = 0; //to be set to 1 after player is fully authed and loaded.
 	sd->type = BL_PC;
 	if(battle_config.prevent_logout_trigger&PLT_LOGIN)
@@ -2616,6 +2759,37 @@ void pc_calc_skilltree(map_session_data *sd)
 {
 	nullpo_retv(sd);
 
+	auto restore_copied_skill = [&](uint16 owner_skill_id, uint8 type, const char *skill_var, const char *skill_lv_var) {
+		int32 learned_lv = pc_checkskill(sd, owner_skill_id);
+		if (learned_lv <= 0)
+			return;
+
+		uint16 copied_skill_id = static_cast<uint16>(pc_readglobalreg(sd, add_str(skill_var)));
+		if (copied_skill_id == 0)
+			return;
+
+		uint16 copied_idx = skill_get_index(copied_skill_id);
+		if (copied_idx == 0)
+			return;
+
+		if (sd->status.skill[copied_idx].id != 0 && sd->status.skill[copied_idx].flag != SKILL_FLAG_PLAGIARIZED)
+			return;
+
+		uint8 copied_skill_lv = static_cast<uint8>(pc_readglobalreg(sd, add_str(skill_lv_var)));
+		if (copied_skill_lv == 0)
+			return;
+
+		copied_skill_lv = min(copied_skill_lv, static_cast<uint8>(learned_lv));
+		sd->status.skill[copied_idx].id = copied_skill_id;
+		sd->status.skill[copied_idx].lv = copied_skill_lv;
+		sd->status.skill[copied_idx].flag = SKILL_FLAG_PLAGIARIZED;
+
+		if (type == 1)
+			sd->cloneskill_idx = copied_idx;
+		else
+			sd->reproduceskill_idx = copied_idx;
+	};
+
 	uint64 job = pc_calc_skilltree_normalize_job(sd);
 	int32 class_ = pc_mapid2jobid(job, sd->status.sex);
 
@@ -2810,6 +2984,9 @@ void pc_calc_skilltree(map_session_data *sd)
 			pc_skill(sd, skill[sd->status.sex], 10, ADDSKILL_TEMP);
 		}
 	}
+
+	restore_copied_skill(RG_PLAGIARISM, 1, SKILL_VAR_PLAGIARISM, SKILL_VAR_PLAGIARISM_LV);
+	restore_copied_skill(SC_REPRODUCE, 2, SKILL_VAR_REPRODUCE, SKILL_VAR_REPRODUCE_LV);
 }
 
 //Checks if you can learn a new skill after having leveled up a skill.
@@ -2884,6 +3061,50 @@ static void pc_check_skilltree(map_session_data *sd)
 			flag = 1;
 		}
 	} while(flag);
+}
+
+static bool pc_skillup_requirements_met(map_session_data *sd, uint16 skill_id, int32 skillup_job) {
+	if (sd == nullptr)
+		return false;
+
+	// Manual prerequisite enforcement only for 3rd class (1st/2nd keep vanilla behavior).
+	if (battle_config.skillfree || pc_has_permission(sd, PC_PERM_ALL_SKILL))
+		return true;
+	if (!battle_config.skillup_limit)
+		return true;
+	if (!((sd->class_ & JOBL_THIRD) && (sd->class_ & MAPID_THIRDMASK) != MAPID_SUPER_NOVICE_E))
+		return true;
+
+	std::shared_ptr<s_skill_tree_entry> entry = skill_tree_db.get_skill_data(skillup_job, skill_id);
+	if (entry == nullptr)
+		return false;
+
+	if (sd->status.base_level < entry->baselv || sd->status.job_level < entry->joblv)
+		return false;
+
+	if (entry->need.empty())
+		return true;
+
+	for (const auto &it : entry->need) {
+		uint16 sk_need_id = it.first;
+		uint16 sk_need_idx = skill_get_index(sk_need_id);
+
+		if (sk_need_idx == 0)
+			return false;
+
+		int16 sk_need;
+		if (sd->status.skill[sk_need_idx].id == 0 || sd->status.skill[sk_need_idx].flag == SKILL_FLAG_TEMPORARY || sd->status.skill[sk_need_idx].flag == SKILL_FLAG_PLAGIARIZED)
+			sk_need = 0; // Not learned.
+		else if (sd->status.skill[sk_need_idx].flag >= SKILL_FLAG_REPLACED_LV_0)
+			sk_need = sd->status.skill[sk_need_idx].flag - SKILL_FLAG_REPLACED_LV_0;
+		else
+			sk_need = pc_checkskill(sd, sk_need_id);
+
+		if (sk_need < it.second)
+			return false;
+	}
+
+	return true;
 }
 
 // Make sure all the skills are in the correct condition
@@ -3227,7 +3448,7 @@ static void pc_bonus_autospell_onskill(std::vector<s_autospell> &spell, uint16 s
  * @param flag: Target flag
  * @param duration: Duration. If 0 use default duration lookup for associated skill with level 7
  */
-static void pc_bonus_addeff(std::vector<s_addeffect> &effect, enum sc_type sc, int32 rate, int16 arrow_rate, unsigned char flag, uint32 duration)
+static void pc_bonus_addeff(std::vector<s_addeffect> &effect, enum sc_type sc, int32 rate, int16 arrow_rate, unsigned char flag, uint32 duration, t_itemid source_card = 0)
 {
 	if (effect.size() == MAX_PC_BONUS) {
 		ShowWarning("pc_bonus_addeff: Reached max (%d) number of add effects per character!\n", MAX_PC_BONUS);
@@ -3244,11 +3465,16 @@ static void pc_bonus_addeff(std::vector<s_addeffect> &effect, enum sc_type sc, i
 	if (!duration)
 		duration = (uint32)skill_get_time2(status_db.getSkill(sc), 7);
 
+	// Sropho Card (4522): keep Crystalize duration fixed per design (no stacking/override from other sources).
+	// Duration is in ms.
+	if (sc == SC_CRYSTALIZE && source_card == static_cast<t_itemid>(4522))
+		duration = 3000;
+
 	for (auto &it : effect) {
-		if (it.sc == sc && it.flag == flag) {
+		if (it.sc == sc && it.flag == flag && it.source_card == source_card) {
 			it.rate = util::safe_addition_cap(it.rate, rate, INT_MAX);
 			it.arrow_rate = util::safe_addition_cap(it.arrow_rate, arrow_rate, (int16)SHRT_MAX);
-			it.duration = umax(it.duration, duration);
+			it.duration = (sc == SC_CRYSTALIZE && source_card == static_cast<t_itemid>(4522)) ? duration : umax(it.duration, duration);
 			return;
 		}
 	}
@@ -3260,6 +3486,7 @@ static void pc_bonus_addeff(std::vector<s_addeffect> &effect, enum sc_type sc, i
 	entry.arrow_rate = arrow_rate;
 	entry.flag = flag;
 	entry.duration = duration;
+	entry.source_card = source_card;
 
 	effect.push_back(entry);
 }
@@ -4555,11 +4782,11 @@ void pc_bonus2(map_session_data *sd,int32 type,int32 type2,int32 val)
 		break;
 	case SP_ADDEFF: // bonus2 bAddEff,eff,n;
 		PC_BONUS_CHK_SC(type2,SP_ADDEFF);
-		pc_bonus_addeff(sd->addeff, (sc_type)type2, sd->state.lr_flag != LR_FLAG_ARROW ? val : 0, sd->state.lr_flag == LR_FLAG_ARROW ? val : 0, 0, 0);
+		pc_bonus_addeff(sd->addeff, (sc_type)type2, sd->state.lr_flag != LR_FLAG_ARROW ? val : 0, sd->state.lr_flag == LR_FLAG_ARROW ? val : 0, 0, 0, current_equip_card_id);
 		break;
 	case SP_ADDEFF2: // bonus2 bAddEff2,eff,n;
 		PC_BONUS_CHK_SC(type2,SP_ADDEFF2);
-		pc_bonus_addeff(sd->addeff, (sc_type)type2, sd->state.lr_flag != LR_FLAG_ARROW ? val : 0, sd->state.lr_flag == LR_FLAG_ARROW ? val : 0, ATF_SELF, 0);
+		pc_bonus_addeff(sd->addeff, (sc_type)type2, sd->state.lr_flag != LR_FLAG_ARROW ? val : 0, sd->state.lr_flag == LR_FLAG_ARROW ? val : 0, ATF_SELF, 0, current_equip_card_id);
 		break;
 	case SP_RESEFF: // bonus2 bResEff,eff,n;
 		if (sd->state.lr_flag == LR_FLAG_ARROW)
@@ -4716,7 +4943,7 @@ void pc_bonus2(map_session_data *sd,int32 type,int32 type2,int32 val)
 	case SP_ADDEFF_WHENHIT: // bonus2 bAddEffWhenHit,eff,n;
 		PC_BONUS_CHK_SC(type2,SP_ADDEFF_WHENHIT);
 		if (sd->state.lr_flag != LR_FLAG_ARROW)
-			pc_bonus_addeff(sd->addeff_atked, (sc_type)type2, val, 0, 0, 0);
+			pc_bonus_addeff(sd->addeff_atked, (sc_type)type2, val, 0, 0, 0, current_equip_card_id);
 		break;
 	case SP_SKILL_ATK: // bonus2 bSkillAtk,sk,n;
 		if (sd->state.lr_flag == LR_FLAG_ARROW)
@@ -5183,13 +5410,13 @@ void pc_bonus3(map_session_data *sd,int32 type,int32 type2,int32 type3,int32 val
 
 	case SP_ADDEFF: // bonus3 bAddEff,eff,n,y;
 		PC_BONUS_CHK_SC(type2,SP_ADDEFF);
-		pc_bonus_addeff(sd->addeff, (sc_type)type2, sd->state.lr_flag != LR_FLAG_ARROW ? type3 : 0, sd->state.lr_flag == LR_FLAG_ARROW ? type3 : 0, val, 0);
+		pc_bonus_addeff(sd->addeff, (sc_type)type2, sd->state.lr_flag != LR_FLAG_ARROW ? type3 : 0, sd->state.lr_flag == LR_FLAG_ARROW ? type3 : 0, val, 0, current_equip_card_id);
 		break;
 
 	case SP_ADDEFF_WHENHIT: // bonus3 bAddEffWhenHit,eff,n,y;
 		PC_BONUS_CHK_SC(type2,SP_ADDEFF_WHENHIT);
 		if (sd->state.lr_flag != LR_FLAG_ARROW)
-			pc_bonus_addeff(sd->addeff_atked, (sc_type)type2, type3, 0, val, 0);
+			pc_bonus_addeff(sd->addeff_atked, (sc_type)type2, type3, 0, val, 0, current_equip_card_id);
 		break;
 
 	case SP_ADDEFF_ONSKILL: // bonus3 bAddEffOnSkill,sk,eff,n;
@@ -5307,13 +5534,13 @@ void pc_bonus4(map_session_data *sd,int32 type,int32 type2,int32 type3,int32 typ
 
 	case SP_ADDEFF: // bonus4 bAddEff,eff,n,y,t;
 		PC_BONUS_CHK_SC(type2,SP_ADDEFF);
-		pc_bonus_addeff(sd->addeff, (sc_type)type2, sd->state.lr_flag != LR_FLAG_ARROW ? type3 : 0, sd->state.lr_flag == LR_FLAG_ARROW ? type3 : 0, type4, val);
+		pc_bonus_addeff(sd->addeff, (sc_type)type2, sd->state.lr_flag != LR_FLAG_ARROW ? type3 : 0, sd->state.lr_flag == LR_FLAG_ARROW ? type3 : 0, type4, val, current_equip_card_id);
 		break;
 
 	case SP_ADDEFF_WHENHIT: // bonus4 bAddEffWhenHit,eff,n,y,t;
 		PC_BONUS_CHK_SC(type2,SP_ADDEFF_WHENHIT);
 		if (sd->state.lr_flag != LR_FLAG_ARROW)
-			pc_bonus_addeff(sd->addeff_atked, (sc_type)type2, type3, 0, type4, val);
+			pc_bonus_addeff(sd->addeff_atked, (sc_type)type2, type3, 0, type4, val, current_equip_card_id);
 		break;
 
 	case SP_ADDEFF_ONSKILL: // bonus4 bAddEffOnSkill,sk,eff,n,y;
@@ -5482,6 +5709,43 @@ bool pc_skill(map_session_data* sd, uint16 skill_id, int32 level, enum e_addskil
 	return true;
 }
 
+static void pc_skill_plagiarism_restore_slot(map_session_data &sd, uint8 type) {
+	uint16 skill_id;
+	uint8 skill_lv;
+	uint16 idx;
+	uint16 owner_skill_id;
+
+	if (type == 1) {
+		skill_id = static_cast<uint16>(pc_readglobalreg(&sd, add_str(SKILL_VAR_PLAGIARISM)));
+		skill_lv = static_cast<uint8>(pc_readglobalreg(&sd, add_str(SKILL_VAR_PLAGIARISM_LV)));
+		owner_skill_id = RG_PLAGIARISM;
+	} else if (type == 2) {
+		skill_id = static_cast<uint16>(pc_readglobalreg(&sd, add_str(SKILL_VAR_REPRODUCE)));
+		skill_lv = static_cast<uint8>(pc_readglobalreg(&sd, add_str(SKILL_VAR_REPRODUCE_LV)));
+		owner_skill_id = SC_REPRODUCE;
+	} else {
+		return;
+	}
+
+	if (skill_id == 0 || skill_lv == 0 || pc_checkskill(&sd, owner_skill_id) <= 0)
+		return;
+
+	idx = skill_get_index(skill_id);
+	if (idx == 0)
+		return;
+
+	sd.status.skill[idx].id = skill_id;
+	sd.status.skill[idx].lv = skill_lv;
+	sd.status.skill[idx].flag = SKILL_FLAG_PLAGIARIZED;
+
+	if (type == 1)
+		sd.cloneskill_idx = idx;
+	else
+		sd.reproduceskill_idx = idx;
+
+	clif_addskill(sd, skill_id);
+}
+
 /**
  * Set's a player's plagiarized skill.
  * @param sd: Player
@@ -5525,6 +5789,13 @@ bool pc_skill_plagiarism(map_session_data &sd, uint16 skill_id, uint16 skill_lv)
 	sd.status.skill[idx].flag = SKILL_FLAG_PLAGIARIZED;
 	clif_addskill(sd, skill_id);
 
+	if (type == 1)
+		pc_skill_plagiarism_restore_slot(sd, 2);
+	else if (type == 2)
+		pc_skill_plagiarism_restore_slot(sd, 1);
+
+	clif_skillinfoblock(&sd);
+
 	return true;
 }
 
@@ -5537,6 +5808,8 @@ bool pc_skill_plagiarism(map_session_data &sd, uint16 skill_id, uint16 skill_lv)
 bool pc_skill_plagiarism_reset(map_session_data &sd, uint8 type)
 {
 	uint16 idx;
+	uint16 other_idx = 0;
+	uint16 other_skill_id = 0;
 	if (type == 1) 
 		idx = sd.cloneskill_idx;
 	else if (type == 2)
@@ -5546,12 +5819,37 @@ bool pc_skill_plagiarism_reset(map_session_data &sd, uint8 type)
 		return false;
 	}
 
+	if (type == 1) {
+		other_idx = sd.reproduceskill_idx;
+		other_skill_id = static_cast<uint16>(pc_readglobalreg(&sd, add_str(SKILL_VAR_REPRODUCE)));
+	} else {
+		other_idx = sd.cloneskill_idx;
+		other_skill_id = static_cast<uint16>(pc_readglobalreg(&sd, add_str(SKILL_VAR_PLAGIARISM)));
+	}
+
+	if (idx == 0) {
+		if (type == 1) {
+			sd.cloneskill_idx = 0;
+			pc_setglobalreg(&sd, add_str(SKILL_VAR_PLAGIARISM), 0);
+			pc_setglobalreg(&sd, add_str(SKILL_VAR_PLAGIARISM_LV), 0);
+		} else {
+			sd.reproduceskill_idx = 0;
+			pc_setglobalreg(&sd, add_str(SKILL_VAR_REPRODUCE), 0);
+			pc_setglobalreg(&sd, add_str(SKILL_VAR_REPRODUCE_LV), 0);
+		}
+		return true;
+	}
+
 	if (sd.status.skill[idx].flag == SKILL_FLAG_PLAGIARIZED) {
 		uint16 skill_id = sd.status.skill[idx].id;
-		sd.status.skill[idx].id = 0;
-		sd.status.skill[idx].lv = 0;
-		sd.status.skill[idx].flag = SKILL_FLAG_PERMANENT;
-		clif_deleteskill(sd, skill_id);
+		bool shared_with_other_slot = (other_idx == idx && other_skill_id == skill_id && other_skill_id != 0);
+
+		if (!shared_with_other_slot) {
+			sd.status.skill[idx].id = 0;
+			sd.status.skill[idx].lv = 0;
+			sd.status.skill[idx].flag = SKILL_FLAG_PERMANENT;
+			clif_deleteskill(sd, skill_id);
+		}
 		
 		if (type == 1) {
 			sd.cloneskill_idx = 0;
@@ -6285,6 +6583,9 @@ bool pc_isUseitem(map_session_data *sd,int32 n)
 	if (pc_has_permission(sd,PC_PERM_ITEM_UNCONDITIONAL))
 		return true;
 
+	if (sd->sc.getSCE(SC_DEEPSLEEP))
+		return false;
+
 	struct map_data *mapdata = map_getmapdata(sd->m);
 
 	if(mapdata->getMapFlag(MF_NOITEMCONSUMPTION)) { //consumable but mapflag prevent it
@@ -6425,11 +6726,13 @@ bool pc_isUseitem(map_session_data *sd,int32 n)
 		return false;
 	}
 	
-	// cant.consume blocks e.g. Crystalize (NoConsumeItem). Allow consumables only in Sleep (or opt1 sleep desync).
+	// cant.consume blocks e.g. Crystalize (NoConsumeItem). Allow consumables only in normal Sleep (or opt1 sleep desync), not Deep Sleep.
+	// Nauthiz Rune (RK_REFRESH) is usable while other consumables are blocked, matching official RK Refresh behavior.
 	if (sd->sc.cant.consume) {
-		const bool sleepish = sd->sc.getSCE(SC_SLEEP) || sd->sc.opt1 == OPT1_SLEEP;
+		const bool sleepish = !sd->sc.getSCE(SC_DEEPSLEEP) && (sd->sc.getSCE(SC_SLEEP) || sd->sc.opt1 == OPT1_SLEEP);
 		if (!sleepish) {
-			return false;
+			if (nameid != ITEMID_NAUTHIZ)
+				return false;
 		}
 	}
 	
@@ -6495,7 +6798,9 @@ int32 pc_useitem(map_session_data *sd,int32 n)
 
 	// Block most body states from using items. SC_SLEEP pode existir com opt1 já limpo (desync); opt1 pode ser outro valor no servidor mas ícone Zzz no cliente.
 	if( nameid != ITEMID_NAUTHIZ && sd->sc.opt1 > 0 && sd->sc.opt1 != OPT1_STONEWAIT && sd->sc.opt1 != OPT1_BURNING) {
-		if( sd->sc.getSCE(SC_SLEEP) ) {
+		if( sd->sc.getSCE(SC_DEEPSLEEP) ) {
+			return 0;
+		} else if( sd->sc.getSCE(SC_SLEEP) ) {
 			if( id->type != IT_HEALING && id->type != IT_USABLE && id->type != IT_CASH ) {
 				return 0;
 			}
@@ -9173,6 +9478,7 @@ int32 pc_traitstatusup2(map_session_data* sd, int32 type, int32 val)
 void pc_skillup(map_session_data *sd,uint16 skill_id)
 {
 	uint16 idx = skill_get_index(skill_id);
+	int32 skillup_job = sd->status.class_;
 
 	nullpo_retv(sd);
 
@@ -9193,10 +9499,55 @@ void pc_skillup(map_session_data *sd,uint16 skill_id)
 		return;
 	}
 	else {
+		if (battle_config.skillup_limit && !pc_has_permission(sd, PC_PERM_ALL_SKILL)) {
+			int32 normalized_job = pc_mapid2jobid(pc_calc_skilltree_normalize_job(sd), sd->status.sex);
+			if (normalized_job >= JOB_NOVICE)
+				skillup_job = normalized_job;
+		}
+
+		// Extra hard gate for direct-3rd custom flows:
+		// prevent leveling 3rd-only skills before consuming the 2nd-class phase points.
+		if (battle_config.skillup_limit && !pc_has_permission(sd, PC_PERM_ALL_SKILL) && (sd->class_ & JOBL_THIRD) && (sd->class_ & MAPID_THIRDMASK) != MAPID_SUPER_NOVICE_E) {
+			int32 class_2nd = pc_mapid2jobid(sd->class_ & MAPID_UPPERMASK, sd->status.sex);
+			int32 class_3rd = pc_mapid2jobid((sd->class_ & MAPID_THIRDMASK) | JOBL_THIRD, sd->status.sex);
+			int32 max_2nd = (class_2nd >= JOB_NOVICE) ? skill_tree_get_max(skill_id, class_2nd) : 0;
+			int32 max_3rd = (class_3rd >= JOB_NOVICE) ? skill_tree_get_max(skill_id, class_3rd) : 0;
+			bool third_exclusive = (max_3rd > 0 && max_2nd == 0);
+
+			if (third_exclusive) {
+				int32 spent = pc_calc_skillpoint(sd);
+				int32 pool = spent;
+				int32 novice_sp = 0;
+
+				if (sd->class_ & MAPID_SUMMONER) {
+					std::shared_ptr<s_job_info> summoner_job = job_db.find(JOB_SUMMONER);
+					novice_sp = summoner_job ? static_cast<int32>(summoner_job->max_job_level - 1) : 0;
+				} else {
+					std::shared_ptr<s_job_info> novice_job = job_db.find(JOB_NOVICE);
+					novice_sp = novice_job ? static_cast<int32>(novice_job->max_job_level - 1) : 0;
+				}
+				pool -= novice_sp;
+
+				int32 req_2nd_lv = static_cast<int32>(pc_readglobalreg(sd, add_str(JOBCHANGE2ND_VAR)));
+				if (req_2nd_lv <= 0)
+					req_2nd_lv = sd->change_level_2nd;
+				if (req_2nd_lv > 0)
+					pool -= (req_2nd_lv - 1);
+
+				int32 req_3rd_lv = static_cast<int32>(pc_readglobalreg(sd, add_str(JOBCHANGE3RD_VAR)));
+				if (req_3rd_lv <= 0)
+					req_3rd_lv = sd->change_level_3rd;
+
+				if (req_3rd_lv > 0 && pool < (req_3rd_lv - 1))
+					return;
+			}
+		}
+
 		if( sd->status.skill_point > 0 &&
 			sd->status.skill[idx].id &&
 			sd->status.skill[idx].flag == SKILL_FLAG_PERMANENT && //Don't allow raising while you have granted skills. [Skotlex]
-			sd->status.skill[idx].lv < skill_tree_get_max(skill_id, sd->status.class_) )
+			sd->status.skill[idx].lv < skill_tree_get_max(skill_id, skillup_job) &&
+			pc_skillup_requirements_met(sd, skill_id, skillup_job) )
 		{
 			sd->status.skill[idx].lv++;
 			sd->status.skill_point--;
@@ -9209,7 +9560,7 @@ void pc_skillup(map_session_data *sd,uint16 skill_id)
 
 			uint16 lv = sd->status.skill[idx].lv;
 			int32 range = skill_get_range2(sd, skill_id, lv, false);
-			bool upgradable = ( lv < skill_tree_get_max( sd->status.skill[idx].id, sd->status.class_ ) );
+			bool upgradable = ( lv < skill_tree_get_max( sd->status.skill[idx].id, skillup_job ) );
 			clif_skillup( *sd, skill_id, lv, range, upgradable );
 			clif_updatestatus(*sd,SP_SKILLPOINT);
 			if( skill_id == GN_REMODELING_CART ) /* cart weight info was updated by status_calc_pc */
@@ -9742,7 +10093,8 @@ void pc_damage(map_session_data *sd,struct block_list *src,uint32 hp, uint32 sp,
 	if (!src)
 		return;
 
-	if( pc_issit(sd) ) {
+	// Must respect forced sit (e.g. Saturday Night Fever aftermath); same rule as pc_setstand(…, false).
+	if( pc_issit(sd) && !sd->sc.getSCE(SC_SITDOWN_FORCE) && !sd->sc.getSCE(SC_BANANA_BOMB_SITDOWN) ) {
 		pc_setstand(sd, true);
 		skill_sit(sd,0);
 	}

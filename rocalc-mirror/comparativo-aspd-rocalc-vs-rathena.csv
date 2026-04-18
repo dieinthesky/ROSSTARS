@@ -1,0 +1,33 @@
+Categoria,ID,Topico,Modelo_rocalc_site,Modelo_rAthena,Risco_ou_notas
+Estrutura da formula,1.1,Ordem dos floor,et = floor(J+ce+...); kt = floor((S+E+et)*...),Um floor em temp_aspd + fixo*AGI/200 antes de subtrair arma,Possivel diferenca de arredondamento +/-1 ASPD em casos limite
+Estrutura da formula,1.2,Constante 196 vs base S,Base por classe+arma na tabela calcBaseAspd,+196 + subtracao min(aspd_arma;200),Equivalente se job_aspd.yml bater com a tabela do site
+Estrutura da formula,1.3,Teto da subtração de arma,Implicito na tabela,Explicito min(...;200),Pode divergir se o site nao usar o mesmo cap
+Estrutura da formula,1.4,decreaseSkillAspdPercent,Multiplica kt inteiro: (S+E+et)*(100-dec)/100,Montaria/dragão em val no termo *AGI/200,Nem sempre identico ao JS em todos os casos
+Passos so no rAthena,2.1,aspd_rate / 1000,Nao no trecho calcAspd analisado,amotion *= aspd_rate/1000 antes do (195-kt)*%,Diverge se aspd_rate <> 1000
+Passos so no rAthena,2.2,bAspd / SP_ASPD flat,o soma no stat antes de min(...;193),apos conversao para amotion (ms): asp_add,Escala e fase diferentes
+Passos so no rAthena,2.3,status_calc_fix_aspd,Ajustes flat no stat no mesmo bloco,Ajusta amotion em ms depois (Fighting Spirit; Soul Shadow; etc.),Fase diferente do calcAspd
+Passos so no rAthena,2.4,SA_FREECAST,Regra no simulador se existir,multiplica stat de ASPD durante cast,Conferir paridade no site
+Dados,3.1,job_aspd.yml,Tabela T3 / calcBaseAspd,db/re/job_aspd.yml,Qualquer diferenca de base altera o resultado
+Dados,3.2,Itens / bonus de item,Divine Pride / DB do simulador,item_db / custom,Divergencia por dados
+Dados,3.3,Teto maximo ASPD,min(...;193) no JS,pc_maxaspd + player.conf,Alinhado se max_aspd=193 etc.
+Fixo vs percentual,4.0,Swing Dance (apos patch),skillAspd fixo + Lesson no ce,4*Lv+WM_LESSON no ramo fixo (status_calc_aspd true),Ajustado para alinhar ao rocalc
+Fixo vs percentual,4.1,Dance With Wug,Verificar skillAspd vs asp% no bundle,SC_DANCEWITHWUG val3 no ramo %,Possivel divergencia de tipo
+Fixo vs percentual,4.2,Increase AGI,aspdPercent / buff,SC_INCREASEAGI val1 no ramo %,Conferir valores por nivel
+Fixo vs percentual,4.3,Aula Musical BA_MUSICALLESSON,Lesson do caster em coros (WM_LESSON em val2),Nivel de BA do receptor somado ao %,Semantica diferente
+Fixo vs percentual,4.4,Plagio RG_PLAGIARISM,Depende do site,+% no ramo false,Conferir
+Fixo vs percentual,4.5,Adrenaline / Two-Hand Quicken / Spear / Merc,max 5-7 no fixo; Quagmire bloqueia bloco inicial,Empilhamento pode diferir do skillAspd no site
+Fixo vs percentual,4.6,Assassin Spirit SC_ASSNCROS,skillAspd?,val2 no fixo (Renewal),Conferir tong-calc
+Fixo vs percentual,4.7,Madness Cancel / Berserk,skillAspd?,fixos 20/15,Conferir
+Fixo vs percentual,4.8,Poções ASPD,skillAspd + soma d,val1 no fixo,Deve bater se IDs/valores iguais
+Fixo vs percentual,4.9,Dont Forget Me,debuff asp%,val2/10 no ramo %,Conferir
+Fixo vs percentual,4.10,Ensemble Fatigue,debuff,SC_ENSEMBLEFATIGUE no Renewal,Conferir
+Fixo vs percentual,4.11,Steel Body / Defender / Gospel enemy,debuff %,valores no ramo %,Conferir
+Fixo vs percentual,4.12,Joint Beat / Freezing / Hallucination delay,debuff %,varios SC no ramo %,Conferir
+Fixo vs percentual,4.13,Gloomy Day / Melon Bomb,debuff,val3 no ramo %,Conferir
+Fixo vs percentual,4.14,GT Change / Golden Ferse / Inc ASPD rate / Gatling / Star Comfort,bonus %,val3 ou val1 no ramo %,Conferir se no site e fixo ou %
+Fixo vs percentual,4.15,Wind Insignia (agua 2),bonus,bonus +10 no ramo %,Conferir
+Fixo vs percentual,4.16,Nibelungen anel ASPD,bonus,bonus +20 no ramo %,Conferir
+Fixo vs percentual,4.17,Star Stance,bonus,val2 no ramo %,Conferir
+Fora do calcAspd,5.1,FCT/VCT (ex. Swing fctPercent),skill_db / cast,Outro pipeline,NAO e o mesmo ASPD de ataque
+Fora do calcAspd,5.2,Delay de skill fixo,skill_db,skill_delayfix,NAO e calcAspd
+Fora do calcAspd,5.3,Traits / 4th job,POW etc. no site,Outro caminho no rAthena,Se habilitado; comparar separado

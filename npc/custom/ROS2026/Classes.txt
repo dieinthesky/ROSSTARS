@@ -1,35 +1,57 @@
 turbo_room,99,120,4	script	Classes	10387,{
 	if( Class != 0 ){
-		message strcharinfo(0),"Voce ja escolheu sua classe!";
+		mes "[Mestra de Classe]";
+		mes "Posso conceder as habilidades de platina da 1a, 2a e 3a classe (se faltar alguma, corrijo).";
+		next;
+		if( select("Receber habilidades de platina:Cancelar") == 2 )
+			end;
+		callsub GetPlatinumSkills;
+		message strcharinfo(0),"Habilidades de platina atualizadas.";
 		end;
 	}
 	if (sex == 1) {
 		.@i = select( .MenuM$ ) - 1;
-		if( select( "Mudar para "+.NameM$[.@i]+"?:Cancel" ) == 1 ){
-			jobchange .JobListM[.@i];
+		if( select( "Mudar para "+.NameM$[.@i]+"?:Cancelar" ) == 1 ){
+			.@target_job = .JobListM[.@i];
 			goto changejob;
 		}
 	}else{
 		.@i = select( .MenuF$ ) - 1;
-		if( select( "Mudar para "+.NameF$[.@i]+"?:Cancel" ) == 1 ){
-			jobchange .JobListF[.@i];
+		if( select( "Mudar para "+.NameF$[.@i]+"?:Cancelar" ) == 1 ){
+			.@target_job = .JobListF[.@i];
 			goto changejob;
 		}
 	}
 	end;
 
 changejob:
+	// Run internal staged jobchanges in a single interaction so the server
+	// stores proper phase gates (1st->2nd and 2nd->3rd) in runtime memory.
+	jobchange .@target_job;
+	.@first_job = BaseClass;
+	.@second_job = BaseJob;
+	if (.@first_job > 0) {
+		jobchange .@first_job;
+		JobLevel = 50;
+	}
+	if (.@second_job > 0) {
+		jobchange .@second_job;
+		JobLevel = 70;
+	}
+	jobchange .@target_job;
 	BaseLevel = .BaseLevel;
 	JobLevel = .JobLevel;
 	resetstatus;
-	SkillPoint = 186;  // Da 128 pontos de habilidade
+	SkillPoint = 186;
 	callsub GetPlatinumSkills;
 	// ENTREGA DE ITENS (SEM CONSUMIVEIS)
 	callfunc "F_GetITEM_NoCons";
 	callsub GiveCardTokens;
-	end;
+	mes "[Mestra de Classe]";
+	mes "Classe aplicada. Bons treinos!";
+	close;
 
-// Funcao Platinum Skills embutida
+// Funcao Platinum Skills embutida (1a + 2a; 3a usa as mesmas quest skills da arvore 2a)
 GetPlatinumSkills:
 	skill "NV_FIRSTAID",1,SKILL_PERM;
 	switch (BaseClass) {
@@ -68,7 +90,36 @@ GetPlatinumSkills:
 		default:
 			break;
 	}
-	switch (BaseJob) {
+	// BaseJob em 3a/4a classe e o ID dessa classe (ex.: Rune Knight), nao o 2-1 — normalizar p/ arquetipo 2a
+	set .@p2, BaseJob;
+	if (BaseJob == Job_Knight || BaseJob == Job_Knight2 || BaseJob == Job_Lord_Knight || BaseJob == Job_Lord_Knight2 || BaseJob == Job_Rune_Knight || BaseJob == Job_Rune_Knight_T || BaseJob == Job_Rune_Knight2 || BaseJob == Job_Rune_Knight_T2 || BaseJob == Job_Baby_Knight || BaseJob == Job_Baby_Knight2 || BaseJob == Job_Baby_Rune_Knight || BaseJob == Job_Baby_Rune_Knight2 || BaseJob == Job_Dragon_Knight || BaseJob == Job_Dragon_Knight2)
+		set .@p2, Job_Knight;
+	else if (BaseJob == Job_Crusader || BaseJob == Job_Crusader2 || BaseJob == Job_Paladin || BaseJob == Job_Paladin2 || BaseJob == Job_Royal_Guard || BaseJob == Job_Royal_Guard_T || BaseJob == Job_Royal_Guard2 || BaseJob == Job_Royal_Guard_T2 || BaseJob == Job_Baby_Crusader || BaseJob == Job_Baby_Crusader2 || BaseJob == Job_Baby_Royal_Guard || BaseJob == Job_Baby_Royal_Guard2 || BaseJob == Job_Imperial_Guard || BaseJob == Job_Imperial_Guard2)
+		set .@p2, Job_Crusader;
+	else if (BaseJob == Job_Priest || BaseJob == Job_High_Priest || BaseJob == Job_Arch_Bishop || BaseJob == Job_Arch_Bishop_T || BaseJob == Job_Cardinal || BaseJob == Job_Inquisitor || BaseJob == Job_Baby_Priest || BaseJob == Job_Baby_Arch_Bishop)
+		set .@p2, Job_Priest;
+	else if (BaseJob == Job_Wizard || BaseJob == Job_High_Wizard || BaseJob == Job_Warlock || BaseJob == Job_Warlock_T || BaseJob == Job_Arch_Mage || BaseJob == Job_Elemental_Master || BaseJob == Job_Baby_Wizard || BaseJob == Job_Baby_Warlock)
+		set .@p2, Job_Wizard;
+	else if (BaseJob == Job_Blacksmith || BaseJob == Job_Whitesmith || BaseJob == Job_Mechanic || BaseJob == Job_Mechanic_T || BaseJob == Job_Mechanic2 || BaseJob == Job_Mechanic_T2 || BaseJob == Job_Meister || BaseJob == Job_Meister2 || BaseJob == Job_Baby_Blacksmith || BaseJob == Job_Baby_Mechanic)
+		set .@p2, Job_Blacksmith;
+	else if (BaseJob == Job_Hunter || BaseJob == Job_Sniper || BaseJob == Job_Ranger || BaseJob == Job_Ranger_T || BaseJob == Job_Ranger2 || BaseJob == Job_Ranger_T2 || BaseJob == Job_Windhawk || BaseJob == Job_Windhawk2 || BaseJob == Job_Baby_Hunter || BaseJob == Job_Baby_Ranger)
+		set .@p2, Job_Hunter;
+	else if (BaseJob == Job_Assassin || BaseJob == Job_Assassin_Cross || BaseJob == Job_Guillotine_Cross || BaseJob == Job_Guillotine_Cross_T || BaseJob == Job_Shadow_Cross || BaseJob == Job_Baby_Assassin || BaseJob == Job_Baby_Guillotine_Cross)
+		set .@p2, Job_Assassin;
+	else if (BaseJob == Job_Monk || BaseJob == Job_Champion || BaseJob == Job_Sura || BaseJob == Job_Sura_T || BaseJob == Job_Baby_Monk || BaseJob == Job_Baby_Sura)
+		set .@p2, Job_Monk;
+	else if (BaseJob == Job_Sage || BaseJob == Job_Professor || BaseJob == Job_Sorcerer || BaseJob == Job_Sorcerer_T || BaseJob == Job_Baby_Sage || BaseJob == Job_Baby_Sorcerer)
+		set .@p2, Job_Sage;
+	else if (BaseJob == Job_Rogue || BaseJob == Job_Stalker || BaseJob == Job_Shadow_Chaser || BaseJob == Job_Shadow_Chaser_T || BaseJob == Job_Abyss_Chaser || BaseJob == Job_Baby_Rogue || BaseJob == Job_Baby_Shadow_Chaser)
+		set .@p2, Job_Rogue;
+	else if (BaseJob == Job_Alchemist || BaseJob == Job_Creator || BaseJob == Job_Genetic || BaseJob == Job_Genetic_T || BaseJob == Job_Biolo || BaseJob == Job_Baby_Alchemist || BaseJob == Job_Baby_Genetic)
+		set .@p2, Job_Alchemist;
+	else if (BaseJob == Job_Bard || BaseJob == Job_Clown || BaseJob == Job_Minstrel || BaseJob == Job_Minstrel_T || BaseJob == Job_Troubadour || BaseJob == Job_Baby_Bard || BaseJob == Job_Baby_Minstrel)
+		set .@p2, Job_Bard;
+	else if (BaseJob == Job_Dancer || BaseJob == Job_Gypsy || BaseJob == Job_Wanderer || BaseJob == Job_Wanderer_T || BaseJob == Job_Trouvere || BaseJob == Job_Baby_Dancer || BaseJob == Job_Baby_Wanderer)
+		set .@p2, Job_Dancer;
+
+	switch(.@p2) {
 		case Job_Knight:
 			skill "KN_CHARGEATK",1,SKILL_PERM;
 			break;
@@ -142,18 +193,8 @@ GiveCardTokens:
 
 GetInitialCardTokens:
 	switch (Class) {
-		case 4072: return 20;
 		case 4065: return 15;
-		case 4073: return 10;
-		case 4060: return 15;
-		case 4062: return 15;
-		case 4076: return 15;
-		case 4063: return 15;
-		case 4077: return 10;
-		case 4064: return 20;
 		case 4078: return 20;
-		case 4061: return 10;
-		case 4074: return 10;
 		default: return 0;
 	}
 
@@ -168,8 +209,12 @@ OnInit:
 	.JobLevel = 60;
 	.@size = getarraysize( .JobListM );
 	for( .@i = 0; .@i < .@size; .@i++ ){
-		.MenuM$ = .MenuM$ + .NameM$[.@i] + ":";
-		.MenuF$ = .MenuF$ + .NameF$[.@i] + ":";
+		if (.@i > 0) {
+			.MenuM$ = .MenuM$ + ":";
+			.MenuF$ = .MenuF$ + ":";
+		}
+		.MenuM$ = .MenuM$ + .NameM$[.@i];
+		.MenuF$ = .MenuF$ + .NameF$[.@i];
 	}
 
 	initnpctimer;

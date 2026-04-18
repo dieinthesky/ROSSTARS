@@ -192,7 +192,7 @@ const t_tick SECURITY_CASTTIME = 100;
 /// Flags passed to skill_attack/skill_area_sub
 enum e_skill_display {
 	SD_LEVEL     = 0x1000, // skill_attack will send -1 instead of skill level (affects display of some skills)
-	SD_ANIMATION = 0x2000, // skill_attack will use '5' instead of the skill's 'type' (this makes skills show an animation). Also being used in skill_attack for splash skill (NK_SPLASH) to check status_check_skilluse
+	SD_ANIMATION = 0x2000, // skill_attack will use '5' instead of the skill's 'type' (this makes skills show an animation).
 	SD_SPLASH    = 0x4000, // skill_area_sub will count targets in skill_area_temp[2]
 	SD_PREAMBLE  = 0x8000, // skill_area_sub will transmit a 'magic' damage packet (-30000 dmg) for the first target selected
 };
@@ -394,11 +394,18 @@ struct s_skill_unit_group {
 	int32 unit_count, /// Number of unit at this group
 		alive_count; /// Number of alive unit
 	t_itemid item_id; /// Store item used.
+	/// Vacuum Extreme: 7x7 per-cell suppression mask (bit = 1 means do not apply SC on that cell).
+	/// Indexing: (x - (val1-3)) + 7*(y - (val2-3)), where val1/val2 are Vacuum center coords.
+	uint64 vacuum_sc_suppressed_mask;
 	struct skill_unit *unit; /// Skill Unit
 	struct {
 		unsigned ammo_consume : 1; // Need to consume ammo
 		unsigned song_dance : 2; //0x1 Song/Dance, 0x2 Ensemble
 		unsigned guildaura : 1; // Guild Aura
+		/// Land Protector overlapped any Vacuum Extreme tile: remove ground units only, keep SC_VACUUM_EXTREME on chars already affected.
+		unsigned vacuum_lp_skip_sc_clear : 1;
+		/// Land Protector recast hit Vacuum Extreme center: suppress SC application on LP cells for this Vacuum group.
+		unsigned vacuum_lp_suppress_sc_on_lp : 1;
 	} state;
 
 	~s_skill_unit_group() {
@@ -610,6 +617,8 @@ int32 skill_check_condition_char_sub (struct block_list *bl, va_list ap);
 void skill_consume_requirement(map_session_data *sd, uint16 skill_id, uint16 skill_lv, int16 type);
 struct s_skill_condition skill_get_requirement(map_session_data *sd, uint16 skill_id, uint16 skill_lv);
 bool skill_disable_check(status_change &sc, uint16 skill_id);
+/// Rune Knight rune skills (consumable runes / rune mastery) — allowed through SC_CURSEDCIRCLE_TARGET when paired with status check.
+bool skill_is_rk_rune_skill(uint16 skill_id);
 bool skill_pos_maxcount_check(struct block_list *src, int16 x, int16 y, uint16 skill_id, uint16 skill_lv, enum bl_type type, bool display_failure);
 bool skill_trap_owner_can_share_cell(struct block_list *walker, int16 x, int16 y);
 

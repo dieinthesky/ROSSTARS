@@ -192,6 +192,72 @@ bool path_search_long(struct shootpath_data *spd,int16 m,int16 x0,int16 y0,int16
 	return true;
 }
 
+/*==========================================
+ * Strict straight-line obstruction check (see path_search_long_strict in path.hpp).
+ *------------------------------------------*/
+bool path_search_long_strict(struct shootpath_data *spd, int16 m, int16 x0, int16 y0, int16 x1, int16 y1, cell_chk cell)
+{
+	struct map_data *mapdata = map_getmapdata(m);
+	struct shootpath_data s_spd;
+
+	if (spd == nullptr)
+		spd = &s_spd;
+
+	if (!mapdata->cell)
+		return false;
+
+	spd->rx = spd->ry = 0;
+	spd->len = 1;
+	spd->x[0] = x0;
+	spd->y[0] = y0;
+
+	if (x0 == x1 && y0 == y1)
+		return true;
+
+	const int16 sx = (x0 < x1) ? 1 : ((x0 > x1) ? -1 : 0);
+	const int16 sy = (y0 < y1) ? 1 : ((y0 > y1) ? -1 : 0);
+	int32 dx = std::abs(static_cast<int32>(x1 - x0));
+	int32 dy = std::abs(static_cast<int32>(y1 - y0));
+	int32 err = dx - dy;
+	int32 cx = x0;
+	int32 cy = y0;
+
+	while (cx != x1 || cy != y1) {
+		const int32 e2 = 2 * err;
+		int32 nx = cx;
+		int32 ny = cy;
+
+		if (e2 > -dy) {
+			err -= dy;
+			nx += sx;
+		}
+		if (e2 < dx) {
+			err += dx;
+			ny += sy;
+		}
+
+		if (nx != cx && ny != cy) {
+			if (map_getcellp(mapdata, static_cast<int16>(cx + sx), static_cast<int16>(cy), cell)
+				&& map_getcellp(mapdata, static_cast<int16>(cx), static_cast<int16>(cy + sy), cell))
+				return false;
+		}
+
+		cx = nx;
+		cy = ny;
+
+		if (spd->len < MAX_WALKPATH) {
+			spd->x[spd->len] = static_cast<int16>(cx);
+			spd->y[spd->len] = static_cast<int16>(cy);
+			spd->len++;
+		}
+
+		if ((cx != x1 || cy != y1) && map_getcellp(mapdata, static_cast<int16>(cx), static_cast<int16>(cy), cell))
+			return false;
+	}
+
+	return true;
+}
+
 /// @name A* pathfinding related functions
 /// @{
 

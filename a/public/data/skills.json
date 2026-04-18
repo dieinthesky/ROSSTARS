@@ -1,0 +1,3342 @@
+{
+  "2": {
+    "code": "SM_SWORD",
+    "name": "Perícia com Espada",
+    "icon": "Icones Habilidades/SM_SWORD.png"
+  },
+  "3": {
+    "code": "SM_TWOHAND",
+    "name": "Perícia com Espada de Duas Mãos",
+    "icon": "Icones Habilidades/SM_TWOHAND.png"
+  },
+  "4": {
+    "code": "SM_RECOVERY",
+    "name": "Aumentar Recuperação de HP",
+    "icon": "Icones Habilidades/SM_RECOVERY.png"
+  },
+  "5": {
+    "code": "SM_BASH",
+    "name": "Golpe Fulminante",
+    "icon": "Icones Habilidades/SM_BASH.png"
+  },
+  "6": {
+    "code": "SM_PROVOKE",
+    "name": "Provocar",
+    "icon": "Icones Habilidades/SM_PROVOKE.png"
+  },
+  "7": {
+    "code": "SM_MAGNUM",
+    "name": "Impacto Explosivo",
+    "icon": "Icones Habilidades/SM_MAGNUM.png"
+  },
+  "8": {
+    "code": "SM_ENDURE",
+    "name": "Vigor",
+    "icon": "Icones Habilidades/SM_ENDURE.png"
+  },
+  "9": {
+    "code": "MG_SRECOVERY",
+    "name": "Aumentar Recuperação de SP",
+    "icon": "Icones Habilidades/MG_SRECOVERY.png"
+  },
+  "10": {
+    "code": "MG_SIGHT",
+    "name": "Chama Reveladora",
+    "icon": "Icones Habilidades/MG_SIGHT.png"
+  },
+  "11": {
+    "code": "MG_NAPALMBEAT",
+    "name": "Ataque Espiritual",
+    "icon": "Icones Habilidades/MG_NAPALMBEAT.png"
+  },
+  "12": {
+    "code": "MG_SAFETYWALL",
+    "name": "Escudo Mágico",
+    "icon": "Icones Habilidades/MG_SAFETYWALL.png"
+  },
+  "13": {
+    "code": "MG_SOULSTRIKE",
+    "name": "Espíritos Anciões",
+    "icon": "Icones Habilidades/MG_SOULSTRIKE.png"
+  },
+  "14": {
+    "code": "MG_COLDBOLT",
+    "name": "Lanças de Gelo",
+    "icon": "Icones Habilidades/MG_COLDBOLT.png"
+  },
+  "15": {
+    "code": "MG_FROSTDIVER",
+    "name": "Rajada Congelante",
+    "icon": "Icones Habilidades/MG_FROSTDIVER.png"
+  },
+  "16": {
+    "code": "MG_STONECURSE",
+    "name": "Petrificar",
+    "icon": "Icones Habilidades/MG_STONECURSE.png"
+  },
+  "17": {
+    "code": "MG_FIREBALL",
+    "name": "Bolas de Fogo",
+    "icon": "Icones Habilidades/MG_FIREBALL.png"
+  },
+  "18": {
+    "code": "MG_FIREWALL",
+    "name": "Barreira de Fogo",
+    "icon": "Icones Habilidades/MG_FIREWALL.png"
+  },
+  "19": {
+    "code": "MG_FIREBOLT",
+    "name": "Lanças de Fogo",
+    "icon": "Icones Habilidades/MG_FIREBOLT.png"
+  },
+  "20": {
+    "code": "MG_LIGHTNINGBOLT",
+    "name": "Relâmpago",
+    "icon": "Icones Habilidades/MG_LIGHTNINGBOLT.png"
+  },
+  "21": {
+    "code": "MG_THUNDERSTORM",
+    "name": "Tempestade de Raios",
+    "icon": "Icones Habilidades/MG_THUNDERSTORM.png"
+  },
+  "22": {
+    "code": "AL_DP",
+    "name": "Proteção Divina",
+    "icon": "Icones Habilidades/AL_DP.png"
+  },
+  "23": {
+    "code": "AL_DEMONBANE",
+    "name": "Flagelo do Mal",
+    "icon": "Icones Habilidades/AL_DEMONBANE.png"
+  },
+  "24": {
+    "code": "AL_RUWACH",
+    "name": "Revelação",
+    "icon": "Icones Habilidades/AL_RUWACH.png"
+  },
+  "25": {
+    "code": "AL_PNEUMA",
+    "name": "Escudo Sagrado",
+    "icon": "Icones Habilidades/AL_PNEUMA.png"
+  },
+  "26": {
+    "code": "AL_TELEPORT",
+    "name": "Teleporte",
+    "icon": "Icones Habilidades/AL_TELEPORT.png"
+  },
+  "27": {
+    "code": "AL_WARP",
+    "name": "Portal",
+    "icon": "Icones Habilidades/AL_WARP.png"
+  },
+  "28": {
+    "code": "AL_HEAL",
+    "name": "Curar",
+    "icon": "Icones Habilidades/AL_HEAL.png"
+  },
+  "29": {
+    "code": "AL_INCAGI",
+    "name": "Aumentar Agilidade",
+    "icon": "Icones Habilidades/AL_INCAGI.png"
+  },
+  "30": {
+    "code": "AL_DECAGI",
+    "name": "Diminuir Agilidade",
+    "icon": "Icones Habilidades/AL_DECAGI.png"
+  },
+  "31": {
+    "code": "AL_HOLYWATER",
+    "name": "Aqua Benedicta",
+    "icon": "Icones Habilidades/AL_HOLYWATER.png"
+  },
+  "32": {
+    "code": "AL_CRUCIS",
+    "name": "Signum Crucis",
+    "icon": "Icones Habilidades/AL_CRUCIS.png"
+  },
+  "33": {
+    "code": "AL_ANGELUS",
+    "name": "Angelus",
+    "icon": "Icones Habilidades/AL_ANGELUS.png"
+  },
+  "34": {
+    "code": "AL_BLESSING",
+    "name": "Bênção",
+    "icon": "Icones Habilidades/AL_BLESSING.png"
+  },
+  "35": {
+    "code": "AL_CURE",
+    "name": "Medicar",
+    "icon": "Icones Habilidades/AL_CURE.png"
+  },
+  "36": {
+    "code": "MC_INCCARRY",
+    "name": "Aumentar Capacidade de Carga",
+    "icon": "Icones Habilidades/MC_INCCARRY.png"
+  },
+  "37": {
+    "code": "MC_DISCOUNT",
+    "name": "Desconto",
+    "icon": "Icones Habilidades/MC_DISCOUNT.png"
+  },
+  "38": {
+    "code": "MC_OVERCHARGE",
+    "name": "Superfaturar",
+    "icon": "Icones Habilidades/MC_OVERCHARGE.png"
+  },
+  "39": {
+    "code": "MC_PUSHCART",
+    "name": "Usar Carrinho",
+    "icon": "Icones Habilidades/MC_PUSHCART.png"
+  },
+  "40": {
+    "code": "MC_IDENTIFY",
+    "name": "Identificar Item",
+    "icon": "Icones Habilidades/MC_IDENTIFY.png"
+  },
+  "41": {
+    "code": "MC_VENDING",
+    "name": "Comércio",
+    "icon": "Icones Habilidades/MC_VENDING.png"
+  },
+  "42": {
+    "code": "MC_MAMMONITE",
+    "name": "Mammonita",
+    "icon": "Icones Habilidades/MC_MAMMONITE.png"
+  },
+  "43": {
+    "code": "AC_OWL",
+    "name": "Olhos de Coruja",
+    "icon": "Icones Habilidades/AC_OWL.png"
+  },
+  "44": {
+    "code": "AC_VULTURE",
+    "name": "Olhos de Águia",
+    "icon": "Icones Habilidades/AC_VULTURE.png"
+  },
+  "45": {
+    "code": "AC_CONCENTRATION",
+    "name": "Concentrar",
+    "icon": "Icones Habilidades/AC_CONCENTRATION.png"
+  },
+  "46": {
+    "code": "AC_DOUBLE",
+    "name": "Rajada de Flechas",
+    "icon": "Icones Habilidades/AC_DOUBLE.png"
+  },
+  "47": {
+    "code": "AC_SHOWER",
+    "name": "Chuva de Flechas",
+    "icon": "Icones Habilidades/AC_SHOWER.png"
+  },
+  "48": {
+    "code": "TF_DOUBLE",
+    "name": "Ataque Duplo",
+    "icon": "Icones Habilidades/TF_DOUBLE.png"
+  },
+  "49": {
+    "code": "TF_MISS",
+    "name": "Perícia em Esquiva",
+    "icon": "Icones Habilidades/TF_MISS.png"
+  },
+  "50": {
+    "code": "TF_STEAL",
+    "name": "Furto",
+    "icon": "Icones Habilidades/TF_STEAL.png"
+  },
+  "51": {
+    "code": "TF_HIDING",
+    "name": "Esconderijo",
+    "icon": "Icones Habilidades/TF_HIDING.png"
+  },
+  "52": {
+    "code": "TF_POISON",
+    "name": "Envenenar",
+    "icon": "Icones Habilidades/TF_POISON.png"
+  },
+  "53": {
+    "code": "TF_DETOXIFY",
+    "name": "Desintoxicar",
+    "icon": "Icones Habilidades/TF_DETOXIFY.png"
+  },
+  "54": {
+    "code": "ALL_RESURRECTION",
+    "name": "Ressuscitar",
+    "icon": "Icones Habilidades/ALL_RESURRECTION.png"
+  },
+  "55": {
+    "code": "KN_SPEARMASTERY",
+    "name": "Perícia com Lança",
+    "icon": "Icones Habilidades/KN_SPEARMASTERY.png"
+  },
+  "56": {
+    "code": "KN_PIERCE",
+    "name": "Perfurar",
+    "icon": "Icones Habilidades/KN_PIERCE.png"
+  },
+  "57": {
+    "code": "KN_BRANDISHSPEAR",
+    "name": "Brandir Lança",
+    "icon": "Icones Habilidades/KN_BRANDISHSPEAR.png"
+  },
+  "58": {
+    "code": "KN_SPEARSTAB",
+    "name": "Estocada",
+    "icon": "Icones Habilidades/KN_SPEARSTAB.png"
+  },
+  "59": {
+    "code": "KN_SPEARBOOMERANG",
+    "name": "Lança Bumerangue",
+    "icon": "Icones Habilidades/KN_SPEARBOOMERANG.png"
+  },
+  "60": {
+    "code": "KN_TWOHANDQUICKEN",
+    "name": "Rapidez com Duas Mãos",
+    "icon": "Icones Habilidades/KN_TWOHANDQUICKEN.png"
+  },
+  "61": {
+    "code": "KN_AUTOCOUNTER",
+    "name": "Contra-Ataque",
+    "icon": "Icones Habilidades/KN_AUTOCOUNTER.png"
+  },
+  "62": {
+    "code": "KN_BOWLINGBASH",
+    "name": "Impacto de Tyr",
+    "icon": "Icones Habilidades/KN_BOWLINGBASH.png"
+  },
+  "63": {
+    "code": "KN_RIDING",
+    "name": "Montaria",
+    "icon": "Icones Habilidades/KN_RIDING.png"
+  },
+  "64": {
+    "code": "KN_CAVALIERMASTERY",
+    "name": "Perícia em Montaria",
+    "icon": "Icones Habilidades/KN_CAVALIERMASTERY.png"
+  },
+  "65": {
+    "code": "PR_MACEMASTERY",
+    "name": "Perícia com Maça",
+    "icon": "Icones Habilidades/PR_MACEMASTERY.png"
+  },
+  "66": {
+    "code": "PR_IMPOSITIO",
+    "name": "Impositio Manus",
+    "icon": "Icones Habilidades/PR_IMPOSITIO.png"
+  },
+  "67": {
+    "code": "PR_SUFFRAGIUM",
+    "name": "Suffragium",
+    "icon": "Icones Habilidades/PR_SUFFRAGIUM.png"
+  },
+  "68": {
+    "code": "PR_ASPERSIO",
+    "name": "Aspersio",
+    "icon": "Icones Habilidades/PR_ASPERSIO.png"
+  },
+  "69": {
+    "code": "PR_BENEDICTIO",
+    "name": "B.S Sacramenti",
+    "icon": "Icones Habilidades/PR_BENEDICTIO.png"
+  },
+  "70": {
+    "code": "PR_SANCTUARY",
+    "name": "Santuário",
+    "icon": "Icones Habilidades/PR_SANCTUARY.png"
+  },
+  "71": {
+    "code": "PR_SLOWPOISON",
+    "name": "Retardar Veneno",
+    "icon": "Icones Habilidades/PR_SLOWPOISON.png"
+  },
+  "72": {
+    "code": "PR_STRECOVERY",
+    "name": "Graça Divina",
+    "icon": "Icones Habilidades/PR_STRECOVERY.png"
+  },
+  "73": {
+    "code": "PR_KYRIE",
+    "name": "Kyrie Eleison",
+    "icon": "Icones Habilidades/PR_KYRIE.png"
+  },
+  "74": {
+    "code": "PR_MAGNIFICAT",
+    "name": "Magnificat",
+    "icon": "Icones Habilidades/PR_MAGNIFICAT.png"
+  },
+  "75": {
+    "code": "PR_GLORIA",
+    "name": "Glória",
+    "icon": "Icones Habilidades/PR_GLORIA.png"
+  },
+  "76": {
+    "code": "PR_LEXDIVINA",
+    "name": "Lex Divina",
+    "icon": "Icones Habilidades/PR_LEXDIVINA.png"
+  },
+  "77": {
+    "code": "PR_TURNUNDEAD",
+    "name": "Esconjurar",
+    "icon": "Icones Habilidades/PR_TURNUNDEAD.png"
+  },
+  "78": {
+    "code": "PR_LEXAETERNA",
+    "name": "Lex Aeterna",
+    "icon": "Icones Habilidades/PR_LEXAETERNA.png"
+  },
+  "79": {
+    "code": "PR_MAGNUS",
+    "name": "Magnus Exorcismus",
+    "icon": "Icones Habilidades/PR_MAGNUS.png"
+  },
+  "80": {
+    "code": "WZ_FIREPILLAR",
+    "name": "Coluna de Fogo",
+    "icon": "Icones Habilidades/WZ_FIREPILLAR.png"
+  },
+  "81": {
+    "code": "WZ_SIGHTRASHER",
+    "name": "Supernova",
+    "icon": "Icones Habilidades/WZ_SIGHTRASHER.png"
+  },
+  "83": {
+    "code": "WZ_METEOR",
+    "name": "Chuva de Meteoros",
+    "icon": "Icones Habilidades/WZ_METEOR.png"
+  },
+  "84": {
+    "code": "WZ_JUPITEL",
+    "name": "Trovão de Júpiter",
+    "icon": "Icones Habilidades/WZ_JUPITEL.png"
+  },
+  "85": {
+    "code": "WZ_VERMILION",
+    "name": "Ira de Thor",
+    "icon": "Icones Habilidades/WZ_VERMILION.png"
+  },
+  "86": {
+    "code": "WZ_WATERBALL",
+    "name": "Esfera d'Água",
+    "icon": "Icones Habilidades/WZ_WATERBALL.png"
+  },
+  "87": {
+    "code": "WZ_ICEWALL",
+    "name": "Barreira de Gelo",
+    "icon": "Icones Habilidades/WZ_ICEWALL.png"
+  },
+  "88": {
+    "code": "WZ_FROSTNOVA",
+    "name": "Congelar",
+    "icon": "Icones Habilidades/WZ_FROSTNOVA.png"
+  },
+  "89": {
+    "code": "WZ_STORMGUST",
+    "name": "Nevasca",
+    "icon": "Icones Habilidades/WZ_STORMGUST.png"
+  },
+  "90": {
+    "code": "WZ_EARTHSPIKE",
+    "name": "Coluna de Pedra",
+    "icon": "Icones Habilidades/WZ_EARTHSPIKE.png"
+  },
+  "91": {
+    "code": "WZ_HEAVENDRIVE",
+    "name": "Fúria da Terra",
+    "icon": "Icones Habilidades/WZ_HEAVENDRIVE.png"
+  },
+  "92": {
+    "code": "WZ_QUAGMIRE",
+    "name": "Pântano dos Mortos",
+    "icon": "Icones Habilidades/WZ_QUAGMIRE.png"
+  },
+  "93": {
+    "code": "WZ_ESTIMATION",
+    "name": "Sentido Sobrenatural",
+    "icon": "Icones Habilidades/WZ_ESTIMATION.png"
+  },
+  "94": {
+    "code": "BS_IRON",
+    "name": "Trabalhar Ferro",
+    "icon": "Icones Habilidades/BS_IRON.png"
+  },
+  "95": {
+    "code": "BS_STEEL",
+    "name": "Trabalhar Aço",
+    "icon": "Icones Habilidades/BS_STEEL.png"
+  },
+  "97": {
+    "code": "BS_ORIDEOCON",
+    "name": "Perícia com Oridecon",
+    "icon": "Icones Habilidades/BS_ORIDEOCON.png"
+  },
+  "98": {
+    "code": "BS_DAGGER",
+    "name": "Forjar Adaga",
+    "icon": "Icones Habilidades/BS_DAGGER.png"
+  },
+  "99": {
+    "code": "BS_SWORD",
+    "name": "Forjar Espada",
+    "icon": "Icones Habilidades/BS_SWORD.png"
+  },
+  "100": {
+    "code": "BS_TWOHANDSWORD",
+    "name": "Forjar Espada de Duas Mãos",
+    "icon": "Icones Habilidades/BS_TWOHANDSWORD.png"
+  },
+  "101": {
+    "code": "BS_AXE",
+    "name": "Forjar Machado",
+    "icon": "Icones Habilidades/BS_AXE.png"
+  },
+  "102": {
+    "code": "BS_MACE",
+    "name": "Forjar Maça",
+    "icon": "Icones Habilidades/BS_MACE.png"
+  },
+  "103": {
+    "code": "BS_KNUCKLE",
+    "name": "Forjar Soqueira",
+    "icon": "Icones Habilidades/BS_KNUCKLE.png"
+  },
+  "104": {
+    "code": "BS_SPEAR",
+    "name": "Forjar Lança",
+    "icon": "Icones Habilidades/BS_SPEAR.png"
+  },
+  "105": {
+    "code": "BS_HILTBINDING",
+    "name": "Punho Firme",
+    "icon": "Icones Habilidades/BS_HILTBINDING.png"
+  },
+  "106": {
+    "code": "BS_FINDINGORE",
+    "name": "Encontrar Minério",
+    "icon": "Icones Habilidades/BS_FINDINGORE.png"
+  },
+  "108": {
+    "code": "BS_REPAIRWEAPON",
+    "name": "Consertar Armas",
+    "icon": "Icones Habilidades/BS_REPAIRWEAPON.png"
+  },
+  "109": {
+    "code": "BS_SKINTEMPER",
+    "name": "Resistência ao Fogo",
+    "icon": "Icones Habilidades/BS_SKINTEMPER.png"
+  },
+  "110": {
+    "code": "BS_HAMMERFALL",
+    "name": "Martelo de Thor",
+    "icon": "Icones Habilidades/BS_HAMMERFALL.png"
+  },
+  "111": {
+    "code": "BS_ADRENALINE",
+    "name": "Adrenalina Pura",
+    "icon": "Icones Habilidades/BS_ADRENALINE.png"
+  },
+  "112": {
+    "code": "BS_WEAPONPERFECT",
+    "name": "Manejo Perfeito",
+    "icon": "Icones Habilidades/BS_WEAPONPERFECT.png"
+  },
+  "113": {
+    "code": "BS_OVERTHRUST",
+    "name": "Força Violenta",
+    "icon": "Icones Habilidades/BS_OVERTHRUST.png"
+  },
+  "114": {
+    "code": "BS_MAXIMIZE",
+    "name": "Amplificar Poder",
+    "icon": "Icones Habilidades/BS_MAXIMIZE.png"
+  },
+  "115": {
+    "code": "HT_SKIDTRAP",
+    "name": "Armadilha Escorregadia",
+    "icon": "Icones Habilidades/HT_SKIDTRAP.png"
+  },
+  "116": {
+    "code": "HT_LANDMINE",
+    "name": "Armadilha Atordoante",
+    "icon": "Icones Habilidades/HT_LANDMINE.png"
+  },
+  "117": {
+    "code": "HT_ANKLESNARE",
+    "name": "Instalar Armadilha",
+    "icon": "Icones Habilidades/HT_ANKLESNARE.png"
+  },
+  "118": {
+    "code": "HT_SHOCKWAVE",
+    "name": "Armadilha Extenuante",
+    "icon": "Icones Habilidades/HT_SHOCKWAVE.png"
+  },
+  "119": {
+    "code": "HT_SANDMAN",
+    "name": "Armadilha Sonífera",
+    "icon": "Icones Habilidades/HT_SANDMAN.png"
+  },
+  "120": {
+    "code": "HT_FLASHER",
+    "name": "Armadilha Luminosa",
+    "icon": "Icones Habilidades/HT_FLASHER.png"
+  },
+  "121": {
+    "code": "HT_FREEZINGTRAP",
+    "name": "Armadilha Congelante",
+    "icon": "Icones Habilidades/HT_FREEZINGTRAP.png"
+  },
+  "122": {
+    "code": "HT_BLASTMINE",
+    "name": "Instalar Mina",
+    "icon": "Icones Habilidades/HT_BLASTMINE.png"
+  },
+  "123": {
+    "code": "HT_CLAYMORETRAP",
+    "name": "Armadilha Explosiva",
+    "icon": "Icones Habilidades/HT_CLAYMORETRAP.png"
+  },
+  "124": {
+    "code": "HT_REMOVETRAP",
+    "name": "Remover Armadilha",
+    "icon": "Icones Habilidades/HT_REMOVETRAP.png"
+  },
+  "125": {
+    "code": "HT_TALKIEBOX",
+    "name": "Mensagem Secreta",
+    "icon": "Icones Habilidades/HT_TALKIEBOX.png"
+  },
+  "126": {
+    "code": "HT_BEASTBANE",
+    "name": "Flagelo das Feras",
+    "icon": "Icones Habilidades/HT_BEASTBANE.png"
+  },
+  "127": {
+    "code": "HT_FALCON",
+    "name": "Adestrar Ave",
+    "icon": "Icones Habilidades/HT_FALCON.png"
+  },
+  "128": {
+    "code": "HT_STEELCROW",
+    "name": "Garras de Aço",
+    "icon": "Icones Habilidades/HT_STEELCROW.png"
+  },
+  "129": {
+    "code": "HT_BLITZBEAT",
+    "name": "Ataque Aéreo",
+    "icon": "Icones Habilidades/HT_BLITZBEAT.png"
+  },
+  "130": {
+    "code": "HT_DETECTING",
+    "name": "Alerta",
+    "icon": "Icones Habilidades/HT_DETECTING.png"
+  },
+  "131": {
+    "code": "HT_SPRINGTRAP",
+    "name": "Desativar Armadilha",
+    "icon": "Icones Habilidades/HT_SPRINGTRAP.png"
+  },
+  "132": {
+    "code": "AS_RIGHT",
+    "name": "Perícia com Mão Direita",
+    "icon": "Icones Habilidades/AS_RIGHT.png"
+  },
+  "133": {
+    "code": "AS_LEFT",
+    "name": "Perícia com Mão Esquerda",
+    "icon": "Icones Habilidades/AS_LEFT.png"
+  },
+  "134": {
+    "code": "AS_KATAR",
+    "name": "Perícia com Katar",
+    "icon": "Icones Habilidades/AS_KATAR.png"
+  },
+  "135": {
+    "code": "AS_CLOAKING",
+    "name": "Furtividade",
+    "icon": "Icones Habilidades/AS_CLOAKING.png"
+  },
+  "136": {
+    "code": "AS_SONICBLOW",
+    "name": "Lâminas Destruidoras",
+    "icon": "Icones Habilidades/AS_SONICBLOW.png"
+  },
+  "137": {
+    "code": "AS_GRIMTOOTH",
+    "name": "Tocaia",
+    "icon": "Icones Habilidades/AS_GRIMTOOTH.png"
+  },
+  "138": {
+    "code": "AS_ENCHANTPOISON",
+    "name": "Envenenar Arma",
+    "icon": "Icones Habilidades/AS_ENCHANTPOISON.png"
+  },
+  "139": {
+    "code": "AS_POISONREACT",
+    "name": "Refletir Veneno",
+    "icon": "Icones Habilidades/AS_POISONREACT.png"
+  },
+  "140": {
+    "code": "AS_VENOMDUST",
+    "name": "Névoa Tóxica",
+    "icon": "Icones Habilidades/AS_VENOMDUST.png"
+  },
+  "141": {
+    "code": "AS_SPLASHER",
+    "name": "Explosão Tóxica",
+    "icon": "Icones Habilidades/AS_SPLASHER.png"
+  },
+  "144": {
+    "code": "SM_MOVINGRECOVERY",
+    "name": "Recuperar HP em Movimento",
+    "icon": "Icones Habilidades/SM_MOVINGRECOVERY.png"
+  },
+  "145": {
+    "code": "SM_FATALBLOW",
+    "name": "Ataque Fatal",
+    "icon": "Icones Habilidades/SM_FATALBLOW.png"
+  },
+  "146": {
+    "code": "SM_AUTOBERSERK",
+    "name": "Instinto de Sobrevivência",
+    "icon": "Icones Habilidades/SM_AUTOBERSERK.png"
+  },
+  "147": {
+    "code": "AC_MAKINGARROW",
+    "name": "Fabricar Flechas",
+    "icon": "Icones Habilidades/AC_MAKINGARROW.png"
+  },
+  "148": {
+    "code": "AC_CHARGEARROW",
+    "name": "Disparo Violento",
+    "icon": "Icones Habilidades/AC_CHARGEARROW.png"
+  },
+  "149": {
+    "code": "TF_SPRINKLESAND",
+    "name": "Chutar Areia",
+    "icon": "Icones Habilidades/TF_SPRINKLESAND.png"
+  },
+  "150": {
+    "code": "TF_BACKSLIDING",
+    "name": "Recuar",
+    "icon": "Icones Habilidades/TF_BACKSLIDING.png"
+  },
+  "151": {
+    "code": "TF_PICKSTONE",
+    "name": "Procurar Pedras",
+    "icon": "Icones Habilidades/TF_PICKSTONE.png"
+  },
+  "152": {
+    "code": "TF_THROWSTONE",
+    "name": "Arremessar Pedra",
+    "icon": "Icones Habilidades/TF_THROWSTONE.png"
+  },
+  "153": {
+    "code": "MC_CARTREVOLUTION",
+    "name": "Cavalo-de-Pau",
+    "icon": "Icones Habilidades/MC_CARTREVOLUTION.png"
+  },
+  "154": {
+    "code": "MC_CHANGECART",
+    "name": "Personalizar Carrinho",
+    "icon": "Icones Habilidades/MC_CHANGECART.png"
+  },
+  "155": {
+    "code": "MC_LOUD",
+    "name": "Grito de Guerra",
+    "icon": "Icones Habilidades/MC_LOUD.png"
+  },
+  "156": {
+    "code": "AL_HOLYLIGHT",
+    "name": "Luz Divina",
+    "icon": "Icones Habilidades/AL_HOLYLIGHT.png"
+  },
+  "157": {
+    "code": "MG_ENERGYCOAT",
+    "name": "Proteção Arcana",
+    "icon": "Icones Habilidades/MG_ENERGYCOAT.png"
+  },
+  "210": {
+    "code": "RG_SNATCHER",
+    "name": "Mãos Leves",
+    "icon": "Icones Habilidades/RG_SNATCHER.png"
+  },
+  "211": {
+    "code": "RG_STEALCOIN",
+    "name": "Afanar",
+    "icon": "Icones Habilidades/RG_STEALCOIN.png"
+  },
+  "212": {
+    "code": "RG_BACKSTAP",
+    "name": "Apunhalar",
+    "icon": "Icones Habilidades/RG_BACKSTAP.png"
+  },
+  "213": {
+    "code": "RG_TUNNELDRIVE",
+    "name": "Túnel de Fuga",
+    "icon": "Icones Habilidades/RG_TUNNELDRIVE.png"
+  },
+  "214": {
+    "code": "RG_RAID",
+    "name": "Ataque Surpresa",
+    "icon": "Icones Habilidades/RG_RAID.png"
+  },
+  "215": {
+    "code": "RG_STRIPWEAPON",
+    "name": "Remover Arma",
+    "icon": "Icones Habilidades/RG_STRIPWEAPON.png"
+  },
+  "216": {
+    "code": "RG_STRIPSHIELD",
+    "name": "Remover Escudo",
+    "icon": "Icones Habilidades/RG_STRIPSHIELD.png"
+  },
+  "217": {
+    "code": "RG_STRIPARMOR",
+    "name": "Remover Armadura",
+    "icon": "Icones Habilidades/RG_STRIPARMOR.png"
+  },
+  "218": {
+    "code": "RG_STRIPHELM",
+    "name": "Remover Capacete",
+    "icon": "Icones Habilidades/RG_STRIPHELM.png"
+  },
+  "219": {
+    "code": "RG_INTIMIDATE",
+    "name": "Rapto",
+    "icon": "Icones Habilidades/RG_INTIMIDATE.png"
+  },
+  "220": {
+    "code": "RG_GRAFFITI",
+    "name": "Graffiti",
+    "icon": "Icones Habilidades/RG_GRAFFITI.png"
+  },
+  "221": {
+    "code": "RG_FLAGGRAFFITI",
+    "name": "Pichar",
+    "icon": "Icones Habilidades/RG_FLAGGRAFFITI.png"
+  },
+  "222": {
+    "code": "RG_CLEANER",
+    "name": "Faxina",
+    "icon": "Icones Habilidades/RG_CLEANER.png"
+  },
+  "223": {
+    "code": "RG_GANGSTER",
+    "name": "Malandragem",
+    "icon": "Icones Habilidades/RG_GANGSTER.png"
+  },
+  "224": {
+    "code": "RG_COMPULSION",
+    "name": "Extorquir",
+    "icon": "Icones Habilidades/RG_COMPULSION.png"
+  },
+  "225": {
+    "code": "RG_PLAGIARISM",
+    "name": "Plágio",
+    "icon": "Icones Habilidades/RG_PLAGIARISM.png"
+  },
+  "226": {
+    "code": "AM_AXEMASTERY",
+    "name": "Perícia com Machado e Espada",
+    "icon": "Icones Habilidades/AM_AXEMASTERY.png"
+  },
+  "227": {
+    "code": "AM_LEARNINGPOTION",
+    "name": "Pesquisa de Poções",
+    "icon": "Icones Habilidades/AM_LEARNINGPOTION.png"
+  },
+  "228": {
+    "code": "AM_PHARMACY",
+    "name": "Preparar Poção",
+    "icon": "Icones Habilidades/AM_PHARMACY.png"
+  },
+  "229": {
+    "code": "AM_DEMONSTRATION",
+    "name": "Fogo Grego",
+    "icon": "Icones Habilidades/AM_DEMONSTRATION.png"
+  },
+  "230": {
+    "code": "AM_ACIDTERROR",
+    "name": "Terror Ácido",
+    "icon": "Icones Habilidades/AM_ACIDTERROR.png"
+  },
+  "231": {
+    "code": "AM_POTIONPITCHER",
+    "name": "Arremessar Poção",
+    "icon": "Icones Habilidades/AM_POTIONPITCHER.png"
+  },
+  "232": {
+    "code": "AM_CANNIBALIZE",
+    "name": "Criar Monstro Planta",
+    "icon": "Icones Habilidades/AM_CANNIBALIZE.png"
+  },
+  "233": {
+    "code": "AM_SPHEREMINE",
+    "name": "Criar Esfera Marinha",
+    "icon": "Icones Habilidades/AM_SPHEREMINE.png"
+  },
+  "234": {
+    "code": "AM_CP_WEAPON",
+    "name": "Revestir Arma",
+    "icon": "Icones Habilidades/AM_CP_WEAPON.png"
+  },
+  "235": {
+    "code": "AM_CP_SHIELD",
+    "name": "Revestir Escudo",
+    "icon": "Icones Habilidades/AM_CP_SHIELD.png"
+  },
+  "236": {
+    "code": "AM_CP_ARMOR",
+    "name": "Revestir Armadura",
+    "icon": "Icones Habilidades/AM_CP_ARMOR.png"
+  },
+  "237": {
+    "code": "AM_CP_HELM",
+    "name": "Revestir Capacete",
+    "icon": "Icones Habilidades/AM_CP_HELM.png"
+  },
+  "238": {
+    "code": "AM_BIOETHICS",
+    "name": "Bioética",
+    "icon": "Icones Habilidades/AM_BIOETHICS.png"
+  },
+  "243": {
+    "code": "AM_CALLHOMUN",
+    "name": "Criar Homunculus",
+    "icon": "Icones Habilidades/AM_CALLHOMUN.png"
+  },
+  "244": {
+    "code": "AM_REST",
+    "name": "Vaporizar",
+    "icon": "Icones Habilidades/AM_REST.png"
+  },
+  "247": {
+    "code": "AM_RESURRECTHOMUN",
+    "name": "Ressuscitar Homunculus",
+    "icon": "Icones Habilidades/AM_RESURRECTHOMUN.png"
+  },
+  "248": {
+    "code": "CR_TRUST",
+    "name": "Fé",
+    "icon": "Icones Habilidades/CR_TRUST.png"
+  },
+  "249": {
+    "code": "CR_AUTOGUARD",
+    "name": "Bloqueio",
+    "icon": "Icones Habilidades/CR_AUTOGUARD.png"
+  },
+  "250": {
+    "code": "CR_SHIELDCHARGE",
+    "name": "Punição Divina",
+    "icon": "Icones Habilidades/CR_SHIELDCHARGE.png"
+  },
+  "251": {
+    "code": "CR_SHIELDBOOMERANG",
+    "name": "Escudo Bumerangue",
+    "icon": "Icones Habilidades/CR_SHIELDBOOMERANG.png"
+  },
+  "252": {
+    "code": "CR_REFLECTSHIELD",
+    "name": "Escudo Refletor",
+    "icon": "Icones Habilidades/CR_REFLECTSHIELD.png"
+  },
+  "253": {
+    "code": "CR_HOLYCROSS",
+    "name": "Crux Divinum",
+    "icon": "Icones Habilidades/CR_HOLYCROSS.png"
+  },
+  "254": {
+    "code": "CR_GRANDCROSS",
+    "name": "Crux Magnum",
+    "icon": "Icones Habilidades/CR_GRANDCROSS.png"
+  },
+  "255": {
+    "code": "CR_DEVOTION",
+    "name": "Redenção",
+    "icon": "Icones Habilidades/CR_DEVOTION.png"
+  },
+  "256": {
+    "code": "CR_PROVIDENCE",
+    "name": "Divina Providência",
+    "icon": "Icones Habilidades/CR_PROVIDENCE.png"
+  },
+  "257": {
+    "code": "CR_DEFENDER",
+    "name": "Aura Sagrada",
+    "icon": "Icones Habilidades/CR_DEFENDER.png"
+  },
+  "258": {
+    "code": "CR_SPEARQUICKEN",
+    "name": "Rapidez com Lança",
+    "icon": "Icones Habilidades/CR_SPEARQUICKEN.png"
+  },
+  "259": {
+    "code": "MO_IRONHAND",
+    "name": "Punhos de Ferro",
+    "icon": "Icones Habilidades/MO_IRONHAND.png"
+  },
+  "260": {
+    "code": "MO_SPIRITSRECOVERY",
+    "name": "Meditação",
+    "icon": "Icones Habilidades/MO_SPIRITSRECOVERY.png"
+  },
+  "261": {
+    "code": "MO_CALLSPIRITS",
+    "name": "Invocar Esfera Espiritual",
+    "icon": "Icones Habilidades/MO_CALLSPIRITS.png"
+  },
+  "262": {
+    "code": "MO_ABSORBSPIRITS",
+    "name": "Absorver Esferas Espirituais",
+    "icon": "Icones Habilidades/MO_ABSORBSPIRITS.png"
+  },
+  "263": {
+    "code": "MO_TRIPLEATTACK",
+    "name": "Combo Triplo",
+    "icon": "Icones Habilidades/MO_TRIPLEATTACK.png"
+  },
+  "264": {
+    "code": "MO_BODYRELOCATION",
+    "name": "Passo Etéreo",
+    "icon": "Icones Habilidades/MO_BODYRELOCATION.png"
+  },
+  "265": {
+    "code": "MO_DODGE",
+    "name": "Cair das Pétalas",
+    "icon": "Icones Habilidades/MO_DODGE.png"
+  },
+  "266": {
+    "code": "MO_INVESTIGATE",
+    "name": "Impacto Psíquico",
+    "icon": "Icones Habilidades/MO_INVESTIGATE.png"
+  },
+  "267": {
+    "code": "MO_FINGEROFFENSIVE",
+    "name": "Disparo de Esferas Espirituais",
+    "icon": "Icones Habilidades/MO_FINGEROFFENSIVE.png"
+  },
+  "268": {
+    "code": "MO_STEELBODY",
+    "name": "Corpo Fechado",
+    "icon": "Icones Habilidades/MO_STEELBODY.png"
+  },
+  "269": {
+    "code": "MO_BLADESTOP",
+    "name": "Dilema",
+    "icon": "Icones Habilidades/MO_BLADESTOP.png"
+  },
+  "270": {
+    "code": "MO_EXPLOSIONSPIRITS",
+    "name": "Fúria Interior",
+    "icon": "Icones Habilidades/MO_EXPLOSIONSPIRITS.png"
+  },
+  "271": {
+    "code": "MO_EXTREMITYFIST",
+    "name": "Punho Supremo de Asura",
+    "icon": "Icones Habilidades/MO_EXTREMITYFIST.png"
+  },
+  "272": {
+    "code": "MO_CHAINCOMBO",
+    "name": "Combo Quádruplo",
+    "icon": "Icones Habilidades/MO_CHAINCOMBO.png"
+  },
+  "273": {
+    "code": "MO_COMBOFINISH",
+    "name": "O Último Dragão",
+    "icon": "Icones Habilidades/MO_COMBOFINISH.png"
+  },
+  "274": {
+    "code": "SA_ADVANCEDBOOK",
+    "name": "Estudo de Livros",
+    "icon": "Icones Habilidades/SA_ADVANCEDBOOK.png"
+  },
+  "275": {
+    "code": "SA_CASTCANCEL",
+    "name": "Cancelar magia",
+    "icon": "Icones Habilidades/SA_CASTCANCEL.png"
+  },
+  "276": {
+    "code": "SA_MAGICROD",
+    "name": "Espelho Mágico",
+    "icon": "Icones Habilidades/SA_MAGICROD.png"
+  },
+  "277": {
+    "code": "SA_SPELLBREAKER",
+    "name": "Desconcentrar",
+    "icon": "Icones Habilidades/SA_SPELLBREAKER.png"
+  },
+  "278": {
+    "code": "SA_FREECAST",
+    "name": "Conjuração Livre",
+    "icon": "Icones Habilidades/SA_FREECAST.png"
+  },
+  "279": {
+    "code": "SA_AUTOSPELL",
+    "name": "Desejo Arcano",
+    "icon": "Icones Habilidades/SA_AUTOSPELL.png"
+  },
+  "280": {
+    "code": "SA_FLAMELAUNCHER",
+    "name": "Encantar com Chama",
+    "icon": "Icones Habilidades/SA_FLAMELAUNCHER.png"
+  },
+  "281": {
+    "code": "SA_FROSTWEAPON",
+    "name": "Encantar com Geada",
+    "icon": "Icones Habilidades/SA_FROSTWEAPON.png"
+  },
+  "282": {
+    "code": "SA_LIGHTNINGLOADER",
+    "name": "Encantar com Ventania",
+    "icon": "Icones Habilidades/SA_LIGHTNINGLOADER.png"
+  },
+  "283": {
+    "code": "SA_SEISMICWEAPON",
+    "name": "Encantar com Terremoto",
+    "icon": "Icones Habilidades/SA_SEISMICWEAPON.png"
+  },
+  "284": {
+    "code": "SA_DRAGONOLOGY",
+    "name": "Dragonologia",
+    "icon": "Icones Habilidades/SA_DRAGONOLOGY.png"
+  },
+  "285": {
+    "code": "SA_VOLCANO",
+    "name": "Vulcão",
+    "icon": "Icones Habilidades/SA_VOLCANO.png"
+  },
+  "286": {
+    "code": "SA_DELUGE",
+    "name": "Dilúvio",
+    "icon": "Icones Habilidades/SA_DELUGE.png"
+  },
+  "287": {
+    "code": "SA_VIOLENTGALE",
+    "name": "Furacão",
+    "icon": "Icones Habilidades/SA_VIOLENTGALE.png"
+  },
+  "288": {
+    "code": "SA_LANDPROTECTOR",
+    "name": "Proteger Terreno",
+    "icon": "Icones Habilidades/SA_LANDPROTECTOR.png"
+  },
+  "289": {
+    "code": "SA_DISPELL",
+    "name": "Desencantar",
+    "icon": "Icones Habilidades/SA_DISPELL.png"
+  },
+  "290": {
+    "code": "SA_ABRACADABRA",
+    "name": "Abracadabra",
+    "icon": "Icones Habilidades/SA_ABRACADABRA.png"
+  },
+  "304": {
+    "code": "BD_ADAPTATION",
+    "name": "Aquecimento",
+    "icon": "Icones Habilidades/BD_ADAPTATION.png"
+  },
+  "305": {
+    "code": "BD_ENCORE",
+    "name": "Bis",
+    "icon": "Icones Habilidades/BD_ENCORE.png"
+  },
+  "306": {
+    "code": "BD_LULLABY",
+    "name": "Cantiga de Ninar",
+    "icon": "Icones Habilidades/BD_LULLABY.png"
+  },
+  "307": {
+    "code": "BD_RICHMANKIM",
+    "name": "Banquete de Njord",
+    "icon": "Icones Habilidades/BD_RICHMANKIM.png"
+  },
+  "308": {
+    "code": "BD_ETERNALCHAOS",
+    "name": "Ritmo Caótico",
+    "icon": "Icones Habilidades/BD_ETERNALCHAOS.png"
+  },
+  "309": {
+    "code": "BD_DRUMBATTLEFIELD",
+    "name": "Rufar dos Tambores",
+    "icon": "Icones Habilidades/BD_DRUMBATTLEFIELD.png"
+  },
+  "310": {
+    "code": "BD_RINGNIBELUNGEN",
+    "name": "Anel dos Nibelungos",
+    "icon": "Icones Habilidades/BD_RINGNIBELUNGEN.png"
+  },
+  "311": {
+    "code": "BD_ROKISWEIL",
+    "name": "Lamento de Loki",
+    "icon": "Icones Habilidades/BD_ROKISWEIL.png"
+  },
+  "312": {
+    "code": "BD_INTOABYSS",
+    "name": "Canção Preciosa",
+    "icon": "Icones Habilidades/BD_INTOABYSS.png"
+  },
+  "313": {
+    "code": "BD_SIEGFRIED",
+    "name": "Ode a Siegfried",
+    "icon": "Icones Habilidades/BD_SIEGFRIED.png"
+  },
+  "315": {
+    "code": "BA_MUSICALLESSON",
+    "name": "Lições de Música",
+    "icon": "Icones Habilidades/BA_MUSICALLESSON.png"
+  },
+  "316": {
+    "code": "BA_MUSICALSTRIKE",
+    "name": "Flecha Melódica",
+    "icon": "Icones Habilidades/BA_MUSICALSTRIKE.png"
+  },
+  "317": {
+    "code": "BA_DISSONANCE",
+    "name": "Dissonância",
+    "icon": "Icones Habilidades/BA_DISSONANCE.png"
+  },
+  "319": {
+    "code": "BA_WHISTLE",
+    "name": "Assovio",
+    "icon": "Icones Habilidades/BA_WHISTLE.png"
+  },
+  "320": {
+    "code": "BA_ASSASSINCROSS",
+    "name": "Crepúsculo Sangrento",
+    "icon": "Icones Habilidades/BA_ASSASSINCROSS.png"
+  },
+  "321": {
+    "code": "BA_POEMBRAGI",
+    "name": "Poema de Bragi",
+    "icon": "Icones Habilidades/BA_POEMBRAGI.png"
+  },
+  "322": {
+    "code": "BA_APPLEIDUN",
+    "name": "Maçãs de Idun",
+    "icon": "Icones Habilidades/BA_APPLEIDUN.png"
+  },
+  "323": {
+    "code": "DC_DANCINGLESSON",
+    "name": "Lições de Dança",
+    "icon": "Icones Habilidades/DC_DANCINGLESSON.png"
+  },
+  "324": {
+    "code": "DC_THROWARROW",
+    "name": "Estilingue",
+    "icon": "Icones Habilidades/DC_THROWARROW.png"
+  },
+  "325": {
+    "code": "DC_UGLYDANCE",
+    "name": "Dança do Ventre",
+    "icon": "Icones Habilidades/DC_UGLYDANCE.png"
+  },
+  "326": {
+    "code": "DC_SCREAM",
+    "name": "Escândalo",
+    "icon": "Icones Habilidades/DC_SCREAM.png"
+  },
+  "327": {
+    "code": "DC_HUMMING",
+    "name": "Sibilo",
+    "icon": "Icones Habilidades/DC_HUMMING.png"
+  },
+  "328": {
+    "code": "DC_DONTFORGETME",
+    "name": "Não Me Abandones",
+    "icon": "Icones Habilidades/DC_DONTFORGETME.png"
+  },
+  "329": {
+    "code": "DC_FORTUNEKISS",
+    "name": "Beijo da Sorte",
+    "icon": "Icones Habilidades/DC_FORTUNEKISS.png"
+  },
+  "330": {
+    "code": "DC_SERVICEFORYOU",
+    "name": "Dança Cigana",
+    "icon": "Icones Habilidades/DC_SERVICEFORYOU.png"
+  },
+  "355": {
+    "code": "LK_AURABLADE",
+    "name": "Lâmina de Aura",
+    "icon": "Icones Habilidades/LK_AURABLADE.png"
+  },
+  "356": {
+    "code": "LK_PARRYING",
+    "name": "Aparar Golpe",
+    "icon": "Icones Habilidades/LK_PARRYING.png"
+  },
+  "357": {
+    "code": "LK_CONCENTRATION",
+    "name": "Dedicação",
+    "icon": "Icones Habilidades/LK_CONCENTRATION.png"
+  },
+  "358": {
+    "code": "LK_TENSIONRELAX",
+    "name": "Relaxar",
+    "icon": "Icones Habilidades/LK_TENSIONRELAX.png"
+  },
+  "359": {
+    "code": "LK_BERSERK",
+    "name": "Frenesi",
+    "icon": "Icones Habilidades/LK_BERSERK.png"
+  },
+  "360": {
+    "code": "LK_FURY",
+    "name": "nan",
+    "icon": "Icones Habilidades/LK_FURY.png"
+  },
+  "361": {
+    "code": "HP_ASSUMPTIO",
+    "name": "Assumptio",
+    "icon": "Icones Habilidades/HP_ASSUMPTIO.png"
+  },
+  "362": {
+    "code": "HP_BASILICA",
+    "name": "Basílica",
+    "icon": "Icones Habilidades/HP_BASILICA.png"
+  },
+  "363": {
+    "code": "HP_MEDITATIO",
+    "name": "Meditatio",
+    "icon": "Icones Habilidades/HP_MEDITATIO.png"
+  },
+  "364": {
+    "code": "HW_SOULDRAIN",
+    "name": "Dreno de Alma",
+    "icon": "Icones Habilidades/HW_SOULDRAIN.png"
+  },
+  "365": {
+    "code": "HW_MAGICCRASHER",
+    "name": "Esmagamento Mágico",
+    "icon": "Icones Habilidades/HW_MAGICCRASHER.png"
+  },
+  "366": {
+    "code": "HW_MAGICPOWER",
+    "name": "Amplificação Mística",
+    "icon": "Icones Habilidades/HW_MAGICPOWER.png"
+  },
+  "367": {
+    "code": "PA_PRESSURE",
+    "name": "Gloria Domini",
+    "icon": "Icones Habilidades/PA_PRESSURE.png"
+  },
+  "368": {
+    "code": "PA_SACRIFICE",
+    "name": "Sacrifício do Mártir",
+    "icon": "Icones Habilidades/PA_SACRIFICE.png"
+  },
+  "369": {
+    "code": "PA_GOSPEL",
+    "name": "Canto de Batalha",
+    "icon": "Icones Habilidades/PA_GOSPEL.png"
+  },
+  "370": {
+    "code": "CH_PALMSTRIKE",
+    "name": "Golpe da Palma em Fúria",
+    "icon": "Icones Habilidades/CH_PALMSTRIKE.png"
+  },
+  "371": {
+    "code": "CH_TIGERFIST",
+    "name": "Punho do Tigre",
+    "icon": "Icones Habilidades/CH_TIGERFIST.png"
+  },
+  "372": {
+    "code": "CH_CHAINCRUSH",
+    "name": "Combo Esmagador",
+    "icon": "Icones Habilidades/CH_CHAINCRUSH.png"
+  },
+  "373": {
+    "code": "PF_HPCONVERSION",
+    "name": "Indulgir",
+    "icon": "Icones Habilidades/PF_HPCONVERSION.png"
+  },
+  "374": {
+    "code": "PF_SOULCHANGE",
+    "name": "Exalar Alma",
+    "icon": "Icones Habilidades/PF_SOULCHANGE.png"
+  },
+  "375": {
+    "code": "PF_SOULBURN",
+    "name": "Sifão de Alma",
+    "icon": "Icones Habilidades/PF_SOULBURN.png"
+  },
+  "376": {
+    "code": "ASC_KATAR",
+    "name": "Perícia com Katar Avançada",
+    "icon": "Icones Habilidades/ASC_KATAR.png"
+  },
+  "378": {
+    "code": "ASC_EDP",
+    "name": "Encantar com Veneno Mortal",
+    "icon": "Icones Habilidades/ASC_EDP.png"
+  },
+  "379": {
+    "code": "ASC_BREAKER",
+    "name": "Destruidor de Almas",
+    "icon": "Icones Habilidades/ASC_BREAKER.png"
+  },
+  "380": {
+    "code": "SN_SIGHT",
+    "name": "Visão Real",
+    "icon": "Icones Habilidades/SN_SIGHT.png"
+  },
+  "381": {
+    "code": "SN_FALCONASSAULT",
+    "name": "Assalto do Falcão",
+    "icon": "Icones Habilidades/SN_FALCONASSAULT.png"
+  },
+  "382": {
+    "code": "SN_SHARPSHOOTING",
+    "name": "Tiro Preciso",
+    "icon": "Icones Habilidades/SN_SHARPSHOOTING.png"
+  },
+  "383": {
+    "code": "SN_WINDWALK",
+    "name": "Caminho do Vento",
+    "icon": "Icones Habilidades/SN_WINDWALK.png"
+  },
+  "384": {
+    "code": "WS_MELTDOWN",
+    "name": "Golpe Estilhaçante",
+    "icon": "Icones Habilidades/WS_MELTDOWN.png"
+  },
+  "385": {
+    "code": "WS_CREATECOIN",
+    "name": "Criar Moeda",
+    "icon": "Icones Habilidades/WS_CREATECOIN.png"
+  },
+  "387": {
+    "code": "WS_CARTBOOST",
+    "name": "Impulso no Carrinho",
+    "icon": "Icones Habilidades/WS_CARTBOOST.png"
+  },
+  "389": {
+    "code": "ST_CHASEWALK",
+    "name": "Espreitar",
+    "icon": "Icones Habilidades/ST_CHASEWALK.png"
+  },
+  "390": {
+    "code": "ST_REJECTSWORD",
+    "name": "Instinto de Defesa",
+    "icon": "Icones Habilidades/ST_REJECTSWORD.png"
+  },
+  "392": {
+    "code": "CR_ALCHEMY",
+    "name": "Alquimia",
+    "icon": "Icones Habilidades/CR_ALCHEMY.png"
+  },
+  "393": {
+    "code": "CR_SYNTHESISPOTION",
+    "name": "Síntese de Poção",
+    "icon": "Icones Habilidades/CR_SYNTHESISPOTION.png"
+  },
+  "394": {
+    "code": "CG_ARROWVULCAN",
+    "name": "Vulcão de Flechas",
+    "icon": "Icones Habilidades/CG_ARROWVULCAN.png"
+  },
+  "395": {
+    "code": "CG_MOONLIT",
+    "name": "Bênção Protetora",
+    "icon": "Icones Habilidades/CG_MOONLIT.png"
+  },
+  "396": {
+    "code": "CG_MARIONETTE",
+    "name": "Controle de Marionete",
+    "icon": "Icones Habilidades/CG_MARIONETTE.png"
+  },
+  "397": {
+    "code": "LK_SPIRALPIERCE",
+    "name": "Perfurar em Espiral",
+    "icon": "Icones Habilidades/LK_SPIRALPIERCE.png"
+  },
+  "398": {
+    "code": "LK_HEADCRUSH",
+    "name": "Golpe Traumático",
+    "icon": "Icones Habilidades/LK_HEADCRUSH.png"
+  },
+  "399": {
+    "code": "LK_JOINTBEAT",
+    "name": "Ataque Vital",
+    "icon": "Icones Habilidades/LK_JOINTBEAT.png"
+  },
+  "400": {
+    "code": "HW_NAPALMVULCAN",
+    "name": "Vulcão Napalm",
+    "icon": "Icones Habilidades/HW_NAPALMVULCAN.png"
+  },
+  "401": {
+    "code": "CH_SOULCOLLECT",
+    "name": "Zen",
+    "icon": "Icones Habilidades/CH_SOULCOLLECT.png"
+  },
+  "402": {
+    "code": "PF_MINDBREAKER",
+    "name": "Enlouquecedor",
+    "icon": "Icones Habilidades/PF_MINDBREAKER.png"
+  },
+  "403": {
+    "code": "PF_MEMORIZE",
+    "name": "Presciência",
+    "icon": "Icones Habilidades/PF_MEMORIZE.png"
+  },
+  "404": {
+    "code": "PF_FOGWALL",
+    "name": "Bruma Ofuscante",
+    "icon": "Icones Habilidades/PF_FOGWALL.png"
+  },
+  "405": {
+    "code": "PF_SPIDERWEB",
+    "name": "Prisão da Teia",
+    "icon": "Icones Habilidades/PF_SPIDERWEB.png"
+  },
+  "406": {
+    "code": "ASC_METEORASSAULT",
+    "name": "Impacto Meteoro",
+    "icon": "Icones Habilidades/ASC_METEORASSAULT.png"
+  },
+  "407": {
+    "code": "ASC_CDP",
+    "name": "Criar Veneno Mortal",
+    "icon": "Icones Habilidades/ASC_CDP.png"
+  },
+  "446": {
+    "code": "AM_BERSERKPITCHER",
+    "name": "Arremessar Poção da Fúria Selvagem",
+    "icon": "Icones Habilidades/AM_BERSERKPITCHER.png"
+  },
+  "459": {
+    "code": "BS_ADRENALINE2",
+    "name": "Adrenalina Concentrada",
+    "icon": "Icones Habilidades/BS_ADRENALINE2.png"
+  },
+  "475": {
+    "code": "ST_PRESERVE",
+    "name": "Preservar",
+    "icon": "Icones Habilidades/ST_PRESERVE.png"
+  },
+  "476": {
+    "code": "ST_FULLSTRIP",
+    "name": "Remoção Total",
+    "icon": "Icones Habilidades/ST_FULLSTRIP.png"
+  },
+  "478": {
+    "code": "CR_SLIMPITCHER",
+    "name": "Arremessar Poção Compacta",
+    "icon": "Icones Habilidades/CR_SLIMPITCHER.png"
+  },
+  "479": {
+    "code": "CR_FULLPROTECTION",
+    "name": "Proteção Química Total",
+    "icon": "Icones Habilidades/CR_FULLPROTECTION.png"
+  },
+  "480": {
+    "code": "PA_SHIELDCHAIN",
+    "name": "Choque Rápido",
+    "icon": "Icones Habilidades/PA_SHIELDCHAIN.png"
+  },
+  "481": {
+    "code": "HP_MANARECHARGE",
+    "name": "Riqueza Espírito",
+    "icon": "Icones Habilidades/HP_MANARECHARGE.png"
+  },
+  "482": {
+    "code": "PF_DOUBLECASTING",
+    "name": "Lanças Duplas",
+    "icon": "Icones Habilidades/PF_DOUBLECASTING.png"
+  },
+  "483": {
+    "code": "HW_GANBANTEIN",
+    "name": "Ganbantein",
+    "icon": "Icones Habilidades/HW_GANBANTEIN.png"
+  },
+  "484": {
+    "code": "HW_GRAVITATION",
+    "name": "Campo Gravitacional",
+    "icon": "Icones Habilidades/HW_GRAVITATION.png"
+  },
+  "485": {
+    "code": "WS_CARTTERMINATION",
+    "name": "Choque de Carrinho",
+    "icon": "Icones Habilidades/WS_CARTTERMINATION.png"
+  },
+  "486": {
+    "code": "WS_OVERTHRUSTMAX",
+    "name": "Força Violentíssima",
+    "icon": "Icones Habilidades/WS_OVERTHRUSTMAX.png"
+  },
+  "488": {
+    "code": "CG_HERMODE",
+    "name": "Bastão de Hermod",
+    "icon": "Icones Habilidades/CG_HERMODE.png"
+  },
+  "489": {
+    "code": "CG_TAROTCARD",
+    "name": "Destino nas Cartas",
+    "icon": "Icones Habilidades/CG_TAROTCARD.png"
+  },
+  "490": {
+    "code": "CR_ACIDDEMONSTRATION",
+    "name": "Bomba Ácida",
+    "icon": "Icones Habilidades/CR_ACIDDEMONSTRATION.png"
+  },
+  "495": {
+    "code": "KN_ONEHAND",
+    "name": "Rapidez com Uma Mão",
+    "icon": "Icones Habilidades/KN_ONEHAND.png"
+  },
+  "496": {
+    "code": "AM_TWILIGHT1",
+    "name": "Criação Espiritual de Poções",
+    "icon": "Icones Habilidades/AM_TWILIGHT1.png"
+  },
+  "497": {
+    "code": "AM_TWILIGHT2",
+    "name": "Criação Espiritual de Poções",
+    "icon": "Icones Habilidades/AM_TWILIGHT2.png"
+  },
+  "498": {
+    "code": "AM_TWILIGHT3",
+    "name": "Criação Espiritual de Poções",
+    "icon": "Icones Habilidades/AM_TWILIGHT3.png"
+  },
+  "499": {
+    "code": "HT_POWER",
+    "name": "Ataque da Fera",
+    "icon": "Icones Habilidades/HT_POWER.png"
+  },
+  "688": {
+    "code": "GM_SANDMAN",
+    "name": "Durma bem, minha criança",
+    "icon": "Icones Habilidades/GM_SANDMAN.png"
+  },
+  "692": {
+    "code": "ALL_CATCRY",
+    "name": "Rugido da Fera",
+    "icon": "Icones Habilidades/ALL_CATCRY.png"
+  },
+  "698": {
+    "code": "ALL_WEWISH",
+    "name": "Noite Feliz!",
+    "icon": "Icones Habilidades/ALL_WEWISH.png"
+  },
+  "1001": {
+    "code": "KN_CHARGEATK",
+    "name": "Avanço Ofensivo",
+    "icon": "Icones Habilidades/KN_CHARGEATK.png"
+  },
+  "1002": {
+    "code": "CR_SHRINK",
+    "name": "Submissão",
+    "icon": "Icones Habilidades/CR_SHRINK.png"
+  },
+  "1003": {
+    "code": "AS_SONICACCEL",
+    "name": "Lâminas Aceleradas",
+    "icon": "Icones Habilidades/AS_SONICACCEL.png"
+  },
+  "1004": {
+    "code": "AS_VENOMKNIFE",
+    "name": "Faca Envenenada",
+    "icon": "Icones Habilidades/AS_VENOMKNIFE.png"
+  },
+  "1005": {
+    "code": "RG_CLOSECONFINE",
+    "name": "Confinamento",
+    "icon": "Icones Habilidades/RG_CLOSECONFINE.png"
+  },
+  "1006": {
+    "code": "WZ_SIGHTBLASTER",
+    "name": "Explosão Protetora",
+    "icon": "Icones Habilidades/WZ_SIGHTBLASTER.png"
+  },
+  "1007": {
+    "code": "SA_CREATECON",
+    "name": "Criar Conversor Elemental",
+    "icon": "Icones Habilidades/SA_CREATECON.png"
+  },
+  "1009": {
+    "code": "HT_PHANTASMIC",
+    "name": "Flecha Fantasma",
+    "icon": "Icones Habilidades/HT_PHANTASMIC.png"
+  },
+  "1010": {
+    "code": "BA_PANGVOICE",
+    "name": "Voz Dolorosa",
+    "icon": "Icones Habilidades/BA_PANGVOICE.png"
+  },
+  "1011": {
+    "code": "DC_WINKCHARM",
+    "name": "Piscadela",
+    "icon": "Icones Habilidades/DC_WINKCHARM.png"
+  },
+  "1012": {
+    "code": "BS_UNFAIRLYTRICK",
+    "name": "Venda Duvidosa",
+    "icon": "Icones Habilidades/BS_UNFAIRLYTRICK.png"
+  },
+  "1013": {
+    "code": "BS_GREED",
+    "name": "Ganância",
+    "icon": "Icones Habilidades/BS_GREED.png"
+  },
+  "1014": {
+    "code": "PR_REDEMPTIO",
+    "name": "Martírio",
+    "icon": "Icones Habilidades/PR_REDEMPTIO.png"
+  },
+  "1015": {
+    "code": "MO_KITRANSLATION",
+    "name": "Concessão Espiritual",
+    "icon": "Icones Habilidades/MO_KITRANSLATION.png"
+  },
+  "1016": {
+    "code": "MO_BALKYOUNG",
+    "name": "Punhos Intensos",
+    "icon": "Icones Habilidades/MO_BALKYOUNG.png"
+  },
+  "2001": {
+    "code": "RK_ENCHANTBLADE",
+    "name": "Encantar Lâmina",
+    "icon": "Icones Habilidades/RK_ENCHANTBLADE.png"
+  },
+  "2002": {
+    "code": "RK_SONICWAVE",
+    "name": "Onda de Choque",
+    "icon": "Icones Habilidades/RK_SONICWAVE.png"
+  },
+  "2003": {
+    "code": "RK_DEATHBOUND",
+    "name": "Revidar Dano",
+    "icon": "Icones Habilidades/RK_DEATHBOUND.png"
+  },
+  "2004": {
+    "code": "RK_HUNDREDSPEAR",
+    "name": "Lança das Mil Pontas",
+    "icon": "Icones Habilidades/RK_HUNDREDSPEAR.png"
+  },
+  "2005": {
+    "code": "RK_WINDCUTTER",
+    "name": "Vento Cortante",
+    "icon": "Icones Habilidades/RK_WINDCUTTER.png"
+  },
+  "2006": {
+    "code": "RK_IGNITIONBREAK",
+    "name": "Impacto Flamejante",
+    "icon": "Icones Habilidades/RK_IGNITIONBREAK.png"
+  },
+  "2007": {
+    "code": "RK_DRAGONTRAINING",
+    "name": "Adestrar Dragão",
+    "icon": "Icones Habilidades/RK_DRAGONTRAINING.png"
+  },
+  "2008": {
+    "code": "RK_DRAGONBREATH",
+    "name": "Sopro do Dragão",
+    "icon": "Icones Habilidades/RK_DRAGONBREATH.png"
+  },
+  "2009": {
+    "code": "RK_DRAGONHOWLING",
+    "name": "Rugido do Dragão",
+    "icon": "Icones Habilidades/RK_DRAGONHOWLING.png"
+  },
+  "2010": {
+    "code": "RK_RUNEMASTERY",
+    "name": "Perícia em Runas",
+    "icon": "Icones Habilidades/RK_RUNEMASTERY.png"
+  },
+  "2011": {
+    "code": "RK_MILLENNIUMSHIELD",
+    "name": "Escudos Milenares",
+    "icon": "Icones Habilidades/RK_MILLENNIUMSHIELD.png"
+  },
+  "2012": {
+    "code": "RK_CRUSHSTRIKE",
+    "name": "Golpe Titânico",
+    "icon": "Icones Habilidades/RK_CRUSHSTRIKE.png"
+  },
+  "2013": {
+    "code": "RK_REFRESH",
+    "name": "Purificação",
+    "icon": "Icones Habilidades/RK_REFRESH.png"
+  },
+  "2014": {
+    "code": "RK_GIANTGROWTH",
+    "name": "Força Titânica",
+    "icon": "Icones Habilidades/RK_GIANTGROWTH.png"
+  },
+  "2015": {
+    "code": "RK_STONEHARDSKIN",
+    "name": "Escamas Rochosas",
+    "icon": "Icones Habilidades/RK_STONEHARDSKIN.png"
+  },
+  "2016": {
+    "code": "RK_VITALITYACTIVATION",
+    "name": "Vitalidade Rúnica",
+    "icon": "Icones Habilidades/RK_VITALITYACTIVATION.png"
+  },
+  "2017": {
+    "code": "RK_STORMBLAST",
+    "name": "Explosão Rúnica",
+    "icon": "Icones Habilidades/RK_STORMBLAST.png"
+  },
+  "2018": {
+    "code": "RK_FIGHTINGSPIRIT",
+    "name": "Aura de Combate",
+    "icon": "Icones Habilidades/RK_FIGHTINGSPIRIT.png"
+  },
+  "2019": {
+    "code": "RK_ABUNDANCE",
+    "name": "Regeneração Espiritual",
+    "icon": "Icones Habilidades/RK_ABUNDANCE.png"
+  },
+  "2020": {
+    "code": "RK_PHANTOMTHRUST",
+    "name": "Arpão",
+    "icon": "Icones Habilidades/RK_PHANTOMTHRUST.png"
+  },
+  "2021": {
+    "code": "GC_VENOMIMPRESS",
+    "name": "Potencializar Veneno",
+    "icon": "Icones Habilidades/GC_VENOMIMPRESS.png"
+  },
+  "2022": {
+    "code": "GC_CROSSIMPACT",
+    "name": "Lâminas Retalhadoras",
+    "icon": "Icones Habilidades/GC_CROSSIMPACT.png"
+  },
+  "2023": {
+    "code": "GC_DARKILLUSION",
+    "name": "Passo Sombrio",
+    "icon": "Icones Habilidades/GC_DARKILLUSION.png"
+  },
+  "2024": {
+    "code": "GC_RESEARCHNEWPOISON",
+    "name": "Pesquisa de Toxinas",
+    "icon": "Icones Habilidades/GC_RESEARCHNEWPOISON.png"
+  },
+  "2025": {
+    "code": "GC_CREATENEWPOISON",
+    "name": "Criar Toxina",
+    "icon": "Icones Habilidades/GC_CREATENEWPOISON.png"
+  },
+  "2026": {
+    "code": "GC_ANTIDOTE",
+    "name": "Antídoto",
+    "icon": "Icones Habilidades/GC_ANTIDOTE.png"
+  },
+  "2027": {
+    "code": "GC_POISONINGWEAPON",
+    "name": "Aplicar Toxina",
+    "icon": "Icones Habilidades/GC_POISONINGWEAPON.png"
+  },
+  "2028": {
+    "code": "GC_WEAPONBLOCKING",
+    "name": "Reflexo de Combate",
+    "icon": "Icones Habilidades/GC_WEAPONBLOCKING.png"
+  },
+  "2029": {
+    "code": "GC_COUNTERSLASH",
+    "name": "Retaliação",
+    "icon": "Icones Habilidades/GC_COUNTERSLASH.png"
+  },
+  "2030": {
+    "code": "GC_WEAPONCRUSH",
+    "name": "Estilhaçar Arma",
+    "icon": "Icones Habilidades/GC_WEAPONCRUSH.png"
+  },
+  "2031": {
+    "code": "GC_VENOMPRESSURE",
+    "name": "Intoxicar",
+    "icon": "Icones Habilidades/GC_VENOMPRESSURE.png"
+  },
+  "2032": {
+    "code": "GC_POISONSMOKE",
+    "name": "Nevoeiro Tóxico",
+    "icon": "Icones Habilidades/GC_POISONSMOKE.png"
+  },
+  "2033": {
+    "code": "GC_CLOAKINGEXCEED",
+    "name": "Ocultação",
+    "icon": "Icones Habilidades/GC_CLOAKINGEXCEED.png"
+  },
+  "2034": {
+    "code": "GC_PHANTOMMENACE",
+    "name": "Ameaça Fantasma",
+    "icon": "Icones Habilidades/GC_PHANTOMMENACE.png"
+  },
+  "2035": {
+    "code": "GC_HALLUCINATIONWALK",
+    "name": "Passos da Ilusão",
+    "icon": "Icones Habilidades/GC_HALLUCINATIONWALK.png"
+  },
+  "2036": {
+    "code": "GC_ROLLINGCUTTER",
+    "name": "Lâminas de Loki",
+    "icon": "Icones Habilidades/GC_ROLLINGCUTTER.png"
+  },
+  "2037": {
+    "code": "GC_CROSSRIPPERSLASHER",
+    "name": "Castigo de Loki",
+    "icon": "Icones Habilidades/GC_CROSSRIPPERSLASHER.png"
+  },
+  "2038": {
+    "code": "AB_JUDEX",
+    "name": "Judex",
+    "icon": "Icones Habilidades/AB_JUDEX.png"
+  },
+  "2039": {
+    "code": "AB_ANCILLA",
+    "name": "Criar Ancilla",
+    "icon": "Icones Habilidades/AB_ANCILLA.png"
+  },
+  "2040": {
+    "code": "AB_ADORAMUS",
+    "name": "Adoramus",
+    "icon": "Icones Habilidades/AB_ADORAMUS.png"
+  },
+  "2041": {
+    "code": "AB_CLEMENTIA",
+    "name": "Clementia",
+    "icon": "Icones Habilidades/AB_CLEMENTIA.png"
+  },
+  "2042": {
+    "code": "AB_CANTO",
+    "name": "Canto Candidus",
+    "icon": "Icones Habilidades/AB_CANTO.png"
+  },
+  "2043": {
+    "code": "AB_CHEAL",
+    "name": "Sopro Divino",
+    "icon": "Icones Habilidades/AB_CHEAL.png"
+  },
+  "2044": {
+    "code": "AB_EPICLESIS",
+    "name": "Epiclesis",
+    "icon": "Icones Habilidades/AB_EPICLESIS.png"
+  },
+  "2045": {
+    "code": "AB_PRAEFATIO",
+    "name": "Praefatio",
+    "icon": "Icones Habilidades/AB_PRAEFATIO.png"
+  },
+  "2046": {
+    "code": "AB_ORATIO",
+    "name": "Oratio",
+    "icon": "Icones Habilidades/AB_ORATIO.png"
+  },
+  "2047": {
+    "code": "AB_LAUDAAGNUS",
+    "name": "Lauda Agnus",
+    "icon": "Icones Habilidades/AB_LAUDAAGNUS.png"
+  },
+  "2048": {
+    "code": "AB_LAUDARAMUS",
+    "name": "Lauda Ramus",
+    "icon": "Icones Habilidades/AB_LAUDARAMUS.png"
+  },
+  "2050": {
+    "code": "AB_RENOVATIO",
+    "name": "Renovatio",
+    "icon": "Icones Habilidades/AB_RENOVATIO.png"
+  },
+  "2051": {
+    "code": "AB_HIGHNESSHEAL",
+    "name": "Curatio",
+    "icon": "Icones Habilidades/AB_HIGHNESSHEAL.png"
+  },
+  "2052": {
+    "code": "AB_CLEARANCE",
+    "name": "Gênese",
+    "icon": "Icones Habilidades/AB_CLEARANCE.png"
+  },
+  "2053": {
+    "code": "AB_EXPIATIO",
+    "name": "Expiatio",
+    "icon": "Icones Habilidades/AB_EXPIATIO.png"
+  },
+  "2054": {
+    "code": "AB_DUPLELIGHT",
+    "name": "Gemini Lumen",
+    "icon": "Icones Habilidades/AB_DUPLELIGHT.png"
+  },
+  "2057": {
+    "code": "AB_SILENTIUM",
+    "name": "Silentium",
+    "icon": "Icones Habilidades/AB_SILENTIUM.png"
+  },
+  "2201": {
+    "code": "WL_WHITEIMPRISON",
+    "name": "Exílio",
+    "icon": "Icones Habilidades/WL_WHITEIMPRISON.png"
+  },
+  "2202": {
+    "code": "WL_SOULEXPANSION",
+    "name": "Impacto Espiritual",
+    "icon": "Icones Habilidades/WL_SOULEXPANSION.png"
+  },
+  "2203": {
+    "code": "WL_FROSTMISTY",
+    "name": "Zero Absoluto",
+    "icon": "Icones Habilidades/WL_FROSTMISTY.png"
+  },
+  "2204": {
+    "code": "WL_JACKFROST",
+    "name": "Esquife de Gelo",
+    "icon": "Icones Habilidades/WL_JACKFROST.png"
+  },
+  "2205": {
+    "code": "WL_MARSHOFABYSS",
+    "name": "Pântano de Nifflheim",
+    "icon": "Icones Habilidades/WL_MARSHOFABYSS.png"
+  },
+  "2206": {
+    "code": "WL_RECOGNIZEDSPELL",
+    "name": "Maestria Arcana",
+    "icon": "Icones Habilidades/WL_RECOGNIZEDSPELL.png"
+  },
+  "2207": {
+    "code": "WL_SIENNAEXECRATE",
+    "name": "Fúria da Medusa",
+    "icon": "Icones Habilidades/WL_SIENNAEXECRATE.png"
+  },
+  "2208": {
+    "code": "WL_RADIUS",
+    "name": "Radius",
+    "icon": "Icones Habilidades/WL_RADIUS.png"
+  },
+  "2209": {
+    "code": "WL_STASIS",
+    "name": "Stasis",
+    "icon": "Icones Habilidades/WL_STASIS.png"
+  },
+  "2210": {
+    "code": "WL_DRAINLIFE",
+    "name": "Drenar Vida",
+    "icon": "Icones Habilidades/WL_DRAINLIFE.png"
+  },
+  "2211": {
+    "code": "WL_CRIMSONROCK",
+    "name": "Meteoro Escarlate",
+    "icon": "Icones Habilidades/WL_CRIMSONROCK.png"
+  },
+  "2212": {
+    "code": "WL_HELLINFERNO",
+    "name": "Chamas de Hela",
+    "icon": "Icones Habilidades/WL_HELLINFERNO.png"
+  },
+  "2213": {
+    "code": "WL_COMET",
+    "name": "Cometa",
+    "icon": "Icones Habilidades/WL_COMET.png"
+  },
+  "2214": {
+    "code": "WL_CHAINLIGHTNING",
+    "name": "Corrente Elétrica",
+    "icon": "Icones Habilidades/WL_CHAINLIGHTNING.png"
+  },
+  "2215": {
+    "code": "WL_CHAINLIGHTNING_ATK",
+    "name": "nan",
+    "icon": "Icones Habilidades/WL_CHAINLIGHTNING_ATK.png"
+  },
+  "2216": {
+    "code": "WL_EARTHSTRAIN",
+    "name": "Abalo Sísmico",
+    "icon": "Icones Habilidades/WL_EARTHSTRAIN.png"
+  },
+  "2217": {
+    "code": "WL_TETRAVORTEX",
+    "name": "Tetra Vortex",
+    "icon": "Icones Habilidades/WL_TETRAVORTEX.png"
+  },
+  "2218": {
+    "code": "WL_TETRAVORTEX_FIRE",
+    "name": "nan",
+    "icon": "Icones Habilidades/WL_TETRAVORTEX_FIRE.png"
+  },
+  "2219": {
+    "code": "WL_TETRAVORTEX_WATER",
+    "name": "nan",
+    "icon": "Icones Habilidades/WL_TETRAVORTEX_WATER.png"
+  },
+  "2220": {
+    "code": "WL_TETRAVORTEX_WIND",
+    "name": "nan",
+    "icon": "Icones Habilidades/WL_TETRAVORTEX_WIND.png"
+  },
+  "2221": {
+    "code": "WL_TETRAVORTEX_GROUND",
+    "name": "nan",
+    "icon": "Icones Habilidades/WL_TETRAVORTEX_GROUND.png"
+  },
+  "2222": {
+    "code": "WL_SUMMONFB",
+    "name": "Invocar Esfera de Fogo",
+    "icon": "Icones Habilidades/WL_SUMMONFB.png"
+  },
+  "2223": {
+    "code": "WL_SUMMONBL",
+    "name": "Invocar Esfera de Vento",
+    "icon": "Icones Habilidades/WL_SUMMONBL.png"
+  },
+  "2224": {
+    "code": "WL_SUMMONWB",
+    "name": "Invocar Esfera de Água",
+    "icon": "Icones Habilidades/WL_SUMMONWB.png"
+  },
+  "2225": {
+    "code": "WL_SUMMON_ATK_FIRE",
+    "name": "nan",
+    "icon": "Icones Habilidades/WL_SUMMON_ATK_FIRE.png"
+  },
+  "2226": {
+    "code": "WL_SUMMON_ATK_WIND",
+    "name": "nan",
+    "icon": "Icones Habilidades/WL_SUMMON_ATK_WIND.png"
+  },
+  "2227": {
+    "code": "WL_SUMMON_ATK_WATER",
+    "name": "nan",
+    "icon": "Icones Habilidades/WL_SUMMON_ATK_WATER.png"
+  },
+  "2228": {
+    "code": "WL_SUMMON_ATK_GROUND",
+    "name": "nan",
+    "icon": "Icones Habilidades/WL_SUMMON_ATK_GROUND.png"
+  },
+  "2229": {
+    "code": "WL_SUMMONSTONE",
+    "name": "Invocar Esfera de Terra",
+    "icon": "Icones Habilidades/WL_SUMMONSTONE.png"
+  },
+  "2230": {
+    "code": "WL_RELEASE",
+    "name": "Lançar Magia",
+    "icon": "Icones Habilidades/WL_RELEASE.png"
+  },
+  "2231": {
+    "code": "WL_READING_SB",
+    "name": "Memorizar",
+    "icon": "Icones Habilidades/WL_READING_SB.png"
+  },
+  "2232": {
+    "code": "WL_FREEZE_SP",
+    "name": "Estudo Arcano Avançado",
+    "icon": "Icones Habilidades/WL_FREEZE_SP.png"
+  },
+  "2233": {
+    "code": "RA_ARROWSTORM",
+    "name": "Tempestade de Flechas",
+    "icon": "Icones Habilidades/RA_ARROWSTORM.png"
+  },
+  "2234": {
+    "code": "RA_FEARBREEZE",
+    "name": "Disparo Selvagem",
+    "icon": "Icones Habilidades/RA_FEARBREEZE.png"
+  },
+  "2235": {
+    "code": "RA_RANGERMAIN",
+    "name": "Táticas de Sobrevivência",
+    "icon": "Icones Habilidades/RA_RANGERMAIN.png"
+  },
+  "2236": {
+    "code": "RA_AIMEDBOLT",
+    "name": "Disparo Certeiro",
+    "icon": "Icones Habilidades/RA_AIMEDBOLT.png"
+  },
+  "2237": {
+    "code": "RA_DETONATOR",
+    "name": "Detonador",
+    "icon": "Icones Habilidades/RA_DETONATOR.png"
+  },
+  "2238": {
+    "code": "RA_ELECTRICSHOCKER",
+    "name": "Armadilha Energizada",
+    "icon": "Icones Habilidades/RA_ELECTRICSHOCKER.png"
+  },
+  "2239": {
+    "code": "RA_CLUSTERBOMB",
+    "name": "Bomba Relógio",
+    "icon": "Icones Habilidades/RA_CLUSTERBOMB.png"
+  },
+  "2240": {
+    "code": "RA_WUGMASTERY",
+    "name": "Adestrar Worg",
+    "icon": "Icones Habilidades/RA_WUGMASTERY.png"
+  },
+  "2241": {
+    "code": "RA_WUGRIDER",
+    "name": "Montaria em Worg",
+    "icon": "Icones Habilidades/RA_WUGRIDER.png"
+  },
+  "2242": {
+    "code": "RA_WUGDASH",
+    "name": "Assalto de Worg",
+    "icon": "Icones Habilidades/RA_WUGDASH.png"
+  },
+  "2243": {
+    "code": "RA_WUGSTRIKE",
+    "name": "Investida de Worg",
+    "icon": "Icones Habilidades/RA_WUGSTRIKE.png"
+  },
+  "2244": {
+    "code": "RA_WUGBITE",
+    "name": "Mordida Feroz",
+    "icon": "Icones Habilidades/RA_WUGBITE.png"
+  },
+  "2245": {
+    "code": "RA_TOOTHOFWUG",
+    "name": "Presas Afiadas",
+    "icon": "Icones Habilidades/RA_TOOTHOFWUG.png"
+  },
+  "2246": {
+    "code": "RA_SENSITIVEKEEN",
+    "name": "Faro Aguçado",
+    "icon": "Icones Habilidades/RA_SENSITIVEKEEN.png"
+  },
+  "2247": {
+    "code": "RA_CAMOUFLAGE",
+    "name": "Camuflagem",
+    "icon": "Icones Habilidades/RA_CAMOUFLAGE.png"
+  },
+  "2248": {
+    "code": "RA_RESEARCHTRAP",
+    "name": "Perícia com Armadilha",
+    "icon": "Icones Habilidades/RA_RESEARCHTRAP.png"
+  },
+  "2249": {
+    "code": "RA_MAGENTATRAP",
+    "name": "Armadilha Escarlate",
+    "icon": "Icones Habilidades/RA_MAGENTATRAP.png"
+  },
+  "2250": {
+    "code": "RA_COBALTTRAP",
+    "name": "Armadilha Cobalto",
+    "icon": "Icones Habilidades/RA_COBALTTRAP.png"
+  },
+  "2251": {
+    "code": "RA_MAIZETRAP",
+    "name": "Armadilha Ocre",
+    "icon": "Icones Habilidades/RA_MAIZETRAP.png"
+  },
+  "2252": {
+    "code": "RA_VERDURETRAP",
+    "name": "Armadilha Esmeralda",
+    "icon": "Icones Habilidades/RA_VERDURETRAP.png"
+  },
+  "2253": {
+    "code": "RA_FIRINGTRAP",
+    "name": "Armadilha Incendiária",
+    "icon": "Icones Habilidades/RA_FIRINGTRAP.png"
+  },
+  "2254": {
+    "code": "RA_ICEBOUNDTRAP",
+    "name": "Armadilha Glacial",
+    "icon": "Icones Habilidades/RA_ICEBOUNDTRAP.png"
+  },
+  "2255": {
+    "code": "NC_MADOLICENCE",
+    "name": "Licença de Pilotagem",
+    "icon": "Icones Habilidades/NC_MADOLICENCE.png"
+  },
+  "2256": {
+    "code": "NC_BOOSTKNUCKLE",
+    "name": "Punho Foguete",
+    "icon": "Icones Habilidades/NC_BOOSTKNUCKLE.png"
+  },
+  "2257": {
+    "code": "NC_PILEBUNKER",
+    "name": "Bate Estaca",
+    "icon": "Icones Habilidades/NC_PILEBUNKER.png"
+  },
+  "2258": {
+    "code": "NC_VULCANARM",
+    "name": "Metralhadora",
+    "icon": "Icones Habilidades/NC_VULCANARM.png"
+  },
+  "2259": {
+    "code": "NC_FLAMELAUNCHER",
+    "name": "Lança Chamas",
+    "icon": "Icones Habilidades/NC_FLAMELAUNCHER.png"
+  },
+  "2260": {
+    "code": "NC_COLDSLOWER",
+    "name": "Gás Criogênico",
+    "icon": "Icones Habilidades/NC_COLDSLOWER.png"
+  },
+  "2261": {
+    "code": "NC_ARMSCANNON",
+    "name": "Canhão",
+    "icon": "Icones Habilidades/NC_ARMSCANNON.png"
+  },
+  "2262": {
+    "code": "NC_ACCELERATION",
+    "name": "Aceleração",
+    "icon": "Icones Habilidades/NC_ACCELERATION.png"
+  },
+  "2263": {
+    "code": "NC_HOVERING",
+    "name": "Planar",
+    "icon": "Icones Habilidades/NC_HOVERING.png"
+  },
+  "2264": {
+    "code": "NC_F_SIDESLIDE",
+    "name": "Propulsão Traseira",
+    "icon": "Icones Habilidades/NC_F_SIDESLIDE.png"
+  },
+  "2265": {
+    "code": "NC_B_SIDESLIDE",
+    "name": "Propulsão Dianteira",
+    "icon": "Icones Habilidades/NC_B_SIDESLIDE.png"
+  },
+  "2266": {
+    "code": "NC_MAINFRAME",
+    "name": "Reforçar Estrutura",
+    "icon": "Icones Habilidades/NC_MAINFRAME.png"
+  },
+  "2267": {
+    "code": "NC_SELFDESTRUCTION",
+    "name": "Autodestruição",
+    "icon": "Icones Habilidades/NC_SELFDESTRUCTION.png"
+  },
+  "2268": {
+    "code": "NC_SHAPESHIFT",
+    "name": "Reconfigurar Elemento",
+    "icon": "Icones Habilidades/NC_SHAPESHIFT.png"
+  },
+  "2269": {
+    "code": "NC_EMERGENCYCOOL",
+    "name": "Resfriamento",
+    "icon": "Icones Habilidades/NC_EMERGENCYCOOL.png"
+  },
+  "2270": {
+    "code": "NC_INFRAREDSCAN",
+    "name": "Sensor Infravermelho",
+    "icon": "Icones Habilidades/NC_INFRAREDSCAN.png"
+  },
+  "2271": {
+    "code": "NC_ANALYZE",
+    "name": "Analisar",
+    "icon": "Icones Habilidades/NC_ANALYZE.png"
+  },
+  "2272": {
+    "code": "NC_MAGNETICFIELD",
+    "name": "Campo Magnético",
+    "icon": "Icones Habilidades/NC_MAGNETICFIELD.png"
+  },
+  "2273": {
+    "code": "NC_NEUTRALBARRIER",
+    "name": "Campo Protetor",
+    "icon": "Icones Habilidades/NC_NEUTRALBARRIER.png"
+  },
+  "2274": {
+    "code": "NC_STEALTHFIELD",
+    "name": "Campo de Invisibilidade",
+    "icon": "Icones Habilidades/NC_STEALTHFIELD.png"
+  },
+  "2275": {
+    "code": "NC_REPAIR",
+    "name": "Reparar",
+    "icon": "Icones Habilidades/NC_REPAIR.png"
+  },
+  "2276": {
+    "code": "NC_TRAININGAXE",
+    "name": "Maestria com Machados",
+    "icon": "Icones Habilidades/NC_TRAININGAXE.png"
+  },
+  "2277": {
+    "code": "NC_RESEARCHFE",
+    "name": "Sabedoria de Hefesto",
+    "icon": "Icones Habilidades/NC_RESEARCHFE.png"
+  },
+  "2278": {
+    "code": "NC_AXEBOOMERANG",
+    "name": "Arremesso de Machado",
+    "icon": "Icones Habilidades/NC_AXEBOOMERANG.png"
+  },
+  "2279": {
+    "code": "NC_POWERSWING",
+    "name": "Brandir Machado",
+    "icon": "Icones Habilidades/NC_POWERSWING.png"
+  },
+  "2280": {
+    "code": "NC_AXETORNADO",
+    "name": "Fúria do Furacão",
+    "icon": "Icones Habilidades/NC_AXETORNADO.png"
+  },
+  "2281": {
+    "code": "NC_SILVERSNIPER",
+    "name": "Artilharia Caçadora",
+    "icon": "Icones Habilidades/NC_SILVERSNIPER.png"
+  },
+  "2282": {
+    "code": "NC_MAGICDECOY",
+    "name": "Artilharia Arcana",
+    "icon": "Icones Habilidades/NC_MAGICDECOY.png"
+  },
+  "2283": {
+    "code": "NC_DISJOINT",
+    "name": "Remover Artilharia",
+    "icon": "Icones Habilidades/NC_DISJOINT.png"
+  },
+  "2284": {
+    "code": "SC_FATALMENACE",
+    "name": "Ofensiva Fatal",
+    "icon": "Icones Habilidades/SC_FATALMENACE.png"
+  },
+  "2285": {
+    "code": "SC_REPRODUCE",
+    "name": "Mimetismo",
+    "icon": "Icones Habilidades/SC_REPRODUCE.png"
+  },
+  "2286": {
+    "code": "SC_AUTOSHADOWSPELL",
+    "name": "Desejo das Sombras",
+    "icon": "Icones Habilidades/SC_AUTOSHADOWSPELL.png"
+  },
+  "2287": {
+    "code": "SC_SHADOWFORM",
+    "name": "Vínculo Sombrio",
+    "icon": "Icones Habilidades/SC_SHADOWFORM.png"
+  },
+  "2288": {
+    "code": "SC_TRIANGLESHOT",
+    "name": "Disparo Triplo",
+    "icon": "Icones Habilidades/SC_TRIANGLESHOT.png"
+  },
+  "2289": {
+    "code": "SC_BODYPAINT",
+    "name": "Borrifar Tinta",
+    "icon": "Icones Habilidades/SC_BODYPAINT.png"
+  },
+  "2290": {
+    "code": "SC_INVISIBILITY",
+    "name": "Forma Etérea",
+    "icon": "Icones Habilidades/SC_INVISIBILITY.png"
+  },
+  "2291": {
+    "code": "SC_DEADLYINFECT",
+    "name": "Pestilência",
+    "icon": "Icones Habilidades/SC_DEADLYINFECT.png"
+  },
+  "2292": {
+    "code": "SC_ENERVATION",
+    "name": "Máscara da Fraqueza",
+    "icon": "Icones Habilidades/SC_ENERVATION.png"
+  },
+  "2293": {
+    "code": "SC_GROOMY",
+    "name": "Máscara da Melancolia",
+    "icon": "Icones Habilidades/SC_GROOMY.png"
+  },
+  "2294": {
+    "code": "SC_IGNORANCE",
+    "name": "Máscara da Tolice",
+    "icon": "Icones Habilidades/SC_IGNORANCE.png"
+  },
+  "2295": {
+    "code": "SC_LAZINESS",
+    "name": "Máscara da Ociosidade",
+    "icon": "Icones Habilidades/SC_LAZINESS.png"
+  },
+  "2296": {
+    "code": "SC_UNLUCKY",
+    "name": "Máscara do Infortúnio",
+    "icon": "Icones Habilidades/SC_UNLUCKY.png"
+  },
+  "2297": {
+    "code": "SC_WEAKNESS",
+    "name": "Máscara da Vulnerabilidade",
+    "icon": "Icones Habilidades/SC_WEAKNESS.png"
+  },
+  "2298": {
+    "code": "SC_STRIPACCESSARY",
+    "name": "Remover Acessório",
+    "icon": "Icones Habilidades/SC_STRIPACCESSARY.png"
+  },
+  "2299": {
+    "code": "SC_MANHOLE",
+    "name": "Pintar Armadilha",
+    "icon": "Icones Habilidades/SC_MANHOLE.png"
+  },
+  "2300": {
+    "code": "SC_DIMENSIONDOOR",
+    "name": "Porta Dimensional",
+    "icon": "Icones Habilidades/SC_DIMENSIONDOOR.png"
+  },
+  "2301": {
+    "code": "SC_CHAOSPANIC",
+    "name": "Símbolo do Caos",
+    "icon": "Icones Habilidades/SC_CHAOSPANIC.png"
+  },
+  "2302": {
+    "code": "SC_MAELSTROM",
+    "name": "Redemoinho de Absorção",
+    "icon": "Icones Habilidades/SC_MAELSTROM.png"
+  },
+  "2303": {
+    "code": "SC_BLOODYLUST",
+    "name": "Sede de Sangue",
+    "icon": "Icones Habilidades/SC_BLOODYLUST.png"
+  },
+  "2304": {
+    "code": "SC_FEINTBOMB",
+    "name": "Cópia Explosiva",
+    "icon": "Icones Habilidades/SC_FEINTBOMB.png"
+  },
+  "2307": {
+    "code": "LG_CANNONSPEAR",
+    "name": "Disparo Perfurante",
+    "icon": "Icones Habilidades/LG_CANNONSPEAR.png"
+  },
+  "2308": {
+    "code": "LG_BANISHINGPOINT",
+    "name": "Toque do Oblívio",
+    "icon": "Icones Habilidades/LG_BANISHINGPOINT.png"
+  },
+  "2309": {
+    "code": "LG_TRAMPLE",
+    "name": "Pisotear Armadilha",
+    "icon": "Icones Habilidades/LG_TRAMPLE.png"
+  },
+  "2310": {
+    "code": "LG_SHIELDPRESS",
+    "name": "Escudo Compressor",
+    "icon": "Icones Habilidades/LG_SHIELDPRESS.png"
+  },
+  "2311": {
+    "code": "LG_REFLECTDAMAGE",
+    "name": "Reflexão Amplificada",
+    "icon": "Icones Habilidades/LG_REFLECTDAMAGE.png"
+  },
+  "2312": {
+    "code": "LG_PINPOINTATTACK",
+    "name": "Estocada Precisa",
+    "icon": "Icones Habilidades/LG_PINPOINTATTACK.png"
+  },
+  "2313": {
+    "code": "LG_FORCEOFVANGUARD",
+    "name": "Proteção da Vanguarda",
+    "icon": "Icones Habilidades/LG_FORCEOFVANGUARD.png"
+  },
+  "2314": {
+    "code": "LG_RAGEBURST",
+    "name": "Retribuição da Vanguarda",
+    "icon": "Icones Habilidades/LG_RAGEBURST.png"
+  },
+  "2315": {
+    "code": "LG_SHIELDSPELL",
+    "name": "Aegis Domini",
+    "icon": "Icones Habilidades/LG_SHIELDSPELL.png"
+  },
+  "2316": {
+    "code": "LG_EXEEDBREAK",
+    "name": "Exceder Limite",
+    "icon": "Icones Habilidades/LG_EXEEDBREAK.png"
+  },
+  "2317": {
+    "code": "LG_OVERBRAND",
+    "name": "Lança do Destino",
+    "icon": "Icones Habilidades/LG_OVERBRAND.png"
+  },
+  "2318": {
+    "code": "LG_PRESTIGE",
+    "name": "Prestígio Divino",
+    "icon": "Icones Habilidades/LG_PRESTIGE.png"
+  },
+  "2319": {
+    "code": "LG_BANDING",
+    "name": "Formação Real",
+    "icon": "Icones Habilidades/LG_BANDING.png"
+  },
+  "2320": {
+    "code": "LG_MOONSLASHER",
+    "name": "Espiral Lunar",
+    "icon": "Icones Habilidades/LG_MOONSLASHER.png"
+  },
+  "2321": {
+    "code": "LG_RAYOFGENESIS",
+    "name": "Luz da Criação",
+    "icon": "Icones Habilidades/LG_RAYOFGENESIS.png"
+  },
+  "2322": {
+    "code": "LG_PIETY",
+    "name": "Devoção",
+    "icon": "Icones Habilidades/LG_PIETY.png"
+  },
+  "2323": {
+    "code": "LG_EARTHDRIVE",
+    "name": "Aegis Inferi",
+    "icon": "Icones Habilidades/LG_EARTHDRIVE.png"
+  },
+  "2324": {
+    "code": "LG_HESPERUSLIT",
+    "name": "Trindade",
+    "icon": "Icones Habilidades/LG_HESPERUSLIT.png"
+  },
+  "2325": {
+    "code": "LG_INSPIRATION",
+    "name": "Consagração",
+    "icon": "Icones Habilidades/LG_INSPIRATION.png"
+  },
+  "2326": {
+    "code": "SR_DRAGONCOMBO",
+    "name": "Punho do Dragão",
+    "icon": "Icones Habilidades/SR_DRAGONCOMBO.png"
+  },
+  "2327": {
+    "code": "SR_SKYNETBLOW",
+    "name": "Soco Furacão",
+    "icon": "Icones Habilidades/SR_SKYNETBLOW.png"
+  },
+  "2328": {
+    "code": "SR_EARTHSHAKER",
+    "name": "Impacto Sísmico",
+    "icon": "Icones Habilidades/SR_EARTHSHAKER.png"
+  },
+  "2329": {
+    "code": "SR_FALLENEMPIRE",
+    "name": "Ruína",
+    "icon": "Icones Habilidades/SR_FALLENEMPIRE.png"
+  },
+  "2330": {
+    "code": "SR_TIGERCANNON",
+    "name": "Garra de Tigre",
+    "icon": "Icones Habilidades/SR_TIGERCANNON.png"
+  },
+  "2332": {
+    "code": "SR_RAMPAGEBLASTER",
+    "name": "Explosão Espiritual",
+    "icon": "Icones Habilidades/SR_RAMPAGEBLASTER.png"
+  },
+  "2333": {
+    "code": "SR_CRESCENTELBOW",
+    "name": "Cotovelada Ascendente",
+    "icon": "Icones Habilidades/SR_CRESCENTELBOW.png"
+  },
+  "2334": {
+    "code": "SR_CURSEDCIRCLE",
+    "name": "Campo Amaldiçoado",
+    "icon": "Icones Habilidades/SR_CURSEDCIRCLE.png"
+  },
+  "2335": {
+    "code": "SR_LIGHTNINGWALK",
+    "name": "Salto Relâmpago",
+    "icon": "Icones Habilidades/SR_LIGHTNINGWALK.png"
+  },
+  "2336": {
+    "code": "SR_KNUCKLEARROW",
+    "name": "Pancada Corporal",
+    "icon": "Icones Habilidades/SR_KNUCKLEARROW.png"
+  },
+  "2337": {
+    "code": "SR_WINDMILL",
+    "name": "Chute Rasteiro",
+    "icon": "Icones Habilidades/SR_WINDMILL.png"
+  },
+  "2338": {
+    "code": "SR_RAISINGDRAGON",
+    "name": "Dragão Ascendente",
+    "icon": "Icones Habilidades/SR_RAISINGDRAGON.png"
+  },
+  "2340": {
+    "code": "SR_ASSIMILATEPOWER",
+    "name": "Absorção Espiritual",
+    "icon": "Icones Habilidades/SR_ASSIMILATEPOWER.png"
+  },
+  "2341": {
+    "code": "SR_POWERVELOCITY",
+    "name": "Renúncia Espiritual",
+    "icon": "Icones Habilidades/SR_POWERVELOCITY.png"
+  },
+  "2343": {
+    "code": "SR_GATEOFHELL",
+    "name": "Portões do Inferno",
+    "icon": "Icones Habilidades/SR_GATEOFHELL.png"
+  },
+  "2344": {
+    "code": "SR_GENTLETOUCH_QUIET",
+    "name": "Chakra do Silêncio",
+    "icon": "Icones Habilidades/SR_GENTLETOUCH_QUIET.png"
+  },
+  "2345": {
+    "code": "SR_GENTLETOUCH_CURE",
+    "name": "Chakra da Cura",
+    "icon": "Icones Habilidades/SR_GENTLETOUCH_CURE.png"
+  },
+  "2346": {
+    "code": "SR_GENTLETOUCH_ENERGYGAIN",
+    "name": "Chakra da Energia",
+    "icon": "Icones Habilidades/SR_GENTLETOUCH_ENERGYGAIN.png"
+  },
+  "2347": {
+    "code": "SR_GENTLETOUCH_CHANGE",
+    "name": "Chakra da Fúria",
+    "icon": "Icones Habilidades/SR_GENTLETOUCH_CHANGE.png"
+  },
+  "2348": {
+    "code": "SR_GENTLETOUCH_REVITALIZE",
+    "name": "Chakra do Vigor",
+    "icon": "Icones Habilidades/SR_GENTLETOUCH_REVITALIZE.png"
+  },
+  "2350": {
+    "code": "WA_SWING_DANCE",
+    "name": "Ritmo Contagiante",
+    "icon": "Icones Habilidades/WA_SWING_DANCE.png"
+  },
+  "2351": {
+    "code": "WA_SYMPHONY_OF_LOVER",
+    "name": "Balada Sinfônica",
+    "icon": "Icones Habilidades/WA_SYMPHONY_OF_LOVER.png"
+  },
+  "2352": {
+    "code": "WA_MOONLIT_SERENADE",
+    "name": "Serenata ao Luar",
+    "icon": "Icones Habilidades/WA_MOONLIT_SERENADE.png"
+  },
+  "2381": {
+    "code": "MI_RUSH_WINDMILL",
+    "name": "Sinfonia dos Ventos",
+    "icon": "Icones Habilidades/MI_RUSH_WINDMILL.png"
+  },
+  "2382": {
+    "code": "MI_ECHOSONG",
+    "name": "Canção de Balder",
+    "icon": "Icones Habilidades/MI_ECHOSONG.png"
+  },
+  "2383": {
+    "code": "MI_HARMONIZE",
+    "name": "Harmonizar",
+    "icon": "Icones Habilidades/MI_HARMONIZE.png"
+  },
+  "2412": {
+    "code": "WM_LESSON",
+    "name": "Domínio Musical",
+    "icon": "Icones Habilidades/WM_LESSON.png"
+  },
+  "2413": {
+    "code": "WM_METALICSOUND",
+    "name": "Ruído Estridente",
+    "icon": "Icones Habilidades/WM_METALICSOUND.png"
+  },
+  "2414": {
+    "code": "WM_REVERBERATION",
+    "name": "Ressonância",
+    "icon": "Icones Habilidades/WM_REVERBERATION.png"
+  },
+  "2418": {
+    "code": "WM_SEVERE_RAINSTORM",
+    "name": "Temporal de Flechas",
+    "icon": "Icones Habilidades/WM_SEVERE_RAINSTORM.png"
+  },
+  "2419": {
+    "code": "WM_POEMOFNETHERWORLD",
+    "name": "Poema de Nifflheim",
+    "icon": "Icones Habilidades/WM_POEMOFNETHERWORLD.png"
+  },
+  "2420": {
+    "code": "WM_VOICEOFSIREN",
+    "name": "Canto da Sereia",
+    "icon": "Icones Habilidades/WM_VOICEOFSIREN.png"
+  },
+  "2421": {
+    "code": "WM_DEADHILLHERE",
+    "name": "Réquiem de Orfeu",
+    "icon": "Icones Habilidades/WM_DEADHILLHERE.png"
+  },
+  "2422": {
+    "code": "WM_LULLABY_DEEPSLEEP",
+    "name": "Melodia de Morfeu",
+    "icon": "Icones Habilidades/WM_LULLABY_DEEPSLEEP.png"
+  },
+  "2423": {
+    "code": "WM_SIRCLEOFNATURE",
+    "name": "Sibilo de Eir",
+    "icon": "Icones Habilidades/WM_SIRCLEOFNATURE.png"
+  },
+  "2424": {
+    "code": "WM_RANDOMIZESPELL",
+    "name": "Improviso",
+    "icon": "Icones Habilidades/WM_RANDOMIZESPELL.png"
+  },
+  "2425": {
+    "code": "WM_GLOOMYDAY",
+    "name": "Ode a Hela",
+    "icon": "Icones Habilidades/WM_GLOOMYDAY.png"
+  },
+  "2426": {
+    "code": "WM_GREAT_ECHO",
+    "name": "Brado de Odin",
+    "icon": "Icones Habilidades/WM_GREAT_ECHO.png"
+  },
+  "2427": {
+    "code": "WM_SONG_OF_MANA",
+    "name": "Canção de Alfheim",
+    "icon": "Icones Habilidades/WM_SONG_OF_MANA.png"
+  },
+  "2428": {
+    "code": "WM_DANCE_WITH_WUG",
+    "name": "Dança com Lobos",
+    "icon": "Icones Habilidades/WM_DANCE_WITH_WUG.png"
+  },
+  "2429": {
+    "code": "WM_SOUND_OF_DESTRUCTION",
+    "name": "Prelúdio do Ragnarök",
+    "icon": "Icones Habilidades/WM_SOUND_OF_DESTRUCTION.png"
+  },
+  "2430": {
+    "code": "WM_SATURDAY_NIGHT_FEVER",
+    "name": "Embalos de Sábado a Noite",
+    "icon": "Icones Habilidades/WM_SATURDAY_NIGHT_FEVER.png"
+  },
+  "2431": {
+    "code": "WM_LERADS_DEW",
+    "name": "Orvalho de Idun",
+    "icon": "Icones Habilidades/WM_LERADS_DEW.png"
+  },
+  "2432": {
+    "code": "WM_MELODYOFSINK",
+    "name": "Cântico da Iluminação",
+    "icon": "Icones Habilidades/WM_MELODYOFSINK.png"
+  },
+  "2433": {
+    "code": "WM_BEYOND_OF_WARCRY",
+    "name": "Clamor de Batalha",
+    "icon": "Icones Habilidades/WM_BEYOND_OF_WARCRY.png"
+  },
+  "2434": {
+    "code": "WM_UNLIMITED_HUMMING_VOICE",
+    "name": "Murmúrio Perene",
+    "icon": "Icones Habilidades/WM_UNLIMITED_HUMMING_VOICE.png"
+  },
+  "2443": {
+    "code": "SO_FIREWALK",
+    "name": "Passos de Salamandra",
+    "icon": "Icones Habilidades/SO_FIREWALK.png"
+  },
+  "2444": {
+    "code": "SO_ELECTRICWALK",
+    "name": "Passos de Sílfide",
+    "icon": "Icones Habilidades/SO_ELECTRICWALK.png"
+  },
+  "2445": {
+    "code": "SO_SPELLFIST",
+    "name": "Punho Arcano",
+    "icon": "Icones Habilidades/SO_SPELLFIST.png"
+  },
+  "2446": {
+    "code": "SO_EARTHGRAVE",
+    "name": "Castigo de Nerthus",
+    "icon": "Icones Habilidades/SO_EARTHGRAVE.png"
+  },
+  "2447": {
+    "code": "SO_DIAMONDDUST",
+    "name": "Pó de Diamante",
+    "icon": "Icones Habilidades/SO_DIAMONDDUST.png"
+  },
+  "2448": {
+    "code": "SO_POISON_BUSTER",
+    "name": "Implosão Tóxica",
+    "icon": "Icones Habilidades/SO_POISON_BUSTER.png"
+  },
+  "2449": {
+    "code": "SO_PSYCHIC_WAVE",
+    "name": "Onda Psíquica",
+    "icon": "Icones Habilidades/SO_PSYCHIC_WAVE.png"
+  },
+  "2450": {
+    "code": "SO_CLOUD_KILL",
+    "name": "Maldição de Jormungand",
+    "icon": "Icones Habilidades/SO_CLOUD_KILL.png"
+  },
+  "2451": {
+    "code": "SO_STRIKING",
+    "name": "Encanto de Órion",
+    "icon": "Icones Habilidades/SO_STRIKING.png"
+  },
+  "2452": {
+    "code": "SO_WARMER",
+    "name": "Aquecer Terreno",
+    "icon": "Icones Habilidades/SO_WARMER.png"
+  },
+  "2453": {
+    "code": "SO_VACUUM_EXTREME",
+    "name": "Tornado",
+    "icon": "Icones Habilidades/SO_VACUUM_EXTREME.png"
+  },
+  "2454": {
+    "code": "SO_VARETYR_SPEAR",
+    "name": "Lanças dos Aesir",
+    "icon": "Icones Habilidades/SO_VARETYR_SPEAR.png"
+  },
+  "2455": {
+    "code": "SO_ARRULLO",
+    "name": "Onda Hipnótica",
+    "icon": "Icones Habilidades/SO_ARRULLO.png"
+  },
+  "2456": {
+    "code": "SO_EL_CONTROL",
+    "name": "Domínio Elemental",
+    "icon": "Icones Habilidades/SO_EL_CONTROL.png"
+  },
+  "2457": {
+    "code": "SO_SUMMON_AGNI",
+    "name": "Invocar Agni",
+    "icon": "Icones Habilidades/SO_SUMMON_AGNI.png"
+  },
+  "2458": {
+    "code": "SO_SUMMON_AQUA",
+    "name": "Invocar Varuna",
+    "icon": "Icones Habilidades/SO_SUMMON_AQUA.png"
+  },
+  "2459": {
+    "code": "SO_SUMMON_VENTUS",
+    "name": "Invocar Vayu",
+    "icon": "Icones Habilidades/SO_SUMMON_VENTUS.png"
+  },
+  "2460": {
+    "code": "SO_SUMMON_TERA",
+    "name": "Invocar Chandra",
+    "icon": "Icones Habilidades/SO_SUMMON_TERA.png"
+  },
+  "2461": {
+    "code": "SO_EL_ACTION",
+    "name": "Incitar Elemental",
+    "icon": "Icones Habilidades/SO_EL_ACTION.png"
+  },
+  "2462": {
+    "code": "SO_EL_ANALYSIS",
+    "name": "Análise Elemental",
+    "icon": "Icones Habilidades/SO_EL_ANALYSIS.png"
+  },
+  "2463": {
+    "code": "SO_EL_SYMPATHY",
+    "name": "Empatia Elemental",
+    "icon": "Icones Habilidades/SO_EL_SYMPATHY.png"
+  },
+  "2464": {
+    "code": "SO_EL_CURE",
+    "name": "Troca Espiritual",
+    "icon": "Icones Habilidades/SO_EL_CURE.png"
+  },
+  "2465": {
+    "code": "SO_FIRE_INSIGNIA",
+    "name": "Insígnia do Fogo",
+    "icon": "Icones Habilidades/SO_FIRE_INSIGNIA.png"
+  },
+  "2466": {
+    "code": "SO_WATER_INSIGNIA",
+    "name": "Insígnia da Água",
+    "icon": "Icones Habilidades/SO_WATER_INSIGNIA.png"
+  },
+  "2467": {
+    "code": "SO_WIND_INSIGNIA",
+    "name": "Insígnia do Vento",
+    "icon": "Icones Habilidades/SO_WIND_INSIGNIA.png"
+  },
+  "2468": {
+    "code": "SO_EARTH_INSIGNIA",
+    "name": "Insígnia da Terra",
+    "icon": "Icones Habilidades/SO_EARTH_INSIGNIA.png"
+  },
+  "2474": {
+    "code": "GN_TRAINING_SWORD",
+    "name": "Perícia em Esgrima",
+    "icon": "Icones Habilidades/GN_TRAINING_SWORD.png"
+  },
+  "2475": {
+    "code": "GN_REMODELING_CART",
+    "name": "Aprimorar Carrinho",
+    "icon": "Icones Habilidades/GN_REMODELING_CART.png"
+  },
+  "2476": {
+    "code": "GN_CART_TORNADO",
+    "name": "Tornado de Carrinho",
+    "icon": "Icones Habilidades/GN_CART_TORNADO.png"
+  },
+  "2477": {
+    "code": "GN_CARTCANNON",
+    "name": "Canhão de Prótons",
+    "icon": "Icones Habilidades/GN_CARTCANNON.png"
+  },
+  "2478": {
+    "code": "GN_CARTBOOST",
+    "name": "Propulsão do Carrinho",
+    "icon": "Icones Habilidades/GN_CARTBOOST.png"
+  },
+  "2479": {
+    "code": "GN_THORNS_TRAP",
+    "name": "Armadilha de Espinhos",
+    "icon": "Icones Habilidades/GN_THORNS_TRAP.png"
+  },
+  "2480": {
+    "code": "GN_BLOOD_SUCKER",
+    "name": "Planta Sanguessuga",
+    "icon": "Icones Habilidades/GN_BLOOD_SUCKER.png"
+  },
+  "2481": {
+    "code": "GN_SPORE_EXPLOSION",
+    "name": "Esporo Explosivo",
+    "icon": "Icones Habilidades/GN_SPORE_EXPLOSION.png"
+  },
+  "2482": {
+    "code": "GN_WALLOFTHORN",
+    "name": "Muralha de Espinhos",
+    "icon": "Icones Habilidades/GN_WALLOFTHORN.png"
+  },
+  "2483": {
+    "code": "GN_CRAZYWEED",
+    "name": "Erva Daninha",
+    "icon": "Icones Habilidades/GN_CRAZYWEED.png"
+  },
+  "2485": {
+    "code": "GN_DEMONIC_FIRE",
+    "name": "Bomba Napalm",
+    "icon": "Icones Habilidades/GN_DEMONIC_FIRE.png"
+  },
+  "2486": {
+    "code": "GN_FIRE_EXPANSION",
+    "name": "Catalisador Alquímico",
+    "icon": "Icones Habilidades/GN_FIRE_EXPANSION.png"
+  },
+  "2490": {
+    "code": "GN_HELLS_PLANT",
+    "name": "Planta Infernal",
+    "icon": "Icones Habilidades/GN_HELLS_PLANT.png"
+  },
+  "2492": {
+    "code": "GN_MANDRAGORA",
+    "name": "Grito da Mandrágora",
+    "icon": "Icones Habilidades/GN_MANDRAGORA.png"
+  },
+  "2494": {
+    "code": "GN_CHANGEMATERIAL",
+    "name": "Reação Alquímica",
+    "icon": "Icones Habilidades/GN_CHANGEMATERIAL.png"
+  },
+  "2495": {
+    "code": "GN_MIX_COOKING",
+    "name": "Culinária Avançada",
+    "icon": "Icones Habilidades/GN_MIX_COOKING.png"
+  },
+  "2497": {
+    "code": "GN_S_PHARMACY",
+    "name": "Farmacologia Avançada",
+    "icon": "Icones Habilidades/GN_S_PHARMACY.png"
+  },
+  "2515": {
+    "code": "AB_SECRAMENT",
+    "name": "Sacramentum",
+    "icon": "Icones Habilidades/AB_SECRAMENT.png"
+  },
+  "2517": {
+    "code": "SR_HOWLINGOFLION",
+    "name": "Rugido do Leão",
+    "icon": "Icones Habilidades/SR_HOWLINGOFLION.png"
+  },
+  "2518": {
+    "code": "SR_RIDEINLIGHTNING",
+    "name": "Tempestade Espiritual",
+    "icon": "Icones Habilidades/SR_RIDEINLIGHTNING.png"
+  },
+  "2544": {
+    "code": "MC_CARTDECORATE",
+    "name": "Decorar Carrinho",
+    "icon": "Icones Habilidades/MC_CARTDECORATE.png"
+  },
+  "5001": {
+    "code": "GC_DARKCROW",
+    "name": "Garra Sombria",
+    "icon": "Icones Habilidades/GC_DARKCROW.png"
+  },
+  "5002": {
+    "code": "RA_UNLIMIT",
+    "name": "Ilimitar",
+    "icon": "Icones Habilidades/RA_UNLIMIT.png"
+  },
+  "5003": {
+    "code": "GN_ILLUSIONDOPING",
+    "name": "Alucinógeno",
+    "icon": "Icones Habilidades/GN_ILLUSIONDOPING.png"
+  },
+  "5004": {
+    "code": "RK_DRAGONBREATH_WATER",
+    "name": "Bafo do Dragão",
+    "icon": "Icones Habilidades/RK_DRAGONBREATH_WATER.png"
+  },
+  "5006": {
+    "code": "NC_MAGMA_ERUPTION",
+    "name": "Erupção de Magma",
+    "icon": "Icones Habilidades/NC_MAGMA_ERUPTION.png"
+  },
+  "5007": {
+    "code": "WM_FRIGG_SONG",
+    "name": "Canção de Frigga",
+    "icon": "Icones Habilidades/WM_FRIGG_SONG.png"
+  },
+  "5008": {
+    "code": "SO_ELEMENTAL_SHIELD",
+    "name": "Escudo Elemental",
+    "icon": "Icones Habilidades/SO_ELEMENTAL_SHIELD.png"
+  },
+  "5009": {
+    "code": "SR_FLASHCOMBO",
+    "name": "Combo Rápido",
+    "icon": "Icones Habilidades/SR_FLASHCOMBO.png"
+  },
+  "5010": {
+    "code": "SC_ESCAPE",
+    "name": "Escapar",
+    "icon": "Icones Habilidades/SC_ESCAPE.png"
+  },
+  "5011": {
+    "code": "AB_OFFERTORIUM",
+    "name": "Offertorium",
+    "icon": "Icones Habilidades/AB_OFFERTORIUM.png"
+  },
+  "5012": {
+    "code": "WL_TELEKINESIS_INTENSE",
+    "name": "Telecinesia",
+    "icon": "Icones Habilidades/WL_TELEKINESIS_INTENSE.png"
+  },
+  "5013": {
+    "code": "LG_KINGS_GRACE",
+    "name": "Graça Real",
+    "icon": "Icones Habilidades/LG_KINGS_GRACE.png"
+  },
+  "5067": {
+    "code": "ALL_EQSWITCH",
+    "name": "nan",
+    "icon": "Icones Habilidades/ALL_EQSWITCH.png"
+  },
+  "5072": {
+    "code": "AB_VITUPERATUM",
+    "name": "Vituperatum",
+    "icon": "Icones Habilidades/AB_VITUPERATUM.png"
+  },
+  "5073": {
+    "code": "AB_CONVENIO",
+    "name": "Convenio",
+    "icon": "Icones Habilidades/AB_CONVENIO.png"
+  },
+  "8201": {
+    "code": "MS_BASH",
+    "name": "Golpe Fulminante",
+    "icon": "Icones Habilidades/MS_BASH.png"
+  },
+  "8202": {
+    "code": "MS_MAGNUM",
+    "name": "Impacto Explosivo",
+    "icon": "Icones Habilidades/MS_MAGNUM.png"
+  },
+  "8203": {
+    "code": "MS_BOWLINGBASH",
+    "name": "Impacto de Tyr",
+    "icon": "Icones Habilidades/MS_BOWLINGBASH.png"
+  },
+  "8204": {
+    "code": "MS_PARRYING",
+    "name": "Aparar Golpe",
+    "icon": "Icones Habilidades/MS_PARRYING.png"
+  },
+  "8205": {
+    "code": "MS_REFLECTSHIELD",
+    "name": "Escudo Refletor",
+    "icon": "Icones Habilidades/MS_REFLECTSHIELD.png"
+  },
+  "8206": {
+    "code": "MS_BERSERK",
+    "name": "Fúria Insana",
+    "icon": "Icones Habilidades/MS_BERSERK.png"
+  },
+  "8207": {
+    "code": "MA_DOUBLE",
+    "name": "Rajada de Flechas",
+    "icon": "Icones Habilidades/MA_DOUBLE.png"
+  },
+  "8208": {
+    "code": "MA_SHOWER",
+    "name": "Chuva de Flechas",
+    "icon": "Icones Habilidades/MA_SHOWER.png"
+  },
+  "8209": {
+    "code": "MA_SKIDTRAP",
+    "name": "Armadilha Escorregadia",
+    "icon": "Icones Habilidades/MA_SKIDTRAP.png"
+  },
+  "8210": {
+    "code": "MA_LANDMINE",
+    "name": "Armadilha Atordoante",
+    "icon": "Icones Habilidades/MA_LANDMINE.png"
+  },
+  "8211": {
+    "code": "MA_SANDMAN",
+    "name": "Armadilha Sonífera",
+    "icon": "Icones Habilidades/MA_SANDMAN.png"
+  },
+  "8212": {
+    "code": "MA_FREEZINGTRAP",
+    "name": "Armadilha Congelante",
+    "icon": "Icones Habilidades/MA_FREEZINGTRAP.png"
+  },
+  "8213": {
+    "code": "MA_REMOVETRAP",
+    "name": "Remover Armadilha",
+    "icon": "Icones Habilidades/MA_REMOVETRAP.png"
+  },
+  "8214": {
+    "code": "MA_CHARGEARROW",
+    "name": "Carregar Flechas",
+    "icon": "Icones Habilidades/MA_CHARGEARROW.png"
+  },
+  "8215": {
+    "code": "MA_SHARPSHOOTING",
+    "name": "Tiro Preciso",
+    "icon": "Icones Habilidades/MA_SHARPSHOOTING.png"
+  },
+  "8216": {
+    "code": "ML_PIERCE",
+    "name": "Perfurar",
+    "icon": "Icones Habilidades/ML_PIERCE.png"
+  },
+  "8217": {
+    "code": "ML_BRANDISH",
+    "name": "Brandir Lança",
+    "icon": "Icones Habilidades/ML_BRANDISH.png"
+  },
+  "8218": {
+    "code": "ML_SPIRALPIERCE",
+    "name": "Perfurar em Espiral",
+    "icon": "Icones Habilidades/ML_SPIRALPIERCE.png"
+  },
+  "8219": {
+    "code": "ML_DEFENDER",
+    "name": "Aura Sagrada",
+    "icon": "Icones Habilidades/ML_DEFENDER.png"
+  },
+  "8220": {
+    "code": "ML_AUTOGUARD",
+    "name": "Bloqueio",
+    "icon": "Icones Habilidades/ML_AUTOGUARD.png"
+  },
+  "8221": {
+    "code": "ML_DEVOTION",
+    "name": "Redenção",
+    "icon": "Icones Habilidades/ML_DEVOTION.png"
+  },
+  "8222": {
+    "code": "MER_MAGNIFICAT",
+    "name": "Magnificat",
+    "icon": "Icones Habilidades/MER_MAGNIFICAT.png"
+  },
+  "8223": {
+    "code": "MER_QUICKEN",
+    "name": "Rapidez com Arma",
+    "icon": "Icones Habilidades/MER_QUICKEN.png"
+  },
+  "8224": {
+    "code": "MER_SIGHT",
+    "name": "Chama Reveladora",
+    "icon": "Icones Habilidades/MER_SIGHT.png"
+  },
+  "8225": {
+    "code": "MER_CRASH",
+    "name": "Impacto",
+    "icon": "Icones Habilidades/MER_CRASH.png"
+  },
+  "8228": {
+    "code": "MER_BENEDICTION",
+    "name": "Bendição",
+    "icon": "Icones Habilidades/MER_BENEDICTION.png"
+  },
+  "8231": {
+    "code": "MER_COMPRESS",
+    "name": "Compressa",
+    "icon": "Icones Habilidades/MER_COMPRESS.png"
+  },
+  "8232": {
+    "code": "MER_PROVOKE",
+    "name": "Provocar",
+    "icon": "Icones Habilidades/MER_PROVOKE.png"
+  },
+  "8233": {
+    "code": "MER_AUTOBERSERK",
+    "name": "Instinto de Sobrevivência Automático",
+    "icon": "Icones Habilidades/MER_AUTOBERSERK.png"
+  },
+  "8234": {
+    "code": "MER_DECAGI",
+    "name": "Diminuir Agilidade",
+    "icon": "Icones Habilidades/MER_DECAGI.png"
+  },
+  "8236": {
+    "code": "MER_LEXDIVINA",
+    "name": "Lex Divina",
+    "icon": "Icones Habilidades/MER_LEXDIVINA.png"
+  },
+  "8237": {
+    "code": "MER_ESTIMATION",
+    "name": "Propriedades do Monstro",
+    "icon": "Icones Habilidades/MER_ESTIMATION.png"
+  },
+  "8238": {
+    "code": "MER_KYRIE",
+    "name": "Kyrie Eleison",
+    "icon": "Icones Habilidades/MER_KYRIE.png"
+  },
+  "8239": {
+    "code": "MER_BLESSING",
+    "name": "Bênção",
+    "icon": "Icones Habilidades/MER_BLESSING.png"
+  },
+  "8240": {
+    "code": "MER_INCAGI",
+    "name": "Aumentar Agilidade",
+    "icon": "Icones Habilidades/MER_INCAGI.png"
+  },
+  "8241": {
+    "code": "MER_INVINCIBLEOFF2",
+    "name": "Explosão da Mente",
+    "icon": "Icones Habilidades/MER_INVINCIBLEOFF2.png"
+  },
+  "10008": {
+    "code": "GD_SOULCOLD",
+    "name": "Coração Frio",
+    "icon": "Icones Habilidades/GD_SOULCOLD.png"
+  },
+  "10011": {
+    "code": "GD_REGENERATION",
+    "name": "Regeneração",
+    "icon": "Icones Habilidades/GD_REGENERATION.png"
+  },
+  "10012": {
+    "code": "GD_RESTORE",
+    "name": "Restauração",
+    "icon": "Icones Habilidades/GD_RESTORE.png"
+  },
+  "2049": {
+    "code": "AB_EUCHARISTICA",
+    "name": "Eucaristia",
+    "icon": "Icones Habilidades/AB_EUCHARISTICA.png"
+  },
+  "491": {
+    "code": "CR_CULTIVATION",
+    "name": "Cultivar Planta",
+    "icon": "Icones Habilidades/CR_CULTIVATION.png"
+  },
+  "2496": {
+    "code": "GN_MAKEBOMB",
+    "name": "Criar Bomba Orgânica",
+    "icon": "Icones Habilidades/GN_MAKEBOMB.png"
+  },
+  "2493": {
+    "code": "GN_SLINGITEM",
+    "name": "Arremessar Item",
+    "icon": "Icones Habilidades/GN_SLINGITEM.png"
+  },
+  "2417": {
+    "code": "WM_DOMINION_IMPULSE",
+    "name": "Ativar Ressonância",
+    "icon": "Icones Habilidades/WM_DOMINION_IMPULSE.png"
+  }
+}

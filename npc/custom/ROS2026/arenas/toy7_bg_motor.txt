@@ -13,6 +13,9 @@ OnInit:
 	// Impede que jogadores usem "Retornar ao Ponto de Retorno" enquanto
 	// estiverem na arena (devem aguardar o fim do duelo).
 	setmapflag "25ros03_01", mf_noreturn;
+	// Garante que os NPCs de entrada estejam ativos apos reload/restart.
+	enablenpc "Toy7_WR_Blue";
+	enablenpc "Toy7_WR_Red";
 	end;
 
 // Chamado pelos registradores quando ambos os times estao prontos
@@ -30,7 +33,33 @@ OnStartFromLobby:
 	end;
 
 OnBlueQuit:
-	set BG_Delay_Tick, gettimetick(2) + 2000;
+	if ($@toy7BG != 1 && $@toy7BG != 2)
+		end;
+	.@pname$ = strcharinfo(0);
+	.@gid = getcharid(2);
+	if (.@gid)
+		.@gname$ = getguildname(.@gid);
+	else
+		.@gname$ = "sem guild";
+	mapannounce "25ros03_01","[Arena 7x7 Toy Factory] O player "+.@pname$+" da guild "+.@gname$+" se desconectou da partida!",bc_yellow;
+	soundeffectall "bandonou.wav",0,"25ros03_01";
+	if ($@toy7BG == 2) {
+		set .Blue_Count, .Blue_Count - 1;
+		set .Red_Score, .Red_Score + 1;
+		if (.Blue_Count < 1) {
+			.@elapsed = gettimetick(2) - .fight_start_sec;
+			if (.@elapsed < 0) set .@elapsed, 0;
+			.@rem = 420 - .@elapsed;
+			if (.@rem < 0) set .@rem, 0;
+			bg_updatescore "25ros03_01",.Blue_Count,.Red_Count;
+			if ($@rostars_hud_bg_arenas)
+				rostars_hud_bg_from_bg "25ros03_01",$@toy7BG_id1,$@toy7BG_id2,1,.@rem,.Blue_Count,.Red_Count;
+			donpcevent "Toy7_BG::OnRedWin";
+		}
+	} else if ($@toy7BG == 1) {
+		// Durante preparacao (countdown), qualquer desconexao encerra a partida.
+		donpcevent "Toy7_BG::OnRedWin";
+	}
 	end;
 
 OnBlueDie:
@@ -38,14 +67,47 @@ OnBlueDie:
 		message strcharinfo(0), "[ARENA] Voce foi morto na arena. Aguarde o fim da partida para retornar!";
 		set .Blue_Count, .Blue_Count - 1;
 		set .Red_Score, .Red_Score + 1;
-		bg_updatescore "25ros03_01",.Blue_Count,.Red_Count;
-		if (.Blue_Count < 1)
+		if (.Blue_Count < 1) {
+			.@elapsed = gettimetick(2) - .fight_start_sec;
+			if (.@elapsed < 0) set .@elapsed, 0;
+			.@rem = 420 - .@elapsed;
+			if (.@rem < 0) set .@rem, 0;
+			bg_updatescore "25ros03_01",.Blue_Count,.Red_Count;
+			if ($@rostars_hud_bg_arenas)
+				rostars_hud_bg_from_bg "25ros03_01",$@toy7BG_id1,$@toy7BG_id2,1,.@rem,.Blue_Count,.Red_Count;
 			donpcevent "Toy7_BG::OnRedWin";
+		}
 	}
 	end;
 
 OnRedQuit:
-	set BG_Delay_Tick, gettimetick(2) + 2000;
+	if ($@toy7BG != 1 && $@toy7BG != 2)
+		end;
+	.@pname$ = strcharinfo(0);
+	.@gid = getcharid(2);
+	if (.@gid)
+		.@gname$ = getguildname(.@gid);
+	else
+		.@gname$ = "sem guild";
+	mapannounce "25ros03_01","[Arena 7x7 Toy Factory] O player "+.@pname$+" da guild "+.@gname$+" se desconectou da partida!",bc_yellow;
+	soundeffectall "bandonou.wav",0,"25ros03_01";
+	if ($@toy7BG == 2) {
+		set .Red_Count, .Red_Count - 1;
+		set .Blue_Score, .Blue_Score + 1;
+		if (.Red_Count < 1) {
+			.@elapsed = gettimetick(2) - .fight_start_sec;
+			if (.@elapsed < 0) set .@elapsed, 0;
+			.@rem = 420 - .@elapsed;
+			if (.@rem < 0) set .@rem, 0;
+			bg_updatescore "25ros03_01",.Blue_Count,.Red_Count;
+			if ($@rostars_hud_bg_arenas)
+				rostars_hud_bg_from_bg "25ros03_01",$@toy7BG_id1,$@toy7BG_id2,1,.@rem,.Blue_Count,.Red_Count;
+			donpcevent "Toy7_BG::OnBlueWin";
+		}
+	} else if ($@toy7BG == 1) {
+		// Durante preparacao (countdown), qualquer desconexao encerra a partida.
+		donpcevent "Toy7_BG::OnBlueWin";
+	}
 	end;
 
 OnRedDie:
@@ -53,15 +115,29 @@ OnRedDie:
 		message strcharinfo(0), "[ARENA] Voce foi morto na arena. Aguarde o fim da partida para retornar!";
 		set .Red_Count, .Red_Count - 1;
 		set .Blue_Score, .Blue_Score + 1;
-		bg_updatescore "25ros03_01",.Blue_Count,.Red_Count;
-		if (.Red_Count < 1)
+		if (.Red_Count < 1) {
+			.@elapsed = gettimetick(2) - .fight_start_sec;
+			if (.@elapsed < 0) set .@elapsed, 0;
+			.@rem = 420 - .@elapsed;
+			if (.@rem < 0) set .@rem, 0;
+			bg_updatescore "25ros03_01",.Blue_Count,.Red_Count;
+			if ($@rostars_hud_bg_arenas)
+				rostars_hud_bg_from_bg "25ros03_01",$@toy7BG_id1,$@toy7BG_id2,1,.@rem,.Blue_Count,.Red_Count;
 			donpcevent "Toy7_BG::OnBlueWin";
+		}
 	}
 	end;
 
 OnStart:
-	announce "[Arena Toy Factory 7x7] Dois times entraram na Arena Toy Factory (25ros03_01).",bc_yellow;
+	announce "[Arena Toy Factory 7x7] Partida 7x7: 14 jogadores na Arena Toy Factory (25ros03_01).",bc_yellow;
 	set $@toy7BG_Victory, 0;
+	set .start_msg_sent, 0;
+	set .hud_tick_on, 0;
+	set .fight_start_ms, 0;
+	set .fight_start_sec, 0;
+	// Some com os NPCs de entrada durante a partida.
+	disablenpc "Toy7_WR_Blue";
+	disablenpc "Toy7_WR_Red";
 
 	// Warp ja foi feito por bg_join, mas garantimos posicao
 	bg_warp $@toy7BG_id1,"25ros03_01",46,80;
@@ -74,9 +150,8 @@ OnStart:
 	// Conta membros iniciais
 	set .Blue_Count, bg_get_data($@toy7BG_id1, 0);
 	set .Red_Count,  bg_get_data($@toy7BG_id2, 0);
-
-	// Inicializa HUD com vivos
-	bg_updatescore "25ros03_01",.Blue_Count,.Red_Count;
+	// Nao inicializa HUD aqui (ainda esta em contagem regressiva).
+	// O placar sera enviado apenas no inicio real da luta.
 
 	// ================== REGISTRO SQL DA PARTIDA ==================
 	// Cria registro da partida
@@ -120,100 +195,95 @@ OnStart:
 	initnpctimer;
 	end;
 
-// Contagem regressiva 25s -> 1s
+// Contagem regressiva: 30/25/15/10/5/4/3/2/1
 OnTimer1000:
-	mapannounce "25ros03_01","A batalha comecara em 25 segundos!",bc_yellow;
-	end;
-OnTimer2000:
-	mapannounce "25ros03_01","A batalha comecara em 24 segundos!",bc_yellow;
-	end;
-OnTimer3000:
-	mapannounce "25ros03_01","A batalha comecara em 23 segundos!",bc_yellow;
-	end;
-OnTimer4000:
-	mapannounce "25ros03_01","A batalha comecara em 22 segundos!",bc_yellow;
-	end;
-OnTimer5000:
-	mapannounce "25ros03_01","A batalha comecara em 21 segundos!",bc_yellow;
+	mapannounce "25ros03_01","[Arena 7x7 Toy Factory] O confronto ira comecar em 30 segundos!!",bc_yellow;
+	soundeffectall "30s.wav",0,"25ros03_01";
 	end;
 OnTimer6000:
-	mapannounce "25ros03_01","A batalha comecara em 20 segundos!",bc_yellow;
-	end;
-OnTimer7000:
-	mapannounce "25ros03_01","A batalha comecara em 19 segundos!",bc_yellow;
-	end;
-OnTimer8000:
-	mapannounce "25ros03_01","A batalha comecara em 18 segundos!",bc_yellow;
-	end;
-OnTimer9000:
-	mapannounce "25ros03_01","A batalha comecara em 17 segundos!",bc_yellow;
-	end;
-OnTimer10000:
-	mapannounce "25ros03_01","A batalha comecara em 16 segundos!",bc_yellow;
-	end;
-OnTimer11000:
-	mapannounce "25ros03_01","A batalha comecara em 15 segundos!",bc_yellow;
-	end;
-OnTimer12000:
-	mapannounce "25ros03_01","A batalha comecara em 14 segundos!",bc_yellow;
-	end;
-OnTimer13000:
-	mapannounce "25ros03_01","A batalha comecara em 13 segundos!",bc_yellow;
-	end;
-OnTimer14000:
-	mapannounce "25ros03_01","A batalha comecara em 12 segundos!",bc_yellow;
-	end;
-OnTimer15000:
-	mapannounce "25ros03_01","A batalha comecara em 11 segundos!",bc_yellow;
+	mapannounce "25ros03_01","[Arena 7x7 Toy Factory] O confronto ira comecar em 25 segundos!!",bc_yellow;
 	end;
 OnTimer16000:
-	mapannounce "25ros03_01","A batalha comecara em 10 segundos!",bc_yellow;
-	end;
-OnTimer17000:
-	mapannounce "25ros03_01","A batalha comecara em 9 segundos!",bc_yellow;
-	end;
-OnTimer18000:
-	mapannounce "25ros03_01","A batalha comecara em 8 segundos!",bc_yellow;
-	end;
-OnTimer19000:
-	mapannounce "25ros03_01","A batalha comecara em 7 segundos!",bc_yellow;
-	end;
-OnTimer20000:
-	mapannounce "25ros03_01","A batalha comecara em 6 segundos!",bc_yellow;
+	mapannounce "25ros03_01","[Arena 7x7 Toy Factory] O confronto ira comecar em 15 segundos!!",bc_yellow;
 	end;
 OnTimer21000:
-	mapannounce "25ros03_01","A batalha comecara em 5 segundos!",bc_yellow;
+	mapannounce "25ros03_01","[Arena 7x7 Toy Factory] O confronto ira comecar em 10 segundos!!",bc_yellow;
 	end;
-OnTimer22000:
-	mapannounce "25ros03_01","A batalha comecara em 4 segundos!",bc_yellow;
+OnTimer26000:
+	mapannounce "25ros03_01","[Arena 7x7 Toy Factory] O confronto ira comecar em 5 segundos!!",bc_yellow;
 	end;
-OnTimer23000:
-	mapannounce "25ros03_01","A batalha comecara em 3 segundos!",bc_yellow;
+OnTimer27000:
+	mapannounce "25ros03_01","[Arena 7x7 Toy Factory] O confronto ira comecar em 4 segundos!!",bc_yellow;
 	end;
-OnTimer24000:
-	mapannounce "25ros03_01","A batalha comecara em 2 segundos!",bc_yellow;
+OnTimer28000:
+	mapannounce "25ros03_01","[Arena 7x7 Toy Factory] O confronto ira comecar em 3 segundos!!",bc_yellow;
 	end;
-OnTimer24500:
-	mapannounce "25ros03_01","A batalha comecara em 1 segundo!",bc_yellow;
+OnTimer29000:
+	mapannounce "25ros03_01","[Arena 7x7 Toy Factory] O confronto ira comecar em 2 segundos!!",bc_yellow;
+	end;
+OnTimer29500:
+	mapannounce "25ros03_01","[Arena 7x7 Toy Factory] O confronto ira comecar em 1 segundo!!",bc_yellow;
+	end;
+
+// Pre-start: garante o aviso mesmo se o tick exato de inicio sofrer variacao.
+OnTimer29900:
+	if (!.start_msg_sent) {
+		set .start_msg_sent, 1;
+		mapannounce "25ros03_01","[Arena 7x7 Toy Factory] Boa sorte as equipes!",bc_yellow;
+	}
 	end;
 
 // Libera paredes e inicia a luta
-OnTimer25000:
+OnTimer30000:
 	set $@toy7BG, 2; // Playing
 
 	donpcevent "ArenaBG_Wall_Controller::OnOpen_25ros03_01";
+	soundeffectall "tropas-liberadas.wav",0,"25ros03_01";
+	// HUD so no OnHudLoop (evita 2x 0x7BFE no mesmo tick que abrir muros + 14 players).
+	set .fight_start_sec, gettimetick(2);
+	set .hud_tick_on, 1;
+	donpcevent "Toy7_BG::OnHudLoop";
 
-	mapannounce "25ros03_01","[Arena Toy Factory 7x7] A batalha comecou! Boa sorte aos dois times!",bc_yellow;
+	if (!.start_msg_sent) {
+		set .start_msg_sent, 1;
+		mapannounce "25ros03_01","[Arena 7x7 Toy Factory] Boa sorte as equipes!",bc_yellow;
+	}
 	end;
 
-// Tempo maximo de confronto: 6 minutos (360.000 ms)
+OnTimer31000:
+	// Fallback: em alguns cenarios o tick exato de inicio pode ser perdido.
+	if ($@toy7BG == 2 && !.start_msg_sent) {
+		set .start_msg_sent, 1;
+		announce "[Arena 7x7 Toy Factory] Boa sorte as equipes!",bc_all,0xFFFF00;
+		mapannounce "25ros03_01","[Arena 7x7 Toy Factory] Boa sorte as equipes!",bc_yellow;
+	}
+	end;
+
+OnHudLoop:
+	// Atrasa 1º envio: no arranque o mapa ja spamma ZC; sem mortes tambem dava disconnect por rajada.
+	sleep 1500;
+	// HUD/placar ~1x/2s: .@rem vem do relogio (gettimetick), nao do sleep.
+	while ($@toy7BG == 2 && .hud_tick_on) {
+		.@elapsed = gettimetick(2) - .fight_start_sec;
+		if (.@elapsed < 0) set .@elapsed, 0;
+		.@rem = 420 - .@elapsed;
+		if (.@rem < 0) set .@rem, 0;
+		bg_updatescore "25ros03_01",.Blue_Count,.Red_Count;
+		if ($@rostars_hud_bg_arenas)
+			rostars_hud_bg_from_bg "25ros03_01",$@toy7BG_id1,$@toy7BG_id2,1,.@rem,.Blue_Count,.Red_Count;
+		if (.@rem <= 0) break;
+		sleep 2000;
+	}
+	end;
+
+// Tempo maximo de confronto: 7 minutos de luta real (420.000 ms apos inicio da luta)
 // Aviso 30 segundos antes do termino
-OnTimer330000:
-	mapannounce "25ros03_01","[Arena Toy Factory 7x7] A batalha terminara em 30 segundos!",bc_yellow;
+OnTimer420000:
+	mapannounce "25ros03_01","[Arena 7x7 Toy Factory] O confronto terminara em 30 segundos!",bc_yellow;
 	end;
 
 // Fim da batalha por tempo: decide pelo numero de jogadores vivos
-OnTimer360000:
+OnTimer450000:
 	if (.Red_Count > .Blue_Count)
 		donpcevent "Toy7_BG::OnRedWin";
 	else if (.Red_Count < .Blue_Count)
@@ -334,6 +404,7 @@ OnBlueWin:
 	}
 
 	if (.@blue_gid) {
+		set .@blue_gname$, getguildname(.@blue_gid);
 		set .@gname$, escape_sql(getguildname(.@blue_gid));
 		query_sql(
 			"INSERT INTO toy7_guild_stats (guild_id,guild_name,arena_name,wins,losses,draws) " +
@@ -352,7 +423,10 @@ OnBlueWin:
 
 	stopnpctimer;
 	sleep 1000;
-	announce "[Arena Toy Factory 7x7] Time 1 venceu!",bc_all,0x00bfff;
+	if (.@blue_gid && .@blue_gname$ != "")
+		announce "[Arena Toy Factory 7x7] Guild "+.@blue_gname$+" venceu pelo Time Azul!",bc_all,0x00bfff;
+	else
+		announce "[Arena Toy Factory 7x7] Time Azul venceu!",bc_all,0x00bfff;
 	sleep 3000;
 	donpcevent "Toy7_BG::OnStop";
 	end;
@@ -413,6 +487,7 @@ OnRedWin:
 		);
 	}
 	if (.@red_gid) {
+		set .@red_gname$, getguildname(.@red_gid);
 		set .@gname2$, escape_sql(getguildname(.@red_gid));
 		query_sql(
 			"INSERT INTO toy7_guild_stats (guild_id,guild_name,arena_name,wins,losses,draws) " +
@@ -423,15 +498,35 @@ OnRedWin:
 
 	stopnpctimer;
 	sleep 1000;
-	announce "[Arena Toy Factory 7x7] Time 2 venceu!",bc_all,0xff6347;
+	if (.@red_gid && .@red_gname$ != "")
+		announce "[Arena Toy Factory 7x7] Guild "+.@red_gname$+" venceu pelo Time Vermelho!",bc_all,0xff6347;
+	else
+		announce "[Arena Toy Factory 7x7] Time Vermelho venceu!",bc_all,0xff6347;
 	sleep 3000;
 	donpcevent "Toy7_BG::OnStop";
 	end;
 
 OnStop:
+	if (.stop_lock)
+		end;
+	set .stop_lock, 1;
+	set .hud_tick_on, 0;
 	donpcevent "ArenaBG_Wall_Controller::OnOpen_25ros03_01";
-	// Warp geral para turbo_room 100,100
+	// Sempre envia flags=0 para o plugin limpar overlay (mesmo com $@rostars_hud_bg_arenas 0).
+	rostars_hud_bg_from_bg "25ros03_01",$@toy7BG_id1,$@toy7BG_id2,0,0,.Blue_Count,.Red_Count;
+	getmapunits BL_PC, "25ros03_01", .@uids;
+	for (.@i = 0; .@i < getarraysize(.@uids); .@i++)
+		unitkill .@uids[.@i];
+	recovery 3,"25ros03_01",4;
+	for (.@i = 0; .@i < getarraysize(.@uids); .@i++) {
+		if (!attachrid(.@uids[.@i])) continue;
+		bonus_script_clear 1;
+		detachrid;
+	}
+	// Warp geral para turbo_room 100,100.
+	// Nao enviar bg_updatescore 0,0 aqui: isso tem causado fim sensivel/disconnect em alguns clients.
 	mapwarp "25ros03_01","turbo_room",100,100;
+	sleep 300;
 	donpcevent "Toy7_BG::OnReset";
 	end;
 
@@ -442,31 +537,37 @@ OnReset:
 	set .Red_Count, 0;
 	set .Blue_Score, 0;
 	set .Red_Score, 0;
+	set .hud_tick_on, 0;
+	set .fight_start_ms, 0;
+	set .fight_start_sec, 0;
 	set $@toy7BG_Victory, 0;
 	set $@toy7_in_match, 0;
 	set $@toy7_blue_ready, 0;
 	set $@toy7_red_ready, 0;
+	set .start_msg_sent, 0;
 
 	if ($@toy7BG_id1) { bg_destroy $@toy7BG_id1; set $@toy7BG_id1, 0; }
 	if ($@toy7BG_id2) { bg_destroy $@toy7BG_id2; set $@toy7BG_id2, 0; }
 
-	// Limpa HUD e flags de registro
-	bg_updatescore "25ros03_01",0,0;
+	// Limpa flags de registro
 	set $@toy7BG, 0;
+	set .stop_lock, 0;
+	// Reaparece com os NPCs de entrada quando a arena fica livre.
+	enablenpc "Toy7_WR_Blue";
+	enablenpc "Toy7_WR_Red";
 
 	end;
 }
 
 ///=============================================================================
-/// Sistema de Waitingroom estilo KvM para Arena Toy Factory 7x7
+/// Sistema de Waitingroom estilo KvM para Arena Toy Factory (7x7)
 ///=============================================================================
 
 turbo_room,135,97,5	script	Toy7 Azul::Toy7_WR_Blue	417,{
 	end;
 
 OnInit:
-	// 2 vagas para jogadores azul (1/3 na placa conta o NPC)
-	waitingroom "Arena Toy Factory - Azul",3,"Toy7_Wait_BG::OnBlueJoin",1;
+	waitingroom "[1] Arena Toy Factory",8,"Toy7_Wait_BG::OnBlueJoin",1;
 	end;
 
 OnEnterBG:
@@ -478,8 +579,7 @@ turbo_room,64,97,5	script	Toy7 Vermelho::Toy7_WR_Red	414,{
 	end;
 
 OnInit:
-	// 2 vagas para jogadores vermelho (1/3 na placa conta o NPC)
-	waitingroom "Arena Toy Factory - Vermelho",3,"Toy7_Wait_BG::OnRedJoin",1;
+	waitingroom "[1] Arena Toy Factory",8,"Toy7_Wait_BG::OnRedJoin",1;
 	end;
 
 OnEnterBG:
@@ -505,11 +605,10 @@ OnReadyCheck:
 	set .@red,  getwaitingroomstate(0,"Toy7_WR_Red");
 
 	// Anuncia por area para cada lado (vermelho esquerdo / azul direito)
-	areaannounce "turbo_room",0,70,99,120,"[Arena Toy Factory 7x7] Vermelho: "+.@red+"/2 | Azul: "+.@blue+"/2",bc_map,0xff6347;
-	areaannounce "turbo_room",100,70,199,120,"[Arena Toy Factory 7x7] Vermelho: "+.@red+"/2 | Azul: "+.@blue+"/2",bc_map,0xff6347;
+	areaannounce "turbo_room",0,70,99,120,"[Arena Toy Factory 7x7] Vermelho: "+.@red+"/7 | Azul: "+.@blue+"/7",bc_map,0xff6347;
+	areaannounce "turbo_room",100,70,199,120,"[Arena Toy Factory 7x7] Vermelho: "+.@red+"/7 | Azul: "+.@blue+"/7",bc_map,0xff6347;
 
-	// So inicia quando ambas tiverem pelo menos 2 jogadores
-	if ((.@blue < 2) || (.@red < 2))
+	if ((.@blue < 7) || (.@red < 7))
 		end;
 
 	set $@toy7_in_match, 1;

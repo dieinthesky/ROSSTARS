@@ -1,0 +1,28 @@
+FixSelectMenuWidthExpansion = function()
+{
+	const _ = 'FixSelectMenuWidthExpansion : ';
+
+	$$(_ + '1.1 - Find the pattern')
+	const code =
+		"0F 4F C8 "             // cmovg ecx, eax  <- change to cmovg ecx, ecx
+	+	"B8 ?? ?? ?? ?? "       // mov eax, 2AAAAAAABh
+	+	"89 4D ?? "             // mov [ebp+??], ecx
+	+	"8B 8F ?? ?? ?? ?? "    // mov ecx, [edi+??]
+	+	"2B 8F ?? ?? ?? ?? "    // sub ecx, [edi+??]
+	+	"F7 E9 "                // imul ecx
+	+	"C1 FA ?? "             // sar edx, ??
+	+	"8B C2"                 // mov eax, edx
+	;
+
+	const addr = Exe.FindHex(code);
+	if (addr < 0)
+		throw Error("Pattern not found");
+
+	$$(_ + '1.2 - Change cmovg ecx,eax (0F 4F C8) to cmovg ecx,ecx (0F 4F C9)')
+	Exe.SetUint8(addr + 2, 0xC9);
+
+	return true;
+};
+
+FixSelectMenuWidthExpansion.validate = () => 
+	Exe.BuildDate > 20240120;

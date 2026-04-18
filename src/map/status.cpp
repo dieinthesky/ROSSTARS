@@ -2029,6 +2029,30 @@ int32 status_revive(struct block_list *bl, unsigned char per_hp, unsigned char p
 }
 
 /**
+ * Cast-end only (flag==1): Kyrie, Sacrament, Devotion may complete on a target who entered
+ * Hiding/Cloaking/Chase Walk after cast began. Requires the caster's unit to still match this skill+target
+ * (skill_castend_id clears skilltimer before status_check_skilluse but leaves ud->skill_id / skilltarget).
+ * AB_CLEARANCE and other support skills are not listed — they stay blocked by hide rules.
+ */
+static bool status_allow_hide_midcast_buff_complete(block_list *src, block_list *target, uint16 skill_id, int32 flag)
+{
+	if (flag != 1 || src == nullptr || target == nullptr || skill_id == 0)
+		return false;
+	switch (skill_id) {
+		case PR_KYRIE:
+		case AB_SECRAMENT:
+		case CR_DEVOTION:
+		case ML_DEVOTION:
+			break;
+		default:
+			return false;
+	}
+	unit_data *ud = unit_bl2ud(src);
+
+	return ud != nullptr && ud->skill_id == skill_id && ud->skilltarget == target->id;
+}
+
+/**
  * Checks whether the src can use the skill on the target,
  * taking into account status/option of both source/target
  * @param src:	Object using skill on target [PC|MOB|PET|HOM|MER|ELEM]
@@ -2177,7 +2201,10 @@ bool status_check_skilluse(struct block_list *src, struct block_list *target, ui
 			(src->type != BL_PC || ((TBL_PC*)src)->skillitem != skill_id)
 		) {	// Skills blocked through status changes...
 			if (!flag && ( // Blocked only from using the skill (stuff like autospell may still go through
-				( sc->cant.cast && skill_id != RK_REFRESH && skill_id != SU_GROOMING && skill_id != SR_GENTLETOUCH_CURE ) ||
+				( sc->cant.cast && skill_id != RK_REFRESH && skill_id != SU_GROOMING && skill_id != SR_GENTLETOUCH_CURE
+					&& !(skill_id == SC_ESCAPE && (sc->getSCE(SC_NETHERWORLD) != nullptr
+						|| map_find_skill_unit_oncell(src, src->x, src->y, WM_POEMOFNETHERWORLD, nullptr, 0) != nullptr))
+					&& !(sc->getSCE(SC_CURSEDCIRCLE_TARGET) && skill_is_rk_rune_skill(skill_id)) ) ||
 #ifndef RENEWAL
 				(sc->getSCE(SC_BASILICA) && (sc->getSCE(SC_BASILICA)->val4 != src->id || skill_id != HP_BASILICA)) || // Only Basilica caster that can cast, and only Basilica to cancel it
 #endif
@@ -2238,6 +2265,10 @@ bool status_check_skilluse(struct block_list *src, struct block_list *target, ui
 	// If targetting, cloak+hide protect you, otherwise only hiding does.
 	hide_flag = flag?OPTION_HIDE:(OPTION_HIDE|OPTION_CLOAK|OPTION_CHASEWALK);
 
+	// Support/buff skills must not complete on Hiding/Cloaking/Chase Walk at cast end (flag==1 used to check OPTION_HIDE only).
+	if (skill_id > 0 && (skill_get_inf(skill_id) & INF_SUPPORT_SKILL))
+		hide_flag = OPTION_HIDE | OPTION_CLOAK | OPTION_CHASEWALK;
+
  	// Skill that can hit hidden target
 	if( skill_get_inf2(skill_id, INF2_TARGETHIDDEN) )
 		hide_flag &= ~OPTION_HIDE;
@@ -2251,9 +2282,11 @@ bool status_check_skilluse(struct block_list *src, struct block_list *target, ui
 				if (pc_isinvisible(tsd))
 					return false;
 				if (tsc) {
-					if ((tsc->option&hide_flag) && !is_boss && (tsd->special_state.perfect_hiding || !is_detect))
+					if ((tsc->option&hide_flag) && !is_boss && (tsd->special_state.perfect_hiding || !is_detect)
+						&& !status_allow_hide_midcast_buff_complete(src, target, skill_id, flag))
 						return false;
-					if ((tsc->getSCE(SC_CLOAKINGEXCEED) || tsc->getSCE(SC_NEWMOON)) && !is_boss && (tsd->special_state.perfect_hiding || is_detect))
+					if ((tsc->getSCE(SC_CLOAKINGEXCEED) || tsc->getSCE(SC_NEWMOON)) && !is_boss && (tsd->special_state.perfect_hiding || is_detect)
+						&& !status_allow_hide_midcast_buff_complete(src, target, skill_id, flag))
 						return false; // Works against insect and demon but not against bosses
 					if (tsc->getSCE(SC__FEINTBOMB) && (is_boss || is_detect))
 						return false; // Works against all
@@ -2403,13 +2436,7 @@ int32 status_base_amotion_pc(map_session_data* sd, struct status_data* status)
 		val -= 50 - 10 * pc_checkskill(sd, KN_CAVALIERMASTERY);
 	else if (pc_isridingdragon(sd))
 		val -= 25 - 5 * pc_checkskill(sd, RK_DRAGONTRAINING);
-	{
-		const int32 wpn_for_cap = aspd;
-		const int32 sc_fixed_true = status_calc_aspd(sd, &sd->sc, true);
-		const int32 agi_term = static_cast<int32>(static_cast<float>(sc_fixed_true + val) * status->agi / 200.f);
-		const int32 inner = static_cast<int32>(temp_aspd) + agi_term;
-		aspd = inner - min(wpn_for_cap, 200);
-	}
+	aspd = ((int32)(temp_aspd + ((float)(status_calc_aspd(sd, &sd->sc, true) + val) * status->agi / 200)) - min(aspd, 200));
 	return aspd;
 #else
 	if (job == nullptr)
@@ -3387,10 +3414,6 @@ static int32 status_get_spbonus(struct block_list *bl, enum e_status_bonus type)
 				bonus += sc->getSCE(SC_MERC_SPUP)->val2;
 			if (sc->getSCE(SC_LUXANIMA))
 				bonus += sc->getSCE(SC_LUXANIMA)->val3;
-
-			//Decreasing
-			if (sc->getSCE(SC_MELODYOFSINK))
-				bonus -= sc->getSCE(SC_MELODYOFSINK)->val3;
 		}
 		// Max rate reduce is -100%
 		bonus = cap_value(bonus,-100,INT_MAX);
@@ -3546,14 +3569,15 @@ static uint32 status_calc_maxhp_pc( map_session_data& sd, uint32 vit ){
 
 	dmax += status_get_hpbonus( &sd, STATUS_BONUS_FIX );
 
-	double equip_bonus = ( dmax * status_get_hpbonus_equip( &sd ) / 100 );
-	// TODO: using bMaxHP* for usable items may cause rounding issue
-	double item_bonus = ( dmax * status_get_hpbonus_item( &sd ) / 100 );
-
-	dmax += equip_bonus + item_bonus;
-
-	// Aegis accuracy
-	dmax += static_cast<int64>( dmax * status_get_hpbonus( &sd, STATUS_BONUS_RATE ) / 100 );
+	// Renewal/Sakray: sum all MaxHP % modifiers (equip, items, buffs) then apply once.
+	// Sequential (equip% then skill%) compounds and inflates HP vs Aegis when stacking e.g. Tao Gunka + Inspiration.
+	{
+		int32 hp_rate_total = status_get_hpbonus_equip( &sd )
+			+ status_get_hpbonus_item( &sd )
+			+ status_get_hpbonus( &sd, STATUS_BONUS_RATE );
+		hp_rate_total = cap_value( hp_rate_total, -100, INT_MAX );
+		dmax += static_cast<int64>( dmax * hp_rate_total / 100 );
+	}
 
 	// Make sure it's not negative before casting to uint32
 	if( dmax < 1.0 ){
@@ -3597,14 +3621,14 @@ static uint32 status_calc_maxsp_pc( map_session_data& sd, uint32 int_ ){
 
 	dmax += status_get_spbonus( &sd, STATUS_BONUS_FIX );
 
-	double equip_bonus = ( dmax * status_get_spbonus_equip( &sd ) / 100 );
-	// TODO: using bMaxSP* for usable items may cause rounding issue
-	double item_bonus = ( dmax * status_get_spbonus_item( &sd ) / 100 );
-
-	dmax += equip_bonus + item_bonus;
-
-	// Aegis accuracy
-	dmax += static_cast<int64>( dmax * status_get_spbonus( &sd, STATUS_BONUS_RATE ) / 100 );
+	// Same as MaxHP: additive % stacking for equip + items + buffs, single application.
+	{
+		int32 sp_rate_total = status_get_spbonus_equip( &sd )
+			+ status_get_spbonus_item( &sd )
+			+ status_get_spbonus( &sd, STATUS_BONUS_RATE );
+		sp_rate_total = cap_value( sp_rate_total, -100, INT_MAX );
+		dmax += static_cast<int64>( dmax * sp_rate_total / 100 );
+	}
 
 	// Make sure it's not negative before casting to uint32
 	if( dmax < 1.0 ){
@@ -4298,30 +4322,31 @@ int32 status_calc_pc_sub(map_session_data* sd, uint8 opt)
 		base_status->int_ += 20;
 
 	// Bonuses from cards and equipment as well as base stat, remember to avoid overflows.
+	// Allow negative totals (e.g. bonus bLuk,-20 on Death Note); status_data uses int16 for these stats.
 	i = base_status->str + sd->status.str + sd->indexed_bonus.param_bonus[PARAM_STR] + sd->indexed_bonus.param_equip[PARAM_STR];
-	base_status->str = cap_value(i,0,USHRT_MAX);
+	base_status->str = static_cast<int16>(cap_value(i, SHRT_MIN, SHRT_MAX));
 	i = base_status->agi + sd->status.agi + sd->indexed_bonus.param_bonus[PARAM_AGI] + sd->indexed_bonus.param_equip[PARAM_AGI];
-	base_status->agi = cap_value(i,0,USHRT_MAX);
+	base_status->agi = static_cast<int16>(cap_value(i, SHRT_MIN, SHRT_MAX));
 	i = base_status->vit + sd->status.vit + sd->indexed_bonus.param_bonus[PARAM_VIT] + sd->indexed_bonus.param_equip[PARAM_VIT];
-	base_status->vit = cap_value(i,0,USHRT_MAX);
+	base_status->vit = static_cast<int16>(cap_value(i, SHRT_MIN, SHRT_MAX));
 	i = base_status->int_+ sd->status.int_+ sd->indexed_bonus.param_bonus[PARAM_INT] + sd->indexed_bonus.param_equip[PARAM_INT];
-	base_status->int_ = cap_value(i,0,USHRT_MAX);
+	base_status->int_ = static_cast<int16>(cap_value(i, SHRT_MIN, SHRT_MAX));
 	i = base_status->dex + sd->status.dex + sd->indexed_bonus.param_bonus[PARAM_DEX] + sd->indexed_bonus.param_equip[PARAM_DEX];
-	base_status->dex = cap_value(i,0,USHRT_MAX);
+	base_status->dex = static_cast<int16>(cap_value(i, SHRT_MIN, SHRT_MAX));
 	i = base_status->luk + sd->status.luk + sd->indexed_bonus.param_bonus[PARAM_LUK] + sd->indexed_bonus.param_equip[PARAM_LUK];
-	base_status->luk = cap_value(i,0,USHRT_MAX);
+	base_status->luk = static_cast<int16>(cap_value(i, SHRT_MIN, SHRT_MAX));
 	i = base_status->pow + sd->status.pow + sd->indexed_bonus.param_bonus[PARAM_POW] + sd->indexed_bonus.param_equip[PARAM_POW];
-	base_status->pow = cap_value(i, 0, USHRT_MAX);
+	base_status->pow = static_cast<int16>(cap_value(i, SHRT_MIN, SHRT_MAX));
 	i = base_status->sta + sd->status.sta + sd->indexed_bonus.param_bonus[PARAM_STA] + sd->indexed_bonus.param_equip[PARAM_STA];
-	base_status->sta = cap_value(i, 0, USHRT_MAX);
+	base_status->sta = static_cast<int16>(cap_value(i, SHRT_MIN, SHRT_MAX));
 	i = base_status->wis + sd->status.wis + sd->indexed_bonus.param_bonus[PARAM_WIS] + sd->indexed_bonus.param_equip[PARAM_WIS];
-	base_status->wis = cap_value(i, 0, USHRT_MAX);
+	base_status->wis = static_cast<int16>(cap_value(i, SHRT_MIN, SHRT_MAX));
 	i = base_status->spl + sd->status.spl + sd->indexed_bonus.param_bonus[PARAM_SPL] + sd->indexed_bonus.param_equip[PARAM_SPL];
-	base_status->spl = cap_value(i, 0, USHRT_MAX);
+	base_status->spl = static_cast<int16>(cap_value(i, SHRT_MIN, SHRT_MAX));
 	i = base_status->con + sd->status.con + sd->indexed_bonus.param_bonus[PARAM_CON] + sd->indexed_bonus.param_equip[PARAM_CON];
-	base_status->con = cap_value(i, 0, USHRT_MAX);
+	base_status->con = static_cast<int16>(cap_value(i, SHRT_MIN, SHRT_MAX));
 	i = base_status->crt + sd->status.crt + sd->indexed_bonus.param_bonus[PARAM_CRT] + sd->indexed_bonus.param_equip[PARAM_CRT];
-	base_status->crt = cap_value(i, 0, USHRT_MAX);
+	base_status->crt = static_cast<int16>(cap_value(i, SHRT_MIN, SHRT_MAX));
 
 	if (sd->special_state.no_walk_delay) {
 		if (sc->getSCE(SC_ENDURE)) {
@@ -4886,8 +4911,8 @@ int32 status_calc_pc_sub(map_session_data* sd, uint8 opt)
 			sd->bonus.short_attack_atk_rate += sc->getSCE(SC_LUXANIMA)->val3;
 			sd->bonus.long_attack_atk_rate += sc->getSCE(SC_LUXANIMA)->val3;
 		}
-		if (sc->getSCE(SC_STRIKING))
-			sd->bonus.perfect_hit += 20 + 10 * pc_checkskill(sd, SO_STRIKING);
+		if (sc->getSCE(SC_STRIKING)) // +30/+40/+50/+60/+70 from Striking level (val1), not target's learned skill
+			sd->bonus.perfect_hit += 20 + 10 * sc->getSCE(SC_STRIKING)->val1;
 
 		if( sc->getSCE( SC_RUSH_QUAKE2 ) ){
 			sd->bonus.short_attack_atk_rate += 5 * sc->getSCE( SC_RUSH_QUAKE2 )->val1;
@@ -6788,7 +6813,7 @@ static uint16 status_calc_str(struct block_list *bl, status_change *sc, int32 st
 
 	if(sc->getSCE(SC_HARMONIZE)) {
 		str -= sc->getSCE(SC_HARMONIZE)->val2;
-		return (uint16)cap_value(str,0,USHRT_MAX);
+		return (uint16)(int16)cap_value(str, SHRT_MIN, SHRT_MAX);
 	}
 	if(sc->getSCE(SC_INCALLSTATUS))
 		str += sc->getSCE(SC_INCALLSTATUS)->val1;
@@ -6863,7 +6888,7 @@ static uint16 status_calc_agi(struct block_list *bl, status_change *sc, int32 ag
 
 	if(sc->getSCE(SC_HARMONIZE)) {
 		agi -= sc->getSCE(SC_HARMONIZE)->val2;
-		return (uint16)cap_value(agi,0,USHRT_MAX);
+		return (uint16)(int16)cap_value(agi, SHRT_MIN, SHRT_MAX);
 	}
 	if(sc->getSCE(SC_CONCENTRATE) && !sc->getSCE(SC_QUAGMIRE))
 		agi += (agi-sc->getSCE(SC_CONCENTRATE)->val3)*sc->getSCE(SC_CONCENTRATE)->val2/100;
@@ -6936,7 +6961,7 @@ static uint16 status_calc_vit(struct block_list *bl, status_change *sc, int32 vi
 
 	if(sc->getSCE(SC_HARMONIZE)) {
 		vit -= sc->getSCE(SC_HARMONIZE)->val2;
-		return (uint16)cap_value(vit,0,USHRT_MAX);
+		return (uint16)(int16)cap_value(vit, SHRT_MIN, SHRT_MAX);
 	}
 	if(sc->getSCE(SC_INCALLSTATUS))
 		vit += sc->getSCE(SC_INCALLSTATUS)->val1;
@@ -6997,7 +7022,7 @@ static uint16 status_calc_int(struct block_list *bl, status_change *sc, int32 in
 
 	if(sc->getSCE(SC_HARMONIZE)) {
 		int_ -= sc->getSCE(SC_HARMONIZE)->val2;
-		return (uint16)cap_value(int_,0,USHRT_MAX);
+		return (uint16)(int16)cap_value(int_, SHRT_MIN, SHRT_MAX);
 	}
 	if(sc->getSCE(SC_INCALLSTATUS))
 		int_ += sc->getSCE(SC_INCALLSTATUS)->val1;
@@ -7075,7 +7100,7 @@ static uint16 status_calc_dex(struct block_list *bl, status_change *sc, int32 de
 
 	if(sc->getSCE(SC_HARMONIZE)) {
 		dex -= sc->getSCE(SC_HARMONIZE)->val2;
-		return (uint16)cap_value(dex,0,USHRT_MAX);
+		return (uint16)(int16)cap_value(dex, SHRT_MIN, SHRT_MAX);
 	}
 	if(sc->getSCE(SC_CONCENTRATE) && !sc->getSCE(SC_QUAGMIRE))
 		dex += (dex-sc->getSCE(SC_CONCENTRATE)->val4)*sc->getSCE(SC_CONCENTRATE)->val2/100;
@@ -7141,16 +7166,16 @@ static uint16 status_calc_dex(struct block_list *bl, status_change *sc, int32 de
  * @param bl: Object to change luk [PC|MOB|HOM|MER|ELEM]
  * @param sc: Object's status change information
  * @param luk: Initial luk
- * @return modified luk with cap_value(luk,0,USHRT_MAX)
+ * @return modified luk (signed-preserving cast through uint16 return type)
  */
 static uint16 status_calc_luk(struct block_list *bl, status_change *sc, int32 luk)
 {
 	if(sc == nullptr || sc->empty())
-		return cap_value(luk,0,USHRT_MAX);
+		return (uint16)(int16)cap_value(luk,SHRT_MIN,SHRT_MAX);
 
 	if(sc->getSCE(SC_HARMONIZE)) {
 		luk -= sc->getSCE(SC_HARMONIZE)->val2;
-		return (uint16)cap_value(luk,0,USHRT_MAX);
+		return (uint16)(int16)cap_value(luk,SHRT_MIN,SHRT_MAX);
 	}
 	if(sc->getSCE(SC_CURSE))
 		return 0;
@@ -7193,8 +7218,7 @@ static uint16 status_calc_luk(struct block_list *bl, status_change *sc, int32 lu
 	if (sc->getSCE(SC_ALL_STAT_DOWN))
 		luk -= sc->getSCE(SC_ALL_STAT_DOWN)->val2;
 
-	//TODO: Stat points should be able to be decreased below 0
-	return (uint16)cap_value(luk,0,USHRT_MAX);
+	return (uint16)(int16)cap_value(luk,SHRT_MIN,SHRT_MAX);
 }
 
 /**
@@ -7544,8 +7568,6 @@ static int16 status_calc_critical(struct block_list *bl, status_change *sc, int3
 		critical += sc->getSCE(SC_FORTUNE)->val2;
 	if (sc->getSCE(SC_TRUESIGHT))
 		critical += sc->getSCE(SC_TRUESIGHT)->val2;
-	if (sc->getSCE(SC_CLOAKING))
-		critical += critical;
 #ifdef RENEWAL
 	if (sc->getSCE(SC_SPEARQUICKEN))
 		critical += 3*sc->getSCE(SC_SPEARQUICKEN)->val1*10;
@@ -7841,6 +7863,8 @@ static defType status_calc_def(struct block_list *bl, status_change *sc, int32 d
 		def -= def * (sc->getSCE(SC_FLING)->val2)/100;
 	if( sc->getSCE(SC_FREEZING) )
 		def -= def * (bl->type == BL_PC ? 30 : 10) / 100;
+	if( sc->getSCE(SC_MARSHOFABYSS) )
+		def -= def * sc->getSCE(SC_MARSHOFABYSS)->val4 / 100;
 	if( sc->getSCE(SC_ANALYZE) )
 		def -= def * (14 * sc->getSCE(SC_ANALYZE)->val1) / 100;
 	if( sc->getSCE(SC_NEUTRALBARRIER) && map_find_skill_unit_oncell(bl, bl->x, bl->y, NC_NEUTRALBARRIER, nullptr, 0) != nullptr )
@@ -7929,6 +7953,8 @@ static int16 status_calc_def2(struct block_list *bl, status_change *sc, int32 de
 		def2 -= def2 * (sc->getSCE(SC_FLING)->val3)/100;
 	if(sc->getSCE(SC_ANALYZE))
 		def2 -= def2 * (14 * sc->getSCE(SC_ANALYZE)->val1) / 100;
+	if( sc->getSCE(SC_MARSHOFABYSS) )
+		def2 -= def2 * sc->getSCE(SC_MARSHOFABYSS)->val4 / 100;
 	if(sc->getSCE(SC_ASH))
 		def2 -= def2 * sc->getSCE(SC_ASH)->val3/100;
 	if (sc->getSCE(SC_PARALYSIS))
@@ -7989,6 +8015,8 @@ static defType status_calc_mdef(struct block_list *bl, status_change *sc, int32 
 		mdef += mdef * sc->getSCE(SC_NEUTRALBARRIER)->val2 / 100;
 	if(sc->getSCE(SC_ANALYZE))
 		mdef -= mdef * ( 14 * sc->getSCE(SC_ANALYZE)->val1 ) / 100;
+	if( sc->getSCE(SC_MARSHOFABYSS) )
+		mdef -= mdef * sc->getSCE(SC_MARSHOFABYSS)->val4 / 100;
 	if(sc->getSCE(SC_SYMPHONYOFLOVER))
 		mdef += mdef * sc->getSCE(SC_SYMPHONYOFLOVER)->val3 / 100;
 	if (sc->getSCE(SC_ODINS_POWER))
@@ -8032,6 +8060,8 @@ static int16 status_calc_mdef2(struct block_list *bl, status_change *sc, int32 m
 		mdef2 -= mdef2 * 25 / 100;
 	if(sc->getSCE(SC_ANALYZE))
 		mdef2 -= mdef2 * (14 * sc->getSCE(SC_ANALYZE)->val1) / 100;
+	if( sc->getSCE(SC_MARSHOFABYSS) )
+		mdef2 -= mdef2 * sc->getSCE(SC_MARSHOFABYSS)->val4 / 100;
 
 #ifdef RENEWAL
 	return (int16)cap_value(mdef2,SHRT_MIN,SHRT_MAX);
@@ -8109,7 +8139,8 @@ static uint16 status_calc_speed(struct block_list *bl, status_change *sc, int32 
 			if( sd && sc->getSCE(SC_DANCING) )
 				val = max( val, 500 - (40 + 10 * (sc->getSCE(SC_SPIRIT) && sc->getSCE(SC_SPIRIT)->val2 == SL_BARDDANCER)) * pc_checkskill(sd,(sd->status.sex?BA_MUSICALLESSON:DC_DANCINGLESSON)) );
 
-			if( sc->getSCE(SC_DECREASEAGI) )
+			// Decrease AGI walk slow stacks harshly with Ventus wind options; skip MS penalty while those buffs are up.
+			if( sc->getSCE(SC_DECREASEAGI) && !sc->getSCE(SC_WIND_STEP_OPTION) && !sc->getSCE(SC_WIND_CURTAIN_OPTION) )
 				val = max( val, 25 );
 			if( sc->getSCE(SC_QUAGMIRE) || sc->getSCE(SC_HALLUCINATIONWALK_POSTDELAY) || (sc->getSCE(SC_GLOOMYDAY) && sc->getSCE(SC_GLOOMYDAY)->val4) )
 				val = max( val, 50 );
@@ -8212,6 +8243,8 @@ static uint16 status_calc_speed(struct block_list *bl, status_change *sc, int32 
 			val = max( val, 25 );
 		if( sc->getSCE(SC_WIND_STEP_OPTION) )
 			val = max( val, sc->getSCE(SC_WIND_STEP_OPTION)->val2 );
+		if( sc->getSCE(SC_WIND_CURTAIN_OPTION) )
+			val = max( val, sc->getSCE(SC_WIND_CURTAIN_OPTION)->val3 );
 		if( sc->getSCE(SC_FULL_THROTTLE) )
 			val = max( val, 25 );
 		if (sc->getSCE(SC_ARCLOUSEDASH))
@@ -8247,9 +8280,10 @@ static uint16 status_calc_speed(struct block_list *bl, status_change *sc, int32 
 		speed = speed * speed_rate / 100;  
 	if( sc->getSCE(SC_STEELBODY) )  
 		speed = 200;  
-	// Defender slows movement even when its val4 is 0 (e.g. skill level 5),
-	// so we only skip slow for Devotion targets.
-	if (sc->getSCE(SC_DEFENDER) && !sc->getSCE(SC_DEVOTION))
+	// Defender slows movement even when its val4 is 0 (e.g. skill level 5).
+	// No slow for: (1) anyone under SC_DEVOTION — they receive Defender from the paladin without the walk penalty;
+	// (2) val3==1 — Defender propagated to devotion targets (DR only), including after Devotion ends but icon remains.
+	if (status_change_entry *sce = sc->getSCE(SC_DEFENDER); sce != nullptr && sce->val3 != 1 && !sc->getSCE(SC_DEVOTION))
 		speed = max(speed, 200);
 	if (sc->getSCE(SC_ARMOR))  
 		speed = max(speed, 200);  
@@ -8276,14 +8310,23 @@ static int16 status_calc_aspd(struct block_list *bl, status_change *sc, bool fix
 	if (sc == nullptr || sc->empty())
 		return 0;
 
+	map_session_data* sd = BL_CAST(BL_PC, bl);
+
 	if (fixed) {
 		enum sc_type sc_val;
 
 		if (!sc->getSCE(SC_QUAGMIRE)) {
-			// !TODO: How does Two-Hand Quicken, Adrenaline Rush, and Spear quick change? (+10%)
-			if (bonus < 7 && (sc->getSCE(SC_TWOHANDQUICKEN) || sc->getSCE(SC_ONEHAND) || sc->getSCE(SC_MERC_QUICKEN) || sc->getSCE(SC_ADRENALINE) || sc->getSCE(SC_SPEARQUICKEN)))
+			// Renewal: Quicken/Adrenaline also contribute a small fixed term that scales with AGI.
+			// This matches the behavior seen on official servers (typically ~+2 ASPD around 60 AGI).
+			const bool has_weapon_equipped = (sd == nullptr) ? true : (sd->status.weapon != W_FIST);
+			const bool adrenaline_ok =
+				(sd == nullptr) ? true : pc_check_weapontype(sd, skill_get_weapontype(BS_ADRENALINE));
+			if (has_weapon_equipped && bonus < 7 &&
+				(sc->getSCE(SC_TWOHANDQUICKEN) || sc->getSCE(SC_ONEHAND) || sc->getSCE(SC_MERC_QUICKEN) ||
+					(adrenaline_ok && sc->getSCE(SC_ADRENALINE)) || sc->getSCE(SC_SPEARQUICKEN)))
 				bonus = 7;
-			else if (bonus < 6 && sc->getSCE(SC_ADRENALINE2))
+			else if (has_weapon_equipped && bonus < 6 &&
+				((sd == nullptr || pc_check_weapontype(sd, skill_get_weapontype(BS_ADRENALINE2))) && sc->getSCE(SC_ADRENALINE2)))
 				bonus = 6;
 			else if (bonus < 5 && sc->getSCE(SC_FLEET))
 				bonus = 5;
@@ -8317,9 +8360,57 @@ static int16 status_calc_aspd(struct block_list *bl, status_change *sc, bool fix
 		else if (bonus < 15 && sc->getSCE(SC_BERSERK))
 			bonus = 15;
 
-		if (sc->getSCE(sc_val = SC_ASPDPOTION3) || sc->getSCE(sc_val = SC_ASPDPOTION2) || sc->getSCE(sc_val = SC_ASPDPOTION1) || sc->getSCE(sc_val = SC_ASPDPOTION0))
-			bonus += sc->getSCE(sc_val)->val1;
+#ifdef RENEWAL_ASPD
+		/* RO Calc (rocalc.cc): potionAspds map to d; ce = (d + skillAspd) * AGI / 200 — same pipeline as this fixed bonus + AGI/200 in status_base_amotion_pc.
+		 * Values match rocalc KR table: Potion0=4, Potion1=6, Potion2/3=9 (strongest SC only, same priority as fix_aspd). */
+		if (sd != nullptr) {
+			int32 potion_d = 0;
+			if (sc->getSCE(SC_ASPDPOTION3))
+				potion_d = 9;
+			else if (sc->getSCE(SC_ASPDPOTION2))
+				potion_d = 9;
+			else if (sc->getSCE(SC_ASPDPOTION1))
+				potion_d = 6;
+			else if (sc->getSCE(SC_ASPDPOTION0))
+				potion_d = 4;
+			bonus += potion_d;
+		}
+		/* Swing Dance: fixed term (d) includes skill level (4*Lv) + WM_LESSON (val2), scaled by AGI/200 in status_base_amotion_pc. */
+		if (sd != nullptr && sc->getSCE(SC_SWINGDANCE)) {
+			status_change_entry* sce = sc->getSCE(SC_SWINGDANCE);
+			bonus += 4 * sce->val1 + sce->val2;
+		}
+#endif
 	} else {
+		// Renewal: official-like haste skills act as ASPD% bonuses.
+		// These values are stored in "aspd_rate" scale (1000 = 100%) so we convert to percent.
+		{
+			const bool has_weapon_equipped = (sd == nullptr) ? true : (sd->status.weapon != W_FIST);
+			int32 haste = 0;
+			if (has_weapon_equipped) {
+				/* rocalc.cc setAdditionalBonus: Two-Hand Quicken on two-hand sword adds skillAspd +7 (fixed branch above) and aspdPercent +10 only.
+				 * val2 300 here would yield 30% in this branch — overshoots rocalc vs displayed ASPD; use 10% on 2H sword. */
+				if (status_change_entry* sce = sc->getSCE(SC_TWOHANDQUICKEN); sce != nullptr) {
+					if (sd != nullptr && sd->status.weapon == W_2HSWORD)
+						haste = max(haste, 10);
+					else
+						haste = max(haste, sce->val2 / 10);
+				}
+				if (status_change_entry* sce = sc->getSCE(SC_ONEHAND); sce != nullptr)
+					haste = max(haste, sce->val2 / 10);
+				if (status_change_entry* sce = sc->getSCE(SC_MERC_QUICKEN); sce != nullptr)
+					haste = max(haste, sce->val2 / 10);
+				if (status_change_entry* sce = sc->getSCE(SC_ADRENALINE);
+					sce != nullptr && (sd == nullptr || pc_check_weapontype(sd, skill_get_weapontype(BS_ADRENALINE))))
+					haste = max(haste, sce->val3 / 10);
+				if (status_change_entry* sce = sc->getSCE(SC_ADRENALINE2);
+					sce != nullptr && (sd == nullptr || pc_check_weapontype(sd, skill_get_weapontype(BS_ADRENALINE2))))
+					haste = max(haste, sce->val3 / 10);
+			}
+			if (haste != 0)
+				bonus += haste;
+		}
+
 		if (bl->type == BL_PC && sc->getSCE(SC_DONTFORGETME))
 			bonus -= sc->getSCE(SC_DONTFORGETME)->val2 / 10;
 #ifdef RENEWAL
@@ -8331,8 +8422,9 @@ static int16 status_calc_aspd(struct block_list *bl, status_change *sc, bool fix
 #endif
 		if (sc->getSCE(SC_STEELBODY))
 			bonus -= 25;
-		if (sc->getSCE(SC_DEFENDER))
-			bonus -= sc->getSCE(SC_DEFENDER)->val4 / 10;
+		if (status_change_entry *sce = sc->getSCE(SC_DEFENDER);
+			sce != nullptr && sce->val3 != 1 && !sc->getSCE(SC_DEVOTION))
+			bonus -= sce->val4 / 10;
 		if (sc->getSCE(SC_GOSPEL) && sc->getSCE(SC_GOSPEL)->val4 == BCT_ENEMY)
 			bonus -= 75;
 #ifndef RENEWAL
@@ -8357,8 +8449,6 @@ static int16 status_calc_aspd(struct block_list *bl, status_change *sc, bool fix
 			bonus -= sc->getSCE(SC__INVISIBILITY)->val2;
 		if (sc->getSCE(SC__GROOMY))
 			bonus -= sc->getSCE(SC__GROOMY)->val2;
-		if (sc->getSCE(SC_SWINGDANCE))
-			bonus += sc->getSCE(SC_SWINGDANCE)->val3;
 		if (sc->getSCE(SC_DANCEWITHWUG))
 			bonus += sc->getSCE(SC_DANCEWITHWUG)->val3;
 		if (sc->getSCE(SC_GLOOMYDAY))
@@ -8415,10 +8505,39 @@ static int16 status_calc_fix_aspd(struct block_list *bl, status_change *sc, int3
 	if (sc->getSCE(SC_OVERED_BOOST))
 		return cap_value(AMOTION_ZERO_ASPD - sc->getSCE(SC_OVERED_BOOST)->val3 * AMOTION_INTERVAL, 1, MIN_ASPD);
 
+#ifndef RENEWAL_ASPD
+	// Pre-Renewal / non-RE_ASPD: ASPD potions apply as flat ASPD (1 ASPD = 10 amotion units).
+	if (status_change_entry* sce =
+			sc->getSCE(SC_ASPDPOTION3) ? sc->getSCE(SC_ASPDPOTION3) :
+			sc->getSCE(SC_ASPDPOTION2) ? sc->getSCE(SC_ASPDPOTION2) :
+			sc->getSCE(SC_ASPDPOTION1) ? sc->getSCE(SC_ASPDPOTION1) :
+			sc->getSCE(SC_ASPDPOTION0); sce != nullptr) {
+		aspd -= sce->val1 * AMOTION_INTERVAL;
+	}
+#else
+	// Renewal: potion bonus is in status_calc_aspd(..., true) as rocalc "d" (scaled by AGI/200), not here.
+	if (bl->type != BL_PC) {
+		if (status_change_entry* sce =
+				sc->getSCE(SC_ASPDPOTION3) ? sc->getSCE(SC_ASPDPOTION3) :
+				sc->getSCE(SC_ASPDPOTION2) ? sc->getSCE(SC_ASPDPOTION2) :
+				sc->getSCE(SC_ASPDPOTION1) ? sc->getSCE(SC_ASPDPOTION1) :
+				sc->getSCE(SC_ASPDPOTION0); sce != nullptr) {
+			aspd -= sce->val1 * AMOTION_INTERVAL;
+		}
+	}
+#endif
+
 	if ((sc->getSCE(SC_GUST_OPTION) || sc->getSCE(SC_BLAST_OPTION) || sc->getSCE(SC_WILD_STORM_OPTION)))
 		aspd -= 50; // +5 ASPD
-	if (sc->getSCE(SC_FIGHTINGSPIRIT))
-		aspd -= sc->getSCE(SC_FIGHTINGSPIRIT)->val2;
+	if (sc->getSCE(SC_FIGHTINGSPIRIT)) {
+		/* Flat val2 was tuned for pre-% pipeline; rocalc.cc applies Asir as ASPD% (~same gap as val2/2 on RM10 vs full val2 here). */
+#ifdef RENEWAL_ASPD
+		if (bl->type == BL_PC)
+			aspd -= sc->getSCE(SC_FIGHTINGSPIRIT)->val2 / 2;
+		else
+#endif
+			aspd -= sc->getSCE(SC_FIGHTINGSPIRIT)->val2;
+	}
 	if (sc->getSCE(SC_SOULSHADOW))
 		aspd -= 10 * sc->getSCE(SC_SOULSHADOW)->val2;
 	if (sc->getSCE(SC_HEAT_BARREL))
@@ -8525,8 +8644,9 @@ static int16 status_calc_aspd_rate(struct block_list *bl, status_change *sc, int
 #endif
 	if(sc->getSCE(SC_STEELBODY))
 		aspd_rate += 250;
-	if(sc->getSCE(SC_DEFENDER) && !sc->getSCE(SC_DEVOTION))
-		aspd_rate += sc->getSCE(SC_DEFENDER)->val4;
+	// Same rule as status_calc_walkspeed: paladin keeps ASPD penalty; devotion targets do not.
+	if (status_change_entry *sce = sc->getSCE(SC_DEFENDER); sce != nullptr && sce->val3 != 1 && !sc->getSCE(SC_DEVOTION))
+		aspd_rate += sce->val4;
 	if(sc->getSCE(SC_GOSPEL) && sc->getSCE(SC_GOSPEL)->val4 == BCT_ENEMY)
 		aspd_rate += 250;
 #ifndef RENEWAL
@@ -9787,7 +9907,11 @@ t_tick status_get_sc_def(block_list *src, block_list *bl, sc_type type, int32 ra
 		case SC_DECREASEAGI:
 			if (sd)
 				tick /= 2; // Half duration for players.
-			sc_def2 = status->mdef*100;
+			// Use base MDEF only (equip/db); ignore battle MDEF from SC_STONEHARDSKIN etc., or Decrease AGI becomes de facto immune.
+			{
+				status_data *tbase = status_get_base_status(bl);
+				sc_def2 = (tbase != nullptr ? tbase->mdef : status->mdef) * 100;
+			}
 			break;
 		case SC_JOINTBEAT:
 			tick_def2 = 1000 * ((status->luk / 2 + status->agi / 5) / 2); // (50 * LUK / 100 + 20 * AGI / 100) / 2
@@ -9806,9 +9930,7 @@ t_tick status_get_sc_def(block_list *src, block_list *bl, sc_type type, int32 ra
 			tick_def2 = (status->int_ + status->luk)*50;
 			break;
 		case SC_STASIS:
-			// 10 second (fixed) + { Stasis Skill level * 10 - (Target's VIT + DEX) / 20 }
-			tick_def2 = (status->vit + status->dex) * 50;
-			break;
+			break; // duration from skill_db only (WL_STASIS Duration1)
 		case SC_WHITEIMPRISON:
 			if( src == bl ) // 100% on caster
 				break;
@@ -9849,7 +9971,9 @@ t_tick status_get_sc_def(block_list *src, block_list *bl, sc_type type, int32 ra
 			break;
 		case SC_CRYSTALIZE:
 			// For players, use allocated/base stat (sd->status.vit) instead of derived base_status vit.
-			tick_def2 = (sd ? sd->status.vit : status_get_base_status(bl)->vit) * 100;
+			// Sropho Card uses SCSTART_NOTICKDEF: do not assign tick_def2 so VIT cannot cut duration (defense in depth).
+			if (!(flag & SCSTART_NOTICKDEF))
+				tick_def2 = (sd ? sd->status.vit : status_get_base_status(bl)->vit) * 100;
 			break;
 		case SC_VACUUM_EXTREME:
 			tick_def2 = (sd ? sd->status.str : status_get_base_status(bl)->str) * 50;
@@ -10239,6 +10363,10 @@ bool status_change_start(block_list* src, block_list* bl, sc_type type, int32 ra
 		}
 	}
 
+	// King's Grace: immune to new debuffs while the shield is active (attacks blocked in battle.cpp).
+	if (sc && sc->getSCE(SC_KINGS_GRACE) && scdb->flag[SCF_DEBUFF] && !(flag & SCSTART_LOADED))
+		return false;
+
 	// Adjust tick according to status resistances
 	if( !(flag&(SCSTART_NOAVOID|SCSTART_LOADED)) ) {
 		duration = status_get_sc_def(src, bl, type, rate, duration, flag);
@@ -10326,7 +10454,8 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 	// Check for immunities / sc fails
 	switch (type) {
 		case SC_VACUUM_EXTREME:
-			if (sc != nullptr && sc->hasSCE(SC_VACUUM_EXTREME_POSTDELAY) && sc->getSCE(SC_VACUUM_EXTREME_POSTDELAY)->val2 == val2) // Ignore post delay from other vacuum (this will make stack effect enabled)
+			// Do not allow vacuum stacking/refresh from another group while post-delay is active.
+			if (sc != nullptr && sc->hasSCE(SC_VACUUM_EXTREME_POSTDELAY))
 				return false;
 			break;
 		case SC_ALL_RIDING:
@@ -11348,7 +11477,7 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 		case SC_DEFENDER:
 			if (!(flag&SCSTART_NOAVOID)) {
 				val2 = 5 + 15*val1; // Damage reduction
-				val3 = 0; // Unused, previously speed adjustment
+				val3 = 0; // Self: normal Defender. val3=1 on Devotion targets = inherited DR-only (no move/aspd penalty; see status_calc_walkspeed).
 				val4 = 250 - 50*val1; // Aspd adjustment
 
 				if (sd) {
@@ -11357,7 +11486,7 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 					for (i = 0; i < MAX_DEVOTION; i++) { // See if there are devoted characters, and pass the status to them. [Skotlex]
 						if (sd->devotion[i] && (tsd = map_id2sd(sd->devotion[i])))
 							// Devotion targets keep Defender's damage reduction (val2), but we remove the slow/ASPD penalty.
-							status_change_start(src,tsd,type,10000,val1,val2,val3,0,tick,SCSTART_NOAVOID);
+							status_change_start(src,tsd,type,10000,val1,val2,1,0,tick,SCSTART_NOAVOID);
 					}
 				}
 			}
@@ -11514,10 +11643,13 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 						int32 v2 = sce_src->val2;
 						int32 v3 = sce_src->val3;
 						int32 v4 = sce_src->val4;
-						if( type2 == SC_DEFENDER )
+						if( type2 == SC_DEFENDER ) {
 							v4 = 0; // devotion target keeps DR only; no Defender movement/aspd penalty
-						else if( type2 == SC_REFLECTSHIELD )
+							v3 = 1; // mark inherited Defender (no walk cap / aspd penalty even if Devotion ends later)
+						} else if( type2 == SC_REFLECTSHIELD )
 							v4 = 1; // inherited Reflect Shield (matches propagation from caster)
+						else if( type2 == SC_AUTOGUARD )
+							v4 = 1; // inherited Autoguard: battle.cpp skips block while out of devotion range
 						status_change_start(d_bl, bl, type2, 10000, sce_src->val1, v2, v3, v4, skill_get_time(status_db.getSkill(type2), sce_src->val1), SCSTART_NOAVOID);
 					}
 					i--;
@@ -11646,7 +11778,8 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 #endif
 				}
 				else if (type == SC_ADRENALINE2 || type == SC_ADRENALINE) {
-					val3 = (val2) ? 300 : 200; // Aspd increase
+					// Use 30% ASPD increase (official-like behavior).
+					val3 = 300;
 				}
 				if (s_sd && pc_checkskill(s_sd, BS_HILTBINDING) > 0)
 					tick += tick / 10; //If caster has Hilt Binding, duration increases by 10%
@@ -11952,6 +12085,21 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 			else // BL_MOB
 				val2 = 6 * val1; // AGI and DEX Reduction
 			val3 = 10 * val1; // Movement Speed Reduction
+			// DEF/MDEF reduction % = 10 + (JobLv/2) + (caster INT/10) — caster stats (WL_MARSHOFABYSS).
+			{
+				int32 joblv_term = 0;
+				if (src != nullptr) {
+					if (src->type == BL_PC) {
+						map_session_data *ssd = BL_CAST(BL_PC, src);
+						if (ssd != nullptr)
+							joblv_term = ssd->status.job_level;
+					} else
+						joblv_term = status_get_lv(src);
+					val4 = 10 + joblv_term / 2 + status_get_int(src) / 10;
+				} else
+					val4 = 10;
+				val4 = cap_value(val4, 0, 100);
+			}
 			break;
 		case SC_FREEZE_SP:
 			// val2 = sp drain per 10 seconds
@@ -12157,10 +12305,18 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 		case SC_LERADSDEW:
 			val3 = 2 + 3 * val1 + min(3 * val2, 25); // MaxHP Increase
 			break;
-		case SC_MELODYOFSINK:
-			val2 = 10 * val1; // INT Reduction.
-			val3 = 2 + 2 * val1; // MaxSP reduction
+		case SC_MELODYOFSINK: {
+			// val1 = skill_lv, val2 = WM_LESSON (from sc_start2)
+			int32 lesson = val2;
+			int32 sklv = val1;
+			// INT reduced: skill_lv + (Lesson / 2) — matches in-game table at Lesson 0 (-1..-5)
+			val2 = sklv + lesson / 2;
+			// SP drain per second: % of max SP = (skill_lv * 2) + (Lesson / 5)
+			val3 = sklv * 2 + lesson / 5;
+			tick_time = 1000;
+			val4 = static_cast<int32>(tick / tick_time);
 			break;
+		}
 		case SC_BEYONDOFWARCRY:
 			val2 = 10 + 10 * val1; // STR Reduction
 			val3 = 4 * val1; // MaxHP Reduction
@@ -12297,9 +12453,12 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 			break;
 		case SC_FIRE_CLOAK_OPTION:
 		case SC_WATER_DROP_OPTION:
-		case SC_WIND_CURTAIN_OPTION:
 		case SC_STONE_SHIELD_OPTION:
 			val2 = 100; // Elemental modifier.
+			break;
+		case SC_WIND_CURTAIN_OPTION:
+			val2 = 100; // Elemental modifier (subele in pc_bonus).
+			val3 = 52; // Move haste (GetMoveHasteValue1; same scale as SC_WIND_STEP_OPTION val2).
 			break;
 		case SC_TROPIC:
 		case SC_CHILLY_AIR:
@@ -12329,7 +12488,9 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 		case SC_STONE_SHIELD:
 		case SC_SOLID_SKIN:
 			val2 += 5;
-			val3 += 1000;
+			// Passive skills fall through from SC_PYROTECHNIC etc. with val3 += 9000 first (total 10000 ms).
+			// Assist-only skills start with val3 == 0 and must drain every 10 seconds, not every 1 second.
+			val3 += (val3 > 0 ? 1000 : 10000);
 			tick_time = val3; // [GodLesZ] tick time
 			break;
 		case SC_WATER_BARRIER:
@@ -12517,7 +12678,9 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 			break;
 		case SC_TELEKINESIS_INTENSE:
 			val2 = 10 * val1; // sp consum / casttime reduc %
-			val3 = 40 * val1; // magic dmg bonus
+			// Ghost magic dmg (battle: ratio 100 + val3): linear ×1.40 → ×2.00 (lv1–5), +0.15/lv
+			// Lv1 ×1.40  Lv2 ×1.55  Lv3 ×1.70  Lv4 ×1.85  Lv5 ×2.00
+			val3 = 25 + 15 * cap_value(val1, 1, 5);
 			break;
 		case SC_OFFERTORIUM:
 			val2 = 30 * val1; // heal power bonus
@@ -12536,7 +12699,7 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 			val2 = 30 * val1; // ATK bonus
 			break;
 		case SC_UNLIMIT:
-			val2 = 50 * val1;
+			val2 = 70 * val1;
 			break;
 		case SC_MONSTER_TRANSFORM:
 		case SC_ACTIVE_MONSTER_TRANSFORM:
@@ -13188,6 +13351,13 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 				if (!unit_blown_immune(bl,0x1))
 					unit_stop_walking( bl, USW_FIXPOS );
 				break;
+			case SC_CURSEDCIRCLE_TARGET:
+				// SR_CURSEDCIRCLE: same as Netherworld — PC finishes the current client walk segment (slide), then NoMove blocks new walks.
+				if (bl->type == BL_PC)
+					break;
+				if (!unit_blown_immune(bl,0x1))
+					unit_stop_walking( bl, USW_FIXPOS );
+				break;
 			case SC_FREEZE:
 			case SC_STUN:
 			case SC_STONE:
@@ -13255,6 +13425,21 @@ static bool status_change_start_post_delay(block_list* src, block_list* bl, sc_t
 	// Used as temporary storage for scs with interval ticks, so that the actual duration is sent to the client first.
 	if( tick_time )
 		tick = tick_time;
+
+	// SC_DEVOTION must never use INVALID_TIMER (tick < 0): no expiry timer would run and the link appears "infinite".
+	// val4 holds Sacrifice/Redenção skill_lv from skill_castend_nodamage_id; DurationLookup skill restores Duration2.
+	if (type == SC_DEVOTION && !(flag & SCSTART_LOADED) && tick < 0) {
+		uint16 sk_id = status_db.getSkill(SC_DEVOTION);
+
+		if (sk_id == 0)
+			sk_id = CR_DEVOTION;
+		{
+			int32 lv_cap = skill_get_max(sk_id);
+			int32 lv = (val4 > 0) ? cap_value(val4, 1, lv_cap) : lv_cap;
+
+			tick = static_cast<int32>(skill_get_time2(sk_id, lv));
+		}
+	}
 
 	status_change_entry* sce = sc->getSCE(type);
 	bool sc_isnew = true;
@@ -13477,6 +13662,22 @@ int32 status_change_clear(struct block_list* bl, int32 type)
 		clif_changeoption(bl);
 
 	return 1;
+}
+
+/** map_foreachinmap sub — end SC_CURSEDCIRCLE_TARGET on units still linked to a Cursed Circle caster. */
+static int32 status_cursedcircle_clear_targets_map_sub(struct block_list *tbl, va_list ap)
+{
+	int32 caster_id = va_arg(ap, int32);
+	status_change *tsc = status_get_sc(tbl);
+
+	if (tsc == nullptr || !tsc->getSCE(SC_CURSEDCIRCLE_TARGET))
+		return 0;
+	if (tsc->getSCE(SC_CURSEDCIRCLE_TARGET)->val2 != caster_id)
+		return 0;
+
+	clif_bladestop(*tbl, caster_id, false);
+	status_change_end(tbl, SC_CURSEDCIRCLE_TARGET);
+	return 0;
 }
 
 /**
@@ -13911,8 +14112,21 @@ int32 status_change_end( struct block_list* bl, enum sc_type type, int32 tid ){
 				if (s_sd) s_sd->shadowform_id = 0;
 			}
 			break;
-		case SC_SATURDAYNIGHTFEVER: // Sit down force of Saturday Night Fever has the duration of only 3 seconds.
-			sc_start(bl, bl,SC_SITDOWN_FORCE,100,val1,skill_get_time2(WM_SATURDAY_NIGHT_FEVER,val1));
+		case SC__WEAKNESS:
+			// Weakness starts SC_STRIPWEAPON/SC_STRIPSHIELD (NoDispell); end them when Weakness ends
+			// so Dispell/Clearance or natural expiry restores weapon/shield equip immediately.
+			if (sc->getSCE(SC_STRIPWEAPON))
+				status_change_end(bl, SC_STRIPWEAPON);
+			if (sc->getSCE(SC_STRIPSHIELD))
+				status_change_end(bl, SC_STRIPSHIELD);
+			break;
+		case SC_SATURDAYNIGHTFEVER: // Forced sit after Loucura ends (official: 3s). Do not use skill_get_time2 here — it is the drain interval during the debuff, not sit length.
+			if( sd && !pc_issit(sd) ) {
+				pc_setsit(sd);
+				skill_sit(sd, true);
+				clif_sitting(*bl);
+			}
+			sc_start(bl, bl, SC_SITDOWN_FORCE, 100, val1, 3000);
 			break;
 		case SC_NEUTRALBARRIER_MASTER:
 		case SC_STEALTHFIELD_MASTER:
@@ -13924,8 +14138,9 @@ int32 status_change_end( struct block_list* bl, enum sc_type type, int32 tid ){
 			}
 			break;
 		case SC_CURSEDCIRCLE_ATKER:
-			if( val2 ) // Used the default area size cause there is a chance the caster could knock back and can't clear the target.
-				map_foreachinallrange(status_change_timer_sub, bl, AREA_SIZE + 3, BL_CHAR, bl, nullptr, SC_CURSEDCIRCLE_TARGET, gettick());
+			// Full-map clear: area-only scan missed targets knocked away / out of range while ATKER was up (e.g. caster dies off-center).
+			if (bl->m >= 0)
+				map_foreachinmap(status_cursedcircle_clear_targets_map_sub, bl->m, BL_CHAR, bl->id);
 			break;
 		case SC_RAISINGDRAGON:
 			if( sd && !pc_isdead(sd) ) {
@@ -13950,6 +14165,8 @@ int32 status_change_end( struct block_list* bl, enum sc_type type, int32 tid ){
 			}
 			break;
 		case SC_SITDOWN_FORCE:
+			// Keep seated after forced sit expires (manual stand only).
+			break;
 		case SC_BANANA_BOMB_SITDOWN:
 			if( sd && pc_issit(sd) && pc_setstand(sd, false) )
 				skill_sit(sd, false);
@@ -14733,8 +14950,6 @@ TIMER_FUNC(status_change_timer){
 		return 0;
 
 	case SC__REPRODUCE:
-		if(!status_charge(bl, 0, 1))
-			break;
 		sc_timer_next(1000+tick);
 		return 0;
 
@@ -15026,6 +15241,17 @@ TIMER_FUNC(status_change_timer){
 			if(bl->type == BL_MOB) hp = sp*10;
 			if( !status_charge(bl,hp,sp) )break;
 			sc_timer_next(1000+tick);
+			return 0;
+		}
+		break;
+	case SC_MELODYOFSINK:
+		if (--(sce->val4) >= 0) {
+			int32 sp = (status->max_sp * sce->val3) / 100;
+			if (sp < 1 && status->sp > 0)
+				sp = 1;
+			if (sp > 0 && !status_charge(bl, 0, sp))
+				break;
+			sc_timer_next(1000 + tick);
 			return 0;
 		}
 		break;

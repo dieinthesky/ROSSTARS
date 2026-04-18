@@ -1,0 +1,55 @@
+RO Calc (rocalc.cc) — onde está o ASPD no código baixado
+========================================================
+
+Arquivo principal do cálculo (bundle grande, código minificado):
+  chunk-B3IGP6OJ.js
+
+Buscar no VS Code / Cursor (Ctrl+Shift+F) por:
+  calcAspd(
+  calcBaseAspd(
+
+A função calcAspd implementa a fórmula Renewal usada no simulador.
+calcBaseAspd define baseAspd por classe + tipo de arma (tabela interna).
+
+Dica: use "Format Document" não ajuda muito em JS minificado.
+      Pesquise por "calcAspd" e leia o trecho em uma linha longa.
+
+Atualizar os arquivos quando o site mudar (novos hashes no nome):
+  powershell -ExecutionPolicy Bypass -File .\atualizar-mirror.ps1
+
+rAthena (servidor) — alinhamento com este simulador
+---------------------------------------------------
+O emulador na pasta rathena-* já usa a mesma lógica Renewal em src/map/status.cpp
+(status_base_amotion_pc + bloco RENEWAL_ASPD com constante 195 e teto via pc_maxaspd).
+
+Para o teto de ASPD coincidir com o rocalc (min(..., 193) no JS), em conf/battle/player.conf
+foi definido max_aspd: 193 (antes 190 para classes não-3rd). Terceiras/extended/summoner já
+usavam 193 por padrão.
+
+Se ainda notar diferença em um build, confira db/re/job_aspd.yml e bônus de itens/skills
+em relação à base de dados do simulador.
+
+Classes 3rd (foco: Feiticeiro/Warlock, Shura/Sura, Renegado comum = Guillotine Cross ou
+Cavaleiro Rúnico/Rune Knight, Rebelde/Rebellion, etc.)
+----------------------------------------------------------------------------------------
+- No rAthena, quem tem job 3rd usa max_third_aspd: 193 (player.conf) — igual ao teto do
+  rocalc. A mudança max_aspd 190→193 afeta sobretudo classes que NÃO são 3rd.
+- A fórmula de ASPD no servidor é a mesma Renewal para todas as classes; o que muda por
+  job está em db/re/job_aspd.yml (base por tipo de arma), não na “skill de 3rd” em si.
+- Skills 3rd: o número ASPD da janela é para ataques normais / redução de delay global.
+  Cada skill tem cooldown, cast (VCT/FCT) e às vezes delay fixo — isso não é o mesmo
+  cálculo que o bloco calcAspd; compare no simulador a aba de skills com o que o map
+  server aplica em src/map/skill.cpp / dbs de skill.
+
+Abrir o espelho offline:
+  abra index.html no Chrome/Edge (file://). Se algo não carregar,
+  pode ser CORS ou URLs absolutas; o importante para comparar fórmulas
+  é o conteúdo dos .js salvos.
+
+Resumo da fórmula (para comparar com seu outro projeto):
+  J = sqrt(AGI^2/2 + DEX^2/(arma longa distância ? 7 : 5)) / 4
+  ce = (soma ASPD poções + skillAspd) * AGI / 200
+  et = floor(J + ce + penalidade escudo se aplicável)
+  kt = floor((baseAspd + arma esquerda + et) * (100 - decreaseSkillAspdPercent) / 100)
+  Ut = floor((195 - kt) * (aspdPercent / 100))
+  ASPD = min(kt + Ut + aspd flat, 193)

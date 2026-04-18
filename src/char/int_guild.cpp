@@ -1811,6 +1811,9 @@ int32 mapif_parse_GuildEmblem(int32 fd,int32 len,int32 guild_id,int32 dummy,cons
 	g->guild.emblem_len=len;
 	g->guild.emblem_id++;
 	g->save_flag |= GS_EMBLEM;	//Change guild
+	// Persistencia imediata do emblema: evita ficar com emblem_len=0 no banco
+	// quando a troca ocorre e o autosave ainda nao rodou.
+	inter_guild_tosql(g->guild, g->save_flag & GS_MASK);
 	return mapif_guild_emblem(g->guild);
 }
 

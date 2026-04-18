@@ -1,0 +1,9 @@
+Copie para esta pasta todos os ficheiros .png do projeto antigo:
+
+  Site Ranking ROS / Icones Habilidades /
+
+Os nomes dos ficheiros devem coincidir com o campo "icon" em public/data/skills.json
+(ex.: SM_BASH.png, MG_SOULSTRIKE.png).
+
+Sem estes ficheiros, o site mostra um ícone placeholder; nomes e códigos (SM_BASH, etc.)
+continuam a vir do skills.json.

@@ -1,4 +1,4 @@
-// Copyright (c) rAthena Dev Teams - Licensed under GNU GPL
+﻿// Copyright (c) rAthena Dev Teams - Licensed under GNU GPL
 // Copyright (c) Hercules Dev Team - Licensed under GNU GPL
 // For more information, see LICENCE in the main folder
 
@@ -9,7 +9,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 #include <common/cbasetypes.hpp>
 #include <common/conf.hpp>
@@ -85,7 +87,6 @@ unsigned long color_table[COLOR_MAX];
 static bool clif_session_isValid(map_session_data *sd);
 static void clif_loadConfirm( map_session_data *sd );
 static void clif_favorite_item( map_session_data& sd, uint16 index );
-
 #if PACKETVER >= 20150513
 enum mail_type {
 	MAIL_TYPE_TEXT = 0x0,
@@ -4342,6 +4343,8 @@ void clif_misceffect( block_list& bl, e_notify_effect type ){
 }
 
 
+static void clif_changeoption_refresh_icons_to_self( struct block_list *bl );
+
 /// Notifies clients in the area of a state change.
 /// 0119 <id>.L <body state>.W <health state>.W <effect state>.W <pk mode>.B (ZC_STATE_CHANGE)
 /// 0229 <id>.L <body state>.W <health state>.W <effect state>.L <pk mode>.B (ZC_STATE_CHANGE3)
@@ -4378,13 +4381,9 @@ void clif_changeoption_target( struct block_list* bl, struct block_list* target 
 			clif_send( &p, sizeof( p ), bl, AREA );
 		}
 
-		//Whenever we send "changeoption" to the client, the provoke icon is lost
-		//There is probably an option for the provoke icon, but as we don't know it, we have to do this for now
-		if( sc->getSCE(SC_PROVOKE) ){
-			const struct TimerData *td = get_timer( sc->getSCE(SC_PROVOKE)->timer );
-
-			clif_status_change( bl, status_db.getIcon(SC_PROVOKE), 1, ( !td ? INFINITE_TICK : DIFF_TICK( td->tick, gettick() ) ), 0, 0, 0 );
-		}
+		// ZC_STATE_CHANGE clears the local status icon bar on the client (Provoke was the known case;
+		// friendly buffs e.g. AB_SECRAMENT also disappear after TF_HIDING). Re-sync icons to self only.
+		clif_changeoption_refresh_icons_to_self( bl );
 	}else{
 		if( disguised( bl ) ){
 			p.AID = disguised_bl_id( p.AID );
@@ -6548,6 +6547,9 @@ void clif_status_change_sub(struct block_list *bl, int32 id, int32 type, int32 f
 	WBUFB(buf,8) = flag;
 #if PACKETVER >= 20120618
 	if (flag && battle_config.display_status_timers) {
+		// Reject overflow/garbage (e.g. uint32 max ms ≈ 1193h in the client UI)
+		if (tick > 86400000)
+			tick = 9999;
 		if (tick <= 0)
 			tick = 9999; // this is indeed what official servers do
 
@@ -6559,6 +6561,8 @@ void clif_status_change_sub(struct block_list *bl, int32 id, int32 type, int32 f
 	}
 #elif PACKETVER >= 20090121
 	if (flag && battle_config.display_status_timers) {
+		if (tick > 86400000)
+			tick = 9999;
 		if (tick <= 0)
 			tick = 9999; // this is indeed what official servers do
 
@@ -6569,6 +6573,84 @@ void clif_status_change_sub(struct block_list *bl, int32 id, int32 type, int32 f
 	}
 #endif
 	clif_send(buf, packet_len(WBUFW(buf,0)), bl, target_type);
+}
+
+/// After ZC_STATE_CHANGE, the client drops many EFST icons for the affected PC; restore them for SELF only.
+static void clif_changeoption_refresh_icons_to_self( struct block_list *bl )
+{
+	map_session_data *sd = BL_CAST( BL_PC, bl );
+
+	if( sd == nullptr )
+		return;
+
+	status_change *psc = status_get_sc( bl );
+
+	if( psc == nullptr || psc->empty() )
+		return;
+
+	// Snapshot types before any clif_* calls: packets/scripts can end SCs and invalidate
+	// unordered_map iterators / references while iterating (e.g. TF_HIDING + option sync).
+	std::vector<sc_type> types;
+	types.reserve( psc->size() );
+	for( const auto &it : *psc )
+		types.push_back( it.first );
+
+	clif_efst_status_change_sub( bl, bl, SELF );
+
+	const t_tick now = gettick();
+
+	for( sc_type t : types ) {
+		status_change_entry *sce = psc->getSCE( t );
+
+		if( sce == nullptr )
+			continue;
+
+		std::shared_ptr<s_status_change_db> scdb = status_db.find( t );
+
+		if( scdb == nullptr )
+			continue;
+
+		int32 icon = scdb->icon;
+
+		if( icon == EFST_BLANK )
+			continue;
+
+		if( icon == EFST_POSTDELAY )
+			continue;
+
+		if( icon == EFST_ILLUSION && !battle_config.display_hallucination )
+			continue;
+
+#if !( PACKETVER_MAIN_NUM >= 20191120 || PACKETVER_RE_NUM >= 20191106 )
+		if( icon == EFST_MADOGEAR_TYPE )
+			icon = EFST_RIDING;
+#endif
+
+		if( !( status_efst_get_bl_type( static_cast<efst_type>( icon ) ) & bl->type ) )
+			continue;
+
+		// DisplayPc / DisplayNpc entries are kept in sc_display and refreshed above.
+		if( scdb->flag[SCF_DISPLAYPC] || scdb->flag[SCF_DISPLAYNPC] )
+			continue;
+
+		t_tick remain;
+
+		if( sce->timer != INVALID_TIMER ) {
+			const struct TimerData *td = get_timer( sce->timer );
+
+			remain = ( td != nullptr ) ? DIFF_TICK( td->tick, now ) : 9999;
+			if( remain < 0 )
+				remain = 0;
+		} else {
+			remain = 9999;
+		}
+
+		const int32 v1 = scdb->flag[SCF_SENDVAL1] ? sce->val1 : 0;
+		const int32 v2 = scdb->flag[SCF_SENDVAL2] ? sce->val2 : 0;
+		const int32 v3 = scdb->flag[SCF_SENDVAL3] ? sce->val3 : 0;
+
+		clif_status_change_sub( bl, bl->id, icon, 1, remain, v1, v2, v3, SELF );
+	}
 }
 
 /* Sends status effect to clients around the bl
@@ -6582,6 +6664,7 @@ void clif_status_change_sub(struct block_list *bl, int32 id, int32 type, int32 f
  */
 void clif_status_change(struct block_list *bl, int32 type, int32 flag, t_tick tick, int32 val1, int32 val2, int32 val3) {
 	map_session_data *sd = nullptr;
+	enum send_target target = AREA_WOS;
 
 	if (type == EFST_BLANK)  //It shows nothing on the client...
 		return;
@@ -6606,7 +6689,13 @@ void clif_status_change(struct block_list *bl, int32 type, int32 flag, t_tick ti
 	if (!(status_efst_get_bl_type(static_cast<efst_type>(type)) & bl->type))
 		return;
 
-	clif_status_change_sub(bl, bl->id, type, flag, tick, val1, val2, val3, ((sd ? (pc_isinvisible(sd) ? SELF : AREA) : AREA_WOS)));
+	target = (sd ? (pc_isinvisible(sd) ? SELF : AREA) : AREA_WOS);
+
+	// Hide Unlimit EFST from nearby players; only the owner sees it.
+	if (sd && type == EFST_UNLIMIT)
+		target = SELF;
+
+	clif_status_change_sub(bl, bl->id, type, flag, tick, val1, val2, val3, target);
 }
 
 /// Notifies the client when a player enters the screen with an active EFST.
@@ -6617,6 +6706,8 @@ void clif_efst_status_change( block_list& bl, block_list& tbl, enum send_target 
 	if (type == EFST_BLANK)
 		return;
 
+	if (tick > 86400000)
+		tick = 9999;
 	if (tick <= 0)
 		tick = 9999;
 
@@ -6683,6 +6774,22 @@ void clif_efst_status_change_sub(struct block_list *tbl, struct block_list *bl, 
 
 		// Status changes that need special handling
 		switch( type ){
+			case SC_CRYSTALIZE:
+			case SC_ELECTRICSHOCKER:
+				// Interval SC: timer is only until next 1s tick; client needs total remaining (val4 = whole seconds left).
+				if (sc != nullptr && sc->getSCE(type) != nullptr) {
+					const status_change_entry *sce = sc->getSCE(type);
+					t_tick until_next = 0;
+					if (td != nullptr) {
+						until_next = DIFF_TICK(td->tick, gettick());
+						if (until_next < 0)
+							until_next = 0;
+					}
+					tick = static_cast<t_tick>(sce->val4) * 1000 + until_next;
+					if (tick > 600000) // sanity (e.g. corrupt val4); real Crystalize is a few seconds
+						tick = 600000;
+				}
+				break;
 			case SC_SPHERE_1:
 			case SC_SPHERE_2:
 			case SC_SPHERE_3:
@@ -6699,10 +6806,15 @@ void clif_efst_status_change_sub(struct block_list *tbl, struct block_list *bl, 
 				break;
 		}
 
+		// UNLIMIT EFST is owner-only: clif_efst_status_change(*tbl,*bl,SELF) sends to tbl's client,
+		// so observers would still see it on bl — skip unless tbl is the unit carrying the SC.
+		if (type == SC_UNLIMIT && tbl->id != bl->id)
+			continue;
+
 #if PACKETVER > 20120418
-		clif_efst_status_change( *tbl, *bl, target, status_db.getIcon( type ), tick, sc_display[i]->val1, sc_display[i]->val2, sc_display[i]->val3 );
+		clif_efst_status_change( *tbl, *bl, (type == SC_UNLIMIT ? SELF : target), status_db.getIcon( type ), tick, sc_display[i]->val1, sc_display[i]->val2, sc_display[i]->val3 );
 #else
-		clif_status_change_sub(tbl, bl->id, status_db.getIcon(type), 1, tick, sc_display[i]->val1, sc_display[i]->val2, sc_display[i]->val3, target);
+		clif_status_change_sub(tbl, bl->id, status_db.getIcon(type), 1, tick, sc_display[i]->val1, sc_display[i]->val2, sc_display[i]->val3, (type == SC_UNLIMIT ? SELF : target));
 #endif
 	}
 }
@@ -8582,6 +8694,11 @@ void clif_spiritball( struct block_list *bl, struct block_list* target, enum sen
 		case BL_HOM:
 			p.num = ( (struct homun_data*)bl )->homunculus.spiritball;
 			break;
+		case BL_MOB: {
+			mob_data *md = BL_CAST( BL_MOB, bl );
+			p.num = ( md != nullptr ) ? md->spiritball : 0;
+			break;
+		}
 	}
 
 	clif_send( &p, sizeof( p ), target == nullptr ? bl : target, send_target );
@@ -11680,13 +11797,17 @@ void clif_parse_Emotion(int32 fd, map_session_data *sd){
 		return;
 	}
 
+#if PACKETVER_MAIN_NUM >= 20230705
+	emotion_type emoticon = static_cast<emotion_type>( RFIFOB( fd, packet_db[RFIFOW( fd, 0 )].pos[0] ) );
+#else
 	const PACKET_CZ_REQ_EMOTION* p = reinterpret_cast<PACKET_CZ_REQ_EMOTION*>( RFIFOP( fd, 0 ) );
 
 	if( p->emotion_type >= ET_MAX ){
 		return;
 	}
-	
+
 	emotion_type emoticon = static_cast<emotion_type>( p->emotion_type );
+#endif
 
 	if (battle_config.basic_skill_check == 0 || pc_checkskill(sd, NV_BASIC) >= 2 || pc_checkskill(sd, SU_BASIC_SKILL) >= 1) {
 		if (emoticon == ET_CHAT_PROHIBIT) {// prevent use of the mute emote [Valaris]
@@ -12969,6 +13090,8 @@ void clif_parse_skill_toid( map_session_data* sd, uint16 skill_id, uint16 skill_
 	if ((pc_cant_act2(sd) || sd->chatID) && 
 		skill_id != RK_REFRESH && 
 		!( ( skill_id == SR_GENTLETOUCH_CURE || skill_id == SU_GROOMING ) && (sd->sc.opt1 == OPT1_STONE || sd->sc.opt1 == OPT1_FREEZE || sd->sc.opt1 == OPT1_STUN)) &&
+		!( skill_id == SC_ESCAPE && (sd->sc.getSCE(SC_NETHERWORLD) != nullptr
+			|| map_find_skill_unit_oncell(sd, sd->x, sd->y, WM_POEMOFNETHERWORLD, nullptr, 0) != nullptr) ) &&
 		!(sd->state.storage_flag && (inf&INF_SELF_SKILL))) //SELF skills can be used with the storage open, issue: 8027
 		return;
 
@@ -13158,14 +13281,18 @@ void clif_parse_UseSkillToPos(int32 fd, map_session_data *sd)
 
 	// TODO: shuffle packet
 	struct s_packet_db* info = &packet_db[RFIFOW(fd,0)];
-	if (pc_cant_act(sd))
+	const uint16 skill_id_ground = RFIFOW(fd, info->pos[1]);
+	if (sd->npc_id || sd->chatID)
+		return;
+	if (pc_cant_act2(sd) && !(skill_id_ground == SC_ESCAPE && (sd->sc.getSCE(SC_NETHERWORLD) != nullptr
+		|| map_find_skill_unit_oncell(sd, sd->x, sd->y, WM_POEMOFNETHERWORLD, nullptr, 0) != nullptr)))
 		return;
 	if (pc_issit(sd))
 		return;
 
 	clif_parse_UseSkillToPosSub(fd, *sd,
 		RFIFOW(fd,info->pos[0]), //skill lv
-		RFIFOW(fd,info->pos[1]), //skill num
+		skill_id_ground, //skill num
 		RFIFOW(fd,info->pos[2]), //pos x
 		RFIFOW(fd,info->pos[3]), //pos y
 		// TODO: find out what this is intended to do
@@ -13187,14 +13314,18 @@ void clif_parse_UseSkillToPosMoreInfo(int32 fd, map_session_data *sd)
 
 	// TODO: shuffle packet
 	struct s_packet_db* info = &packet_db[RFIFOW(fd,0)];
-	if (pc_cant_act(sd))
+	const uint16 skill_id_ground = RFIFOW(fd, info->pos[1]);
+	if (sd->npc_id || sd->chatID)
+		return;
+	if (pc_cant_act2(sd) && !(skill_id_ground == SC_ESCAPE && (sd->sc.getSCE(SC_NETHERWORLD) != nullptr
+		|| map_find_skill_unit_oncell(sd, sd->x, sd->y, WM_POEMOFNETHERWORLD, nullptr, 0) != nullptr)))
 		return;
 	if (pc_issit(sd))
 		return;
 
 	clif_parse_UseSkillToPosSub(fd, *sd,
 		RFIFOW(fd,info->pos[0]), //Skill lv
-		RFIFOW(fd,info->pos[1]), //Skill num
+		skill_id_ground, //Skill num
 		RFIFOW(fd,info->pos[2]), //pos x
 		RFIFOW(fd,info->pos[3]), //pos y
 		info->pos[4] //skill more info
@@ -18577,6 +18708,67 @@ void clif_bg_updatescore(int16 m)
 	clif_send(buf,packet_len(0x2de),&bl,ALL_SAMEMAP);
 }
 
+/// ROSSTARS HUD custom BG panel (client plugin; sniffed in client_ext.dll).
+/// 7bfe <flags>.W <remaining_sec>.L <survived_red>.W <survived_blue>.W <guild_red>.24B <guild_blue>.24B
+///      <guild_id_red>.L <guild_id_blue>.L <emblem_id_red>.L <emblem_id_blue>.L
+void clif_rostars_hud_bg(int16 m, uint16 flags, int32 remaining_sec, uint16 survived_red, uint16 survived_blue,
+	const char* guild_red, const char* guild_blue, int32 guild_id_red, int32 guild_id_blue,
+	int32 emblem_id_red, int32 emblem_id_blue)
+{
+	if (!battle_config.rostars_client_hud_packets)
+		return;
+	struct block_list bl;
+	unsigned char buf[76];
+
+	bl.id = 0;
+	bl.type = BL_NUL;
+	bl.m = m;
+
+	WBUFW(buf,0) = 0x7bfe;
+	WBUFW(buf,2) = flags;
+	WBUFL(buf,4) = remaining_sec;
+	WBUFW(buf,8) = survived_red;
+	WBUFW(buf,10) = survived_blue;
+	safestrncpy(WBUFCP(buf,12), guild_red != nullptr ? guild_red : "", 24);
+	safestrncpy(WBUFCP(buf,36), guild_blue != nullptr ? guild_blue : "", 24);
+	WBUFL(buf,60) = guild_id_red;
+	WBUFL(buf,64) = guild_id_blue;
+	WBUFL(buf,68) = emblem_id_red;
+	WBUFL(buf,72) = emblem_id_blue;
+
+	clif_send(buf, static_cast<int32>(sizeof(buf)), &bl, ALL_SAMEMAP);
+}
+
+/// ROSSTARS HUD custom emblem blob for cache (client plugin; sniffed in client_ext.dll).
+/// 0bfc <guild_id>.L <dlen>.W <payload>.dlenB
+void clif_rostars_hud_emblem_map(int16 m, int32 guild_id)
+{
+	if (!battle_config.rostars_client_hud_packets)
+		return;
+	if (guild_id <= 0)
+		return;
+	auto g = guild_search(guild_id);
+	if (!g)
+		return;
+	if (g->guild.emblem_len <= 0 || g->guild.emblem_len > static_cast<int32>(sizeof(g->guild.emblem_data)))
+		return;
+
+	const uint16 dlen = static_cast<uint16>(g->guild.emblem_len);
+	std::vector<unsigned char> buf;
+	buf.resize(static_cast<size_t>(8u + dlen));
+
+	WBUFW(buf.data(),0) = 0x0bfc;
+	WBUFL(buf.data(),2) = guild_id;
+	WBUFW(buf.data(),6) = dlen;
+	std::memcpy(buf.data() + 8, g->guild.emblem_data, dlen);
+
+	struct block_list bl;
+	bl.id = 0;
+	bl.type = BL_NUL;
+	bl.m = m;
+	clif_send(buf.data(), static_cast<int32>(buf.size()), &bl, ALL_SAMEMAP);
+}
+
 void clif_bg_updatescore_single(map_session_data *sd)
 {
 	int32 fd;
@@ -22529,7 +22721,23 @@ void clif_ping( map_session_data* sd ){
 
 	p.packetType = HEADER_ZC_PING_LIVE;
 
+	sd->zc_ping_sent_tick = gettick();
+
 	clif_send( &p, sizeof( p ), sd, SELF );
+#endif
+}
+
+void clif_parse_CZ_PING_LIVE( int32 fd, map_session_data* sd ){
+#if PACKETVER_MAIN_NUM >= 20190227 || PACKETVER_RE_NUM >= 20190220 || PACKETVER_ZERO_NUM >= 20190220
+	(void)fd;
+
+	nullpo_retv( sd );
+
+	if( sd->zc_ping_sent_tick == 0 ){
+		return;
+	}
+
+	(void)DIFF_TICK( gettick(), sd->zc_ping_sent_tick );
 #endif
 }
 

@@ -1127,6 +1127,12 @@ void clif_bg_updatescore_single(map_session_data *sd);
 void clif_sendbgemblem_area(map_session_data *sd);
 void clif_sendbgemblem_single(int32 fd, map_session_data *sd);
 
+// ROSSTARS HUD (client plugin opcional): painel BG + emblemas — formato de pacote alinhado ao cliente que consumir estes opcodes.
+void clif_rostars_hud_bg(int16 m, uint16 flags, int32 remaining_sec, uint16 survived_red, uint16 survived_blue,
+	const char* guild_red, const char* guild_blue, int32 guild_id_red, int32 guild_id_blue,
+	int32 emblem_id_red, int32 emblem_id_blue);
+void clif_rostars_hud_emblem_map(int16 m, int32 guild_id);
+
 // Battleground Queue
 void clif_bg_queue_apply_result(e_bg_queue_apply_ack result, const char *name, map_session_data *sd);
 void clif_bg_queue_apply_notify(const char *name, map_session_data *sd);
@@ -1332,6 +1338,8 @@ void clif_parse_roulette_info(int32 fd, map_session_data *sd);
 void clif_parse_roulette_close(int32 fd, map_session_data *sd);
 void clif_parse_roulette_generate(int32 fd, map_session_data *sd);
 void clif_parse_roulette_item(int32 fd, map_session_data *sd);
+
+void clif_parse_CZ_PING_LIVE(int32 fd, map_session_data *sd);
 
 void clif_elementalconverter_list( map_session_data& sd );
 

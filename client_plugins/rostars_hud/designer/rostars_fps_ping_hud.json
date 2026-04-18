@@ -1,0 +1,42 @@
+{
+  "0x17000000": {
+    "Name": "WindowRoot",
+    "X": 8,
+    "Y": 8,
+    "W": 320,
+    "H": 56,
+    "Show": true,
+    "Lock": false,
+    "Reference": "0x00000000",
+    "BackgroundColor": "#141820",
+    "BorderColor": "#3D4A5C",
+    "DefaultBg": false,
+    "BottomBar": 0,
+    "SubControls": {
+      "0": "0x0200F001"
+    }
+  },
+  "0x0200F001": {
+    "Name": "TxtFpsPing",
+    "X": 10,
+    "Y": 8,
+    "W": 300,
+    "H": 36,
+    "Show": true,
+    "Lock": false,
+    "Reference": "0x00000000",
+    "Text": "FPS: --  |  Ping: -- ms",
+    "Ellipsis": false,
+    "HorizontalAlign": "Left",
+    "VerticalAlign": "Center",
+    "FontName": "Tahoma",
+    "FontSize": 12,
+    "FontBold": true,
+    "FontColor": "#E8F0FF",
+    "Shadow": true,
+    "ShadowColor": "#000000",
+    "Outline": false,
+    "OutlineColor": "#FFFFFF"
+  },
+  "Time": "2026-04-13T12:00:00.000Z"
+}

@@ -52,6 +52,7 @@ turbo_room,90,107,5	script	Copiador de Habilidades	482,{
 		mes "Habilidade invalida ou nao configurada.";
 				close;
 			}
+			sc_end SC_PRESERVE;
 			sc_end SC__REPRODUCE;
 			plagiarizeskill .skill_id[.@menu], .skill_lv[.@menu];
 			close2;
@@ -60,9 +61,10 @@ turbo_room,90,107,5	script	Copiador de Habilidades	482,{
 
 		mes "[ Copiador de Habilidades ]";
 		mes "A configuracao de Plagio foi concluida.";
-		mes "Agora sera iniciado o processo de selecao para Mimetismo.";
-		callsub F_MIMETISMO,1,.skill_id[.@menu],.skill_lv[.@menu];
-		end;
+	mes "O efeito de ^000088Preservar^000000 sera aplicado automaticamente.";
+	mes "Agora sera iniciado o processo de selecao para Mimetismo.";
+	callsub F_MIMETISMO,1,.skill_id[.@menu],.skill_lv[.@menu];
+	end;
 
 	F_MIMETISMO:
 		set .@EQI2, getarg(0);
@@ -80,7 +82,7 @@ turbo_room,90,107,5	script	Copiador de Habilidades	482,{
 		set .@repro_lv, getskilllv(2285);
 		if (.@repro_lv < 1) {
 			mes "[ Copiador de Habilidades ]";
-			mes "E necessario aprender a habilidade ^000088Reproduce (Mimetismo)^000000 para utilizar este servico.";
+			mes "E necessario aprender a habilidade ^000088Mimetismo^000000 para utilizar este servico.";
 			close;
 		}
 
@@ -90,11 +92,16 @@ turbo_room,90,107,5	script	Copiador de Habilidades	482,{
 				mes "A habilidade de Plagio selecionada e invalida ou nao esta configurada.";
 				close;
 			}
+			sc_end SC_PRESERVE;
 			sc_end SC__REPRODUCE;
 			plagiarizeskill .@MENU1, .@MENU2;
+			plagiarizeskillreset 2;
+			sc_start SC_PRESERVE,600000,1;
 			sc_start SC__REPRODUCE, 300000, .@repro_lv;
 			plagiarizeskill .skillM_id[.@menuM], .skillM_lv[.@menuM];
 		} else {
+			plagiarizeskillreset 2;
+			sc_start SC_PRESERVE,600000,1;
 			sc_start SC__REPRODUCE, 300000, .@repro_lv;
 			plagiarizeskill .skillM_id[.@menuM], .skillM_lv[.@menuM];
 		}
@@ -109,15 +116,21 @@ turbo_room,90,107,5	script	Copiador de Habilidades	482,{
 		setarray .skill_name$[0],"Avanco Ofensivo","Nevasca","Revelacao","Rajada Congelante";
 		setarray .skill_id[0],1001,89,24,15;
 		setarray .skill_lv[0],1,10,1,10;
-		for (set .@i,0; .@i < getarraysize(.skill_name$); set .@i,.@i+1)
-			set .menu$, .menu$ + .skill_name$[.@i] + ":";
+		for (set .@i,0; .@i < getarraysize(.skill_name$); set .@i,.@i+1) {
+			if (.@i > 0)
+				set .menu$, .menu$ + ":";
+			set .menu$, .menu$ + .skill_name$[.@i];
+		}
 
 		// Lista de habilidades permitidas para Mimetismo
-		setarray .skillM_name$[0],"Avanco Ofensivo","Nevasca","Revelacao","Rajada Congelante";
-		setarray .skillM_id[0],1001,89,24,15;
-		setarray .skillM_lv[0],1,10,1,10;
-		for (set .@i,0; .@i < getarraysize(.skillM_name$); set .@i,.@i+1)
-			set .menuM$, .menuM$ + .skillM_name$[.@i] + ":";
+		setarray .skillM_name$[0],"Avanco Ofensivo","Nevasca","Revelacao","Rajada Congelante","Laminas Retalhadoras","Erva Daninha","Planta Infernal","Aegis Inferi","Chute Rasteiro","Impacto Sismico";
+		setarray .skillM_id[0],1001,89,24,15,2022,2483,2490,2323,2337,2328;
+		setarray .skillM_lv[0],1,10,1,10,5,10,5,5,1,5;
+		for (set .@i,0; .@i < getarraysize(.skillM_name$); set .@i,.@i+1) {
+			if (.@i > 0)
+				set .menuM$, .menuM$ + ":";
+			set .menuM$, .menuM$ + .skillM_name$[.@i];
+		}
 
 		initnpctimer;
 		end;

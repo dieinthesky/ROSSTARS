@@ -89,3 +89,37 @@ OnDummyDead:
 	addtimer 250,strnpcinfo(0)+"::OnSpawn";
 	end;
 }
+
+-	script	ROS2026_Dummy_6	-1,{
+OnInit:
+	killmonster "turbo_room",strnpcinfo(0)+"::OnDummyDead";
+	donpcevent strnpcinfo(0)+"::OnSpawn";
+	end;
+
+OnSpawn:
+	monster "turbo_room",129,133,"Dummy",21070,1,strnpcinfo(0)+"::OnDummyDead";
+	if ($@mobid[0] > 0)
+		setunitdata $@mobid[0],UMOB_LOOKDIR,4;
+	end;
+
+OnDummyDead:
+	addtimer 250,strnpcinfo(0)+"::OnSpawn";
+	end;
+}
+
+-	script	ROS2026_Dummy_7	-1,{
+OnInit:
+	killmonster "turbo_room",strnpcinfo(0)+"::OnDummyDead";
+	donpcevent strnpcinfo(0)+"::OnSpawn";
+	end;
+
+OnSpawn:
+	monster "turbo_room",129,128,"Dummy",21070,1,strnpcinfo(0)+"::OnDummyDead";
+	if ($@mobid[0] > 0)
+		setunitdata $@mobid[0],UMOB_LOOKDIR,4;
+	end;
+
+OnDummyDead:
+	addtimer 250,strnpcinfo(0)+"::OnSpawn";
+	end;
+}

@@ -450,7 +450,7 @@ Body:
       Windhawk: true
       Windhawk2: true
     BaseASPD:
-      Fist: 40
+      Fist: 47
       Dagger: 50
       Bow: 49
       Shield: 8
@@ -478,12 +478,12 @@ Body:
       Meister: true
       Meister2: true
     BaseASPD:
-      Fist: 40
+      Fist: 47
       Dagger: 60
       1hSword: 65
       1hAxe: 45
       2hAxe: 48
-      Mace: 48
+      Mace: 49
       2hMace: 50
       Shield: 6
   - Jobs:
@@ -565,7 +565,7 @@ Body:
       Baby_Sura: true
       Inquisitor: true
     BaseASPD:
-      Fist: 38
+      Fist: 36
       Mace: 43
       2hMace: 45
       Staff: 48

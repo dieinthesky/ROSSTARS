@@ -1,7 +1,7 @@
 //===== rAthena Script =======================================
 //= Mestre das Montarias (3rd Trans) - turbo_room - ROS 7X7
 //= Texto em ASCII sem acentos: evita '?' no jogo se o .txt for salvo como UTF-8.
-//= Variavel permanente: #ROS2026_MOUNT_PREF (codigos no bloco L_SavePref)
+//= Variavel permanente: #ROS2026_MOUNT_PREF (10=carrinho 11=mado 12=ambos; ver L_SavePref)
 //===== Mapa: turbo_room,95,123
 //============================================================
 turbo_room,95,123,4	script	Mestre das Montarias#ros2026	105,{
@@ -36,8 +36,8 @@ turbo_room,95,123,4	script	Mestre das Montarias#ros2026	105,{
 		end;
 	case 3:
 		mes "[Mestre das Montarias]";
-		mes "Mecanico: Carrinho de Comercio e Mado Gear sao mutuamente exclusivos no emulador.";
-		mes "Ao solicitar um, o outro sera removido se estiver ativo, garantindo estado valido para a arena.";
+		mes "Mecanico: neste servidor voce pode usar ^0000ffCarrinho + Mado juntos^000000 pela opcao dedicada no menu.";
+		mes "Se escolher apenas Carrinho ou apenas equipamento Mado, o outro modo e desligado para evitar estado misto indesejado.";
 		next;
 		mes "[Mestre das Montarias]";
 		mes "Ranger: Falcao e Warg nunca ficam ativos juntos. A escolha reflete seu preparo tatico no ROS 7X7.";
@@ -64,6 +64,7 @@ L_Apply:
 			setdragon;
 			mes "[Mestre das Montarias]";
 			mes "Dragao liberado. Mantenha-o sob controle durante o combate.";
+			callsub L_AskSaveNow, 20;
 			close;
 
 		case 4073:
@@ -80,6 +81,7 @@ L_Apply:
 			setriding;
 			mes "[Mestre das Montarias]";
 			mes "Montaria de grifo aplicada com sucesso.";
+			callsub L_AskSaveNow, 30;
 			close;
 
 		case 4062:
@@ -93,7 +95,7 @@ L_Apply:
 		case 4078:
 			if (!getskilllv("MC_PUSHCART")) {
 				mes "[Mestre das Montarias]";
-				mes "Desbloqueie ^0000ffEmpurrar Carrinho^000000 (MC_PUSHCART) para usar este servico.";
+				mes "Desbloqueie ^0000ffEmpurrar Carrinho^000000 para usar este servico.";
 				close;
 			}
 			if (checkcart()) {
@@ -104,6 +106,7 @@ L_Apply:
 			setcart;
 			mes "[Mestre das Montarias]";
 			mes "Carrinho aplicado.";
+			callsub L_AskSaveNow, 40;
 			close;
 
 		case 4061:
@@ -125,11 +128,11 @@ L_RangerApply:
 		mes "[Mestre das Montarias]";
 		mes "Ranger: escolha um unico modo: Falcao ou Warg montado, conforme seu planejamento para o ROS 7X7.";
 		next;
-		switch(select("Falcao (Domesticacao de Falcao):Warg montado (Dominio sobre Warg + Montaria em Warg):Cancelar")) {
+		switch(select("Falcao:Warg montado:Cancelar")) {
 		case 1:
 			if (!getskilllv("HT_FALCON")) {
 				mes "[Mestre das Montarias]";
-				mes "Invista ao menos 1 ponto em ^0000ffDomesticacao de Falcao^000000 (HT_FALCON).";
+				mes "Invista ao menos 1 ponto em ^0000ffDomesticacao de Falcao^000000.";
 				close;
 			}
 			if (checkwug()) {
@@ -143,18 +146,20 @@ L_RangerApply:
 			setfalcon;
 			mes "[Mestre das Montarias]";
 			mes "Falcao liberado.";
+			callsub L_AskSaveNow, 1;
 			close;
 		case 2:
 			if (!getskilllv("RA_WUGMASTERY") || !getskilllv("RA_WUGRIDER")) {
 				mes "[Mestre das Montarias]";
-				mes "Sao necessarios ^0000ffDominio sobre Warg^000000 (RA_WUGMASTERY) e";
-				mes "^0000ffMontaria em Warg^000000 (RA_WUGRIDER), cada um com pelo menos 1 nivel.";
+				mes "Sao necessarios ^0000ffDominio sobre Warg^000000 e";
+				mes "^0000ffMontaria em Warg^000000, cada um com pelo menos 1 nivel.";
 				close;
 			}
 			setfalcon 0;
 			setoption OPTION_WUGRIDER, 1;
 			mes "[Mestre das Montarias]";
 			mes "Warg montado. Bom desempenho na arena.";
+			callsub L_AskSaveNow, 2;
 			close;
 		default:
 			mes "[Mestre das Montarias]";
@@ -164,13 +169,13 @@ L_RangerApply:
 
 L_MechApply:
 		mes "[Mestre das Montarias]";
-		mes "Mecanico: informe qual configuracao deseja para o confronto: Carrinho ou Mado Gear.";
+		mes "Mecanico: escolha Carrinho, equipamento Mado, ou ^0000ffambos ao mesmo tempo^000000.";
 		next;
-		switch(select("Carrinho (MC_PUSHCART):Mado Gear (NC_MADOLICENCE):Cancelar")) {
+		switch(select("Carrinho:Equipamento Mado:Carrinho e Mado juntos:Cancelar")) {
 		case 1:
 			if (!getskilllv("MC_PUSHCART")) {
 				mes "[Mestre das Montarias]";
-				mes "Aprenda ^0000ffEmpurrar Carrinho^000000 (MC_PUSHCART) para continuar.";
+				mes "Aprenda ^0000ffEmpurrar Carrinho^000000 para continuar.";
 				close;
 			}
 			if (checkmadogear())
@@ -182,24 +187,40 @@ L_MechApply:
 			}
 			setcart;
 			mes "[Mestre das Montarias]";
-			mes "Carrinho ativo. Mado Gear foi desativado caso estivesse ligado.";
+			mes "Carrinho ativo. O Mado foi desativado caso estivesse ligado.";
+			callsub L_AskSaveNow, 10;
 			close;
 		case 2:
 			if (!getskilllv("NC_MADOLICENCE")) {
 				mes "[Mestre das Montarias]";
-				mes "Obtenha ^0000ffLicenca Mado^000000 (NC_MADOLICENCE) antes de prosseguir.";
+				mes "Obtenha ^0000ffLicenca Mado^000000 antes de prosseguir.";
 				close;
 			}
 			if (checkcart())
 				setcart 0;
 			if (checkmadogear()) {
 				mes "[Mestre das Montarias]";
-				mes "Voce ja esta operando o Mado Gear.";
+				mes "Voce ja esta operando o equipamento Mado.";
 				close;
 			}
 			setmadogear;
 			mes "[Mestre das Montarias]";
-			mes "Mado Gear ativo. Carrinho foi removido se necessario.";
+			mes "Equipamento Mado ativo. Carrinho foi removido se necessario.";
+			callsub L_AskSaveNow, 11;
+			close;
+		case 3:
+			if (!getskilllv("MC_PUSHCART") || !getskilllv("NC_MADOLICENCE")) {
+				mes "[Mestre das Montarias]";
+				mes "Para os dois modos juntos e necessario ^0000ffEmpurrar Carrinho^000000 e ^0000ffLicenca Mado^000000.";
+				close;
+			}
+			if (!checkcart())
+				setcart;
+			if (!checkmadogear())
+				setmadogear;
+			mes "[Mestre das Montarias]";
+			mes "Carrinho e Mado ativos. Boa preparacao na arena.";
+			callsub L_AskSaveNow, 12;
 			close;
 		default:
 			mes "[Mestre das Montarias]";
@@ -217,7 +238,7 @@ L_SavePref:
 			case 1:
 				if (!getskilllv("HT_FALCON")) {
 					mes "[Mestre das Montarias]";
-					mes "Sem HT_FALCON nao e possivel registrar essa preferencia.";
+					mes "Sem a skill de Falcao nao e possivel registrar essa preferencia.";
 					close;
 				}
 				set #ROS2026_MOUNT_PREF, 1;
@@ -239,13 +260,13 @@ L_SavePref:
 
 		case 4064:
 			mes "[Mestre das Montarias]";
-			mes "Qual modo deseja priorizar na Curandeira: Carrinho ou Mado?";
+			mes "Qual modo a Curandeira deve aplicar: Carrinho, Mado, ou ambos juntos?";
 			next;
-			switch(select("Carrinho (10):Mado (11):Limpar (0)")) {
+			switch(select("Carrinho (10):Mado (11):Carrinho + Mado (12):Limpar (0)")) {
 			case 1:
 				if (!getskilllv("MC_PUSHCART")) {
 					mes "[Mestre das Montarias]";
-					mes "MC_PUSHCART e requisito para salvar o carrinho.";
+					mes "Empurrar Carrinho e requisito para salvar o carrinho.";
 					close;
 				}
 				set #ROS2026_MOUNT_PREF, 10;
@@ -253,16 +274,24 @@ L_SavePref:
 			case 2:
 				if (!getskilllv("NC_MADOLICENCE")) {
 					mes "[Mestre das Montarias]";
-					mes "NC_MADOLICENCE e requisito para salvar o Mado.";
+					mes "Licenca Mado e requisito para salvar o Mado.";
 					close;
 				}
 				set #ROS2026_MOUNT_PREF, 11;
+				break;
+			case 3:
+				if (!getskilllv("MC_PUSHCART") || !getskilllv("NC_MADOLICENCE")) {
+					mes "[Mestre das Montarias]";
+					mes "E preciso ter as duas habilidades para registrar carrinho e Mado juntos.";
+					close;
+				}
+				set #ROS2026_MOUNT_PREF, 12;
 				break;
 			default:
 				set #ROS2026_MOUNT_PREF, 0;
 			}
 			mes "[Mestre das Montarias]";
-			mes "Preferencia registrada. Lembre-se: apenas um estado fica ativo por vez.";
+			mes "Preferencia registrada (#ROS2026_MOUNT_PREF). Opcao 12 aplica os dois sem remover um pelo outro.";
 			close;
 
 		case 4060:
@@ -279,7 +308,7 @@ L_SavePref:
 		case 4073:
 			if (!getskilllv("KN_RIDING")) {
 				mes "[Mestre das Montarias]";
-				mes "Sem Montaria (KN_RIDING) nao ha registro aplicavel.";
+				mes "Sem a skill Montaria nao ha registro aplicavel.";
 				close;
 			}
 			set #ROS2026_MOUNT_PREF, 30;
@@ -304,6 +333,23 @@ L_SavePref:
 			close;
 		}
 		return;
+
+L_AskSaveNow:
+	mes "[Mestre das Montarias]";
+	mes "Deseja salvar escolha?";
+	next;
+	if (select("Sim, salvar para Curandeira:Agora nao") == 1) {
+		set #ROS2026_MOUNT_PREF, getarg(0);
+		mes "[Mestre das Montarias]";
+		mes "Escolha salva com sucesso para a Curandeira.";
+	} else {
+		// Evita manter preferencia antiga (ex.: Mado) apos trocar para outra opcao.
+		// Sem salvamento explicito, a Curandeira nao deve aplicar montaria automaticamente.
+		set #ROS2026_MOUNT_PREF, 0;
+		mes "[Mestre das Montarias]";
+		mes "Sem problemas. A escolha nao foi salva e o registro anterior foi limpo.";
+	}
+	return;
 
 OnInit:
 	initnpctimer;

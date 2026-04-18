@@ -236,6 +236,7 @@ endif()
 # enable web server?
 #
 option( ENABLE_WEB_SERVER "Build web-server (default=ON)" ON )
+option( ENABLE_MAP_BG_OVERLAY_API "HTTP localhost JSON API for external BG HUD overlay in map-server (uses httplib)" ON )
 
 #
 # Test for big endian
@@ -626,6 +627,9 @@ endif( INSTALL_COMPONENT_RUNTIME )
 set( TARGET_LIST  CACHE INTERNAL "" )
 add_subdirectory( 3rdparty )
 add_subdirectory( src )
+if( WIN32 )
+	add_subdirectory( tools/rostars_bg_overlay )
+endif()
 
 
 #####################################################################

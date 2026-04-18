@@ -9785,7 +9785,7 @@ Body:
     Flags:
       BuyingStore: true
     Script: |
-      sc_start SC_DROCERA_HERB_STEAMED,300000,20;
+      sc_start SC_DROCERA_HERB_STEAMED,300000,19;
   - Id: 12434
     AegisName: Petti_Tail_Noodle
     Name: Petite Tail Noodles
@@ -56954,7 +56954,7 @@ Body:
   - Id: 22540
     AegisName: Runstone_Lux
     Name: Lux Anima Runestone
-    Type: DelayConsume
+    Type: Usable
     Buy: 2
     Weight: 10
     Classes:
@@ -56963,6 +56963,8 @@ Body:
     Delay:
       Duration: 5000
       Status: Reuse_Limit_Luxanima
+    NoUse:
+      Sitting: true
     Trade:
       NoDrop: true
       NoTrade: true
@@ -56973,7 +56975,7 @@ Body:
       NoAuction: true
     Script: |
       if ((eaclass()&EAJ_THIRDMASK) == EAJ_RUNE_KNIGHT)
-         itemskill "RK_LUXANIMA",1;
+         unitskilluseid getcharid(3),"RK_LUXANIMA",1;
   - Id: 22541
     AegisName: PCBang_Coupon_Box6
     Name: PC Room Coupon Box VI

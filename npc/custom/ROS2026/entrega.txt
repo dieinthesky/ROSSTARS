@@ -2,6 +2,7 @@ turbo_room,109,110,4	script	Maquina de Restoque	564,{
 
 	// variaveis permanentes por personagem:
 	// StuffsSaved = 0/1, Stuffs_id[], Stuffs_amt[]
+	// Salva consumiveis + ETC (exceto cartas e item 1000196): F_ROS2026_IsRestockConsumable em healer.txt
 
 	mes "[Maquina de Restoque]";
 	if (StuffsSaved) {
@@ -78,10 +79,23 @@ L_SaveCurrent:
 		close;
 	}
 
-	mes "[Maquina de Restoque]";
-	mes "A lista abaixo, contendo apenas itens nao equipados, sera registrada:";
+	.@restock_count = 0;
 	for (.@i = 0; .@i < getarraysize(@inventorylist_id); .@i++) {
 		if (@inventorylist_equip[.@i]) continue;
+		if (callfunc("F_ROS2026_IsRestockConsumable", @inventorylist_id[.@i]))
+			.@restock_count++;
+	}
+	if (.@restock_count == 0) {
+		mes "[Maquina de Restoque]";
+		mes "Nao ha itens elegiveis (consumiveis ou ETC, nao equipados) no inventario para salvar.";
+		close;
+	}
+
+	mes "[Maquina de Restoque]";
+	mes "A lista abaixo contem consumiveis e itens ETC nao equipados (exceto cartas e item 1000196):";
+	for (.@i = 0; .@i < getarraysize(@inventorylist_id); .@i++) {
+		if (@inventorylist_equip[.@i]) continue;
+		if (!callfunc("F_ROS2026_IsRestockConsumable", @inventorylist_id[.@i])) continue;
 		mes "- ID "+@inventorylist_id[.@i]+"  qtd: "+@inventorylist_amount[.@i];
 	}
 	next;
@@ -93,6 +107,7 @@ L_SaveCurrent:
 
 	for (.@i = 0; .@i < getarraysize(@inventorylist_id); .@i++) {
 		if (@inventorylist_equip[.@i]) continue;
+		if (!callfunc("F_ROS2026_IsRestockConsumable", @inventorylist_id[.@i])) continue;
 		.@idx = getarraysize(Stuffs_id);
 		Stuffs_id[.@idx] = @inventorylist_id[.@i];
 		Stuffs_amt[.@idx] = @inventorylist_amount[.@i];

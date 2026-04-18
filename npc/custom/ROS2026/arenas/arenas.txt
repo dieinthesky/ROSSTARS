@@ -164,32 +164,45 @@ OnInicio:
 	initnpctimer;
 	end;
 
-// Contagem de 25 segundos dentro da arena antes de liberar as paredes
-OnTimer4000:
-	mapannounce "25ros03_01","A batalha comecara em 20 segundos!", bc_yellow;
+// Contagem de 30 segundos (30/25/15/10/5/4/3/2/1) antes de liberar as paredes
+OnTimer1000:
+	mapannounce "25ros03_01","A batalha comecara em 30 segundos!", bc_yellow;
+	soundeffectall "30s.wav",0,"25ros03_01";
 	end;
 
-OnTimer20000:
-	mapannounce "25ros03_01","A batalha comecara em 5 segundos!", bc_yellow;
+OnTimer6000:
+	mapannounce "25ros03_01","A batalha comecara em 25 segundos!", bc_yellow;
+	end;
+
+OnTimer16000:
+	mapannounce "25ros03_01","A batalha comecara em 15 segundos!", bc_yellow;
 	end;
 
 OnTimer21000:
+	mapannounce "25ros03_01","A batalha comecara em 10 segundos!", bc_yellow;
+	end;
+
+OnTimer26000:
+	mapannounce "25ros03_01","A batalha comecara em 5 segundos!", bc_yellow;
+	end;
+
+OnTimer27000:
 	mapannounce "25ros03_01","A batalha comecara em 4 segundos!", bc_yellow;
 	end;
 
-OnTimer22000:
+OnTimer28000:
 	mapannounce "25ros03_01","A batalha comecara em 3 segundos!", bc_yellow;
 	end;
 
-OnTimer23000:
+OnTimer29000:
 	mapannounce "25ros03_01","A batalha comecara em 2 segundos!", bc_yellow;
 	end;
 
-OnTimer24000:
+OnTimer29500:
 	mapannounce "25ros03_01","A batalha comecara em 1 segundo!", bc_yellow;
 	end;
 
-OnTimer25000:
+OnTimer30000:
 	// Libera as barreiras e comeca o duelo
 	set $@ArenaBG, 2;
 	delwall "arena_wall_a1";
@@ -201,6 +214,7 @@ OnTimer25000:
 	delwall "arena_wall_v3";
 	delwall "arena_wall_v4";
 
+	soundeffectall "tropas-liberadas.wav",0,"25ros03_01";
 	mapannounce "25ros03_01","A batalha comecou! Boa sorte aos dois times!", bc_yellow;
 	stopnpctimer;
 	end;

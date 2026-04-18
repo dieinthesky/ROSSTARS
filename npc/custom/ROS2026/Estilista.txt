@@ -26,7 +26,7 @@ turbo_room,90,101,5	script	Estilista#custom_stylist	606,{
 	while (1) {
 		setlook .@Aparencia[.@s], .@Estilo;
 		message strcharinfo(0),"Esta e a variacao visual #"+.@Estilo+".";
-		set .@menu$, " ~ Proximo (^0055FF"+((.@Estilo != .@Estilos[.@s]) ? .@Estilo + 1 : 1)+"^000000): ~ Anterior (^0055FF"+((.@Estilo != 1) ? .@Estilo - 1 : .@Estilos[.@s])+"^000000): ~ Ir para...: ~ Reverter para o original (^0055FF"+.@Reverter+"^000000)";
+		set .@menu$, " ~ Proximo (^0055FF"+((.@Estilo != .@Estilos[.@s]) ? .@Estilo + 1 : 1)+"^000000): ~ Anterior (^0055FF"+((.@Estilo != 1) ? .@Estilo - 1 : .@Estilos[.@s])+"^000000): ~ Ir para...: ~ Reverter para o original (^0055FF"+.@Reverter+"^000000): ~ Finalizar";
 		switch (select(.@menu$)) {
 		case 1:
 			set .@Estilo, ((.@Estilo != .@Estilos[.@s]) ? .@Estilo + 1 : 1);
@@ -44,6 +44,8 @@ turbo_room,90,101,5	script	Estilista#custom_stylist	606,{
 			set .@Estilo, .@Reverter;
 			setlook .@Aparencia[.@s], .@Reverter;
 			break;
+		case 5:
+			close;
 		}
 	}
 

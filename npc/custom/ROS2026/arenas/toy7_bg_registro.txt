@@ -7,8 +7,10 @@
 // Configuracao simples (pode ajustar depois)
 -	script	Toy7_BG_Config	-1,{
 OnInit:
-	// Minimo de membros em cada party para iniciar (ajuste para 7 quando quiser 7x7 real)
-	set $toy7_min_members, 2;
+	set $toy7_min_members, 7;
+	// Painel HUD custom ROSSTARS (0x7BFE) em todas as arenas que usam rostars_hud_bg_from_bg:
+	// 1 = ligado | 0 = desligado. @reloadscript reaplica.
+	set $@rostars_hud_bg_arenas, 1;
 	end;
 }
 

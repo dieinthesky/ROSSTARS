@@ -1,0 +1,26 @@
+// Arena Shura 1v1 — mob 31997 ARENA_BOT_SHURA_1V1
+// Sem i18n (PT apenas).
+
+turbo_room,100,100,4	script	Arena Shura 1v1#shurabot	4_M_SAGE_C,{
+	mes "[Arena Shura 1v1]";
+	mes "Selecione uma opcao.";
+	next;
+	.@menu$ = "Invocar o Shura (bot 31997):Remover o Shura:Sair";
+	switch(select(.@menu$)) {
+	case 1:
+		monster "turbo_room",104,100,"Arena Shura (1v1)",31997,1,strnpcinfo(0)+"::OnShuraDead";
+		mapannounce "turbo_room","Arena Shura (1v1) spawnado.",bc_map,0x00ff88;
+		close;
+	case 2:
+		killmonster "turbo_room", strnpcinfo(0)+"::OnShuraDead";
+		mapannounce "turbo_room","Arena Shura (1v1) removido.",bc_map,0xff8855;
+		close;
+	case 3:
+		close;
+	}
+	end;
+
+OnShuraDead:
+	end;
+}
+

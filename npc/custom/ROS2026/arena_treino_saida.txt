@@ -1,0 +1,36 @@
+//===== rAthena Script =======================================
+//= Arena de treino ROS 2026: NPC de saida + revive 3s ao morrer
+//= Mapas alinhados a Potadora (potador.txt) e arenasdetreino.txt
+//= NPC visivel apenas nas arenas (nao em turbo_room).
+//============================================================
+
+-	script	SaidaArenaTreino#main	-1,{
+	mes "[Saida da Arena]";
+	mes "Quer voltar para o centro da sala de treino?";
+	next;
+	if (select("Sim:Nao") == 1)
+		warp "turbo_room",100,100;
+	close;
+}
+
+25ros03_02,97,86,4	duplicate(SaidaArenaTreino#main)	SaidaArenaTreino#25ros03_02	899
+2025arena11,177,144,4	duplicate(SaidaArenaTreino#main)	SaidaArenaTreino#2025arena11	899
+2025arena22,90,86,4	duplicate(SaidaArenaTreino#main)	SaidaArenaTreino#2025arena22	899
+2025arena33,140,105,4	duplicate(SaidaArenaTreino#main)	SaidaArenaTreino#2025arena33	899
+2025arena44,176,148,4	duplicate(SaidaArenaTreino#main)	SaidaArenaTreino#2025arena44	899
+2025arena55,96,78,4	duplicate(SaidaArenaTreino#main)	SaidaArenaTreino#2025arena55	899
+
+// Morte nas arenas de treino: revive + cura apos 3 segundos (mesmos mapas)
+-	script	ArenaTreino_Revive	-1,{
+OnPCDieEvent:
+	set .@map$, strcharinfo(3);
+	if (.@map$ != "25ros03_02" && .@map$ != "2025arena11" && .@map$ != "2025arena22" && .@map$ != "2025arena33" && .@map$ != "2025arena44" && .@map$ != "2025arena55")
+		end;
+	set .@cid, getcharid(0);
+	set .@aid, getcharid(3);
+	sleep2 3000;
+	if (!isloggedin(.@aid, .@cid))
+		end;
+	recovery 0, .@cid, 1;
+	end;
+}

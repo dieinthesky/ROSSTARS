@@ -1,7 +1,7 @@
 //===== rAthena Script =======================================
 //= Potador ROS 2026
 //===== Description: =========================================
-//= Aplica buffs de consumiveis e habilidades sem usar pot.
+//= Aplica bonus de consumiveis e habilidades sem usar pot.
 //============================================================
 
 turbo_room,105,132,4	script	Potadora#main	10184,{
@@ -9,14 +9,14 @@ turbo_room,105,132,4	script	Potadora#main	10184,{
 	mes "O que voce deseja fazer?";
 	next;
 
-	switch (select("Receber buffs:Remover todos os buffs:Cancelar")) {
+	switch (select("Receber bonus:Remover todos os bonus:Cancelar")) {
 		case 1:
 			close2;
 			percentheal 100,100;
 			callsub S_CommonBuffs;
 			callsub S_ClassBuffs;
 			specialeffect2 EF_BLESSING;
-			showscript "Buffs aplicados!";
+			showscript "Bonus aplicados!";
 			end;
 
 		case 2:
@@ -25,7 +25,7 @@ turbo_room,105,132,4	script	Potadora#main	10184,{
 			sleep2 200;
 			atcommand "@alive";
 			specialeffect2 EF_CURE;
-			showscript "Todos os buffs removidos!";
+			showscript "Todos os bonus removidos!";
 			end;
 
 		default:
@@ -43,7 +43,7 @@ S_CommonBuffs:
 	sc_start2 SC_VITATA_500,500000,20,5;             // 12436 Vitata 500
 	sc_start2 SC_PROMOTE_HEALTH_RESERCH,500000,1,3;  // 12424 Grande de HP
 	sc_start2 SC_ENERGY_DRINK_RESERCH,500000,1,3;    // 12427 Grande de SP
-	sc_start SC_EXTRACT_SALAMINE_JUICE,500000,10;    // 12437 Suco Celular
+	sc_start SC_EXTRACT_SALAMINE_JUICE,500000,10;    // 12437 Suco Celular (+10% ASPD, alinhado ao item oficial / rocalc)
 	sc_start4 SC_ARMOR_ELEMENT_FIRE,1200000,-15,0,20,0;   // 12118 Anti Fogo
 	sc_start4 SC_ARMOR_ELEMENT_WATER,1200000,20,0,0,-15;  // 12119 Anti Agua
 	sc_start4 SC_ARMOR_ELEMENT_EARTH,1200000,0,20,-15,0;  // 12120 Anti Terra
@@ -59,6 +59,8 @@ S_CommonBuffs:
 	sc_start SC_IMPOSITIO,300000,5;      // 66 Impositio Manus
 	sc_start SC_SUFFRAGIUM,300000,3;     // 67 Suffragium
 	sc_start SC_MAGNIFICAT,300000,5;     // 74 Magnificat
+	sc_start SC_CLEMENTIA,300000,5;      // AB_CLEMENTIA
+	sc_start SC_CANTO,300000,5;          // AB_CANTO
 	sc_start SC_LAUDAAGNUS,300000,4;     // 2047 Lauda Agnus
 	sc_start SC_LAUDARAMUS,300000,4;     // 2048 Lauda Ramus
 	return;
@@ -81,7 +83,7 @@ S_ClassBuffs:
 			break;
 
 		case 4073: // Royal Guard
-			sc_start SC_ASPDPOTION2,1800000,9;   // 657 Pocao Furia Selvagem
+			sc_start SC_ASPDPOTION2,1800000,9;   // 657 Berserk (bonus rocalc via status_calc_aspd fixo × AGI/200)
 			sc_start SC_INSPIRATION,300000,5;    // 2325 Consagracao
 			sc_start SC_AUTOBERSERK,300000,1;    // 146 Instinto de Sobrevivencia
 			sc_start SC_ENDURE,300000,10;        // 8 Vigor

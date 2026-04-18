@@ -40,6 +40,8 @@
 #include "pc.hpp"
 #include "pet.hpp"
 #include "quest.hpp"
+#include "skill.hpp"
+#include "unit.hpp"
 
 using namespace rathena;
 
@@ -47,6 +49,622 @@ using namespace rathena;
 
 const t_tick MOB_MAX_DELAY = 24 * 3600 * 1000;
 #define RUDE_ATTACKED_COUNT 1	//After how many rude-attacks should the skill be used?
+
+// Arena Shura bot pacing / combo state (mob_id MOB_ID_ARENA_BOT_SHURA_1V1 only).
+static std::unordered_map<int32, t_tick> g_arena_shura_next_snap_tick_by_gid;
+static std::unordered_map<int32, t_tick> g_arena_shura_next_cc_tick_by_gid;
+static std::unordered_map<int32, t_tick> g_arena_shura_next_asura_tick_by_gid;
+static std::unordered_map<int32, t_tick> g_arena_shura_next_action_tick_by_gid;
+static std::unordered_map<int32, t_tick> g_arena_shura_next_raisingdragon_tick_by_gid;
+/// After Cursed Circle, attempt Asura at this tick (tighter CC → Asura than separate range checks).
+static std::unordered_map<int32, t_tick> g_arena_shura_pending_asura_tick_by_gid;
+static std::unordered_map<int32, t_tick> g_arena_shura_next_hide_tick_by_gid;
+static std::unordered_map<int32, t_tick> g_arena_shura_hide_until_tick_by_gid;
+/// Simulated inventory: Siege White Potion (11548), `percentheal 10,0` in item_db_usable.yml
+static std::unordered_map<int32, int16> g_arena_shura_potion11548_stock_by_gid;
+static std::unordered_map<int32, t_tick> g_arena_shura_next_potion11548_tick_by_gid;
+static std::unordered_map<int32, t_tick> g_arena_shura_next_absorb_tick_by_gid;
+static std::unordered_map<int32, t_tick> g_arena_shura_next_windmill_tick_by_gid;
+/// Last `distance_bl` to current target (Snap / Bodyreloc closes ~5+ cells in one tick).
+static std::unordered_map<int32, int32> g_arena_shura_last_enemy_dist_by_gid;
+/// Last time we snapped (prevents "Snap + Asura" same-tick).
+static std::unordered_map<int32, t_tick> g_arena_shura_last_snap_tick_by_gid;
+/// Schedule a short Hiding to land near the end of an incoming cast (e.g. MO_ABSORBSPIRITS).
+static std::unordered_map<int32, t_tick> g_arena_shura_pending_defhide_tick_by_gid;
+
+// Forward declarations (needed for arena bot reacquire logic).
+static int32 mob_ai_sub_hard_activesearch(struct block_list *bl,va_list ap);
+
+/// Client look only (item `View` from item_db); mirrors the arena Shura gear build.
+static void mob_arena_shura_apply_equipment_look( mob_data* md ) {
+	if ( md == nullptr || md->vd == nullptr )
+		return;
+	struct s_gear_look_slot { int16 slot; t_itemid nameid; };
+	static const s_gear_look_slot gear[] = {
+		{ LOOK_HEAD_TOP, 18570 },
+		{ LOOK_HEAD_MID, 18894 },
+		{ LOOK_HEAD_BOTTOM, 18670 },
+		{ LOOK_SHIELD, 2115 },
+		{ LOOK_ROBE, 20934 },
+		{ LOOK_SHOES, 2499 },
+	};
+	for ( const s_gear_look_slot& g : gear ) {
+		std::shared_ptr<item_data> idata = item_db.find( g.nameid );
+		if ( idata == nullptr || idata->look == 0 )
+			continue;
+		md->vd->look[g.slot] = static_cast<int32>( idata->look );
+		clif_changelook( md, g.slot, md->vd->look[g.slot] );
+	}
+	md->vd->look[LOOK_WEAPON] = 0;
+	clif_changelook( md, LOOK_WEAPON, 0 );
+}
+
+/// Potadora-like buffs without `status.yml` `Script:` (those SC only start on `BL_PC` — status.cpp).
+static void mob_arena_shura_apply_potadora_buffs( mob_data* md ) {
+	if ( md == nullptr || md->mob_id != MOB_ID_ARENA_BOT_SHURA_1V1 )
+		return;
+	block_list* bl = md;
+	sc_start2( bl, bl, SC_PROMOTE_HEALTH_RESERCH, 100, 1, 3, 500000 );
+	sc_start2( bl, bl, SC_ENERGY_DRINK_RESERCH, 100, 1, 3, 500000 );
+	sc_start( bl, bl, SC_STRIKING, 100, 5, 300000 );
+	sc_start( bl, bl, SC_ASSUMPTIO, 100, 5, 100000 );
+	sc_start( bl, bl, SC_SECRAMENT, 100, 5, 300000 );
+	sc_start( bl, bl, SC_EXPIATIO, 100, 5, 300000 );
+	sc_start( bl, bl, SC_ANGELUS, 100, 10, 240000 );
+	sc_start( bl, bl, SC_GLORIA, 100, 5, 300000 );
+	sc_start( bl, bl, SC_IMPOSITIO, 100, 5, 300000 );
+	sc_start( bl, bl, SC_SUFFRAGIUM, 100, 3, 300000 );
+	sc_start( bl, bl, SC_MAGNIFICAT, 100, 5, 300000 );
+	sc_start( bl, bl, SC_LAUDAAGNUS, 100, 4, 300000 );
+	sc_start( bl, bl, SC_LAUDARAMUS, 100, 4, 300000 );
+	// S_ClassBuffs (Sura / Shura)
+	sc_start( bl, bl, SC_ASPDPOTION1, 100, 6, 1800000 );
+	sc_start( bl, bl, SC_GT_ENERGYGAIN, 100, 5, 300000 );
+	sc_start( bl, bl, SC_GT_REVITALIZE, 100, 5, 300000 );
+	status_calc_mob( md, SCO_NONE );
+}
+
+static bool mob_arena_shura_skill_use( mob_data& md, int32 target_id, uint16 skill_id, uint16 skill_lv ) {
+	if ( md.ud.skilltimer != INVALID_TIMER )
+		return false;
+	return unit_skilluse_id( &md, target_id, skill_id, skill_lv ) != 0;
+}
+
+int32 mob_arena_shura_virtballs(struct mob_data* md) {
+	if (md == nullptr || md->mob_id != MOB_ID_ARENA_BOT_SHURA_1V1)
+		return 0;
+	return md->spiritball;
+}
+
+void mob_arena_shura_on_soul_collect(struct mob_data* md) {
+	if (md == nullptr || md->mob_id != MOB_ID_ARENA_BOT_SHURA_1V1)
+		return;
+	md->spiritball = static_cast<int16>( std::min<int32>( 15, std::max<int32>( 0, md->spiritball + 5 ) ) );
+	clif_spiritball( md, nullptr, AREA );
+}
+
+void mob_arena_shura_on_absorbed(struct mob_data* md) {
+	if (md == nullptr || md->mob_id != MOB_ID_ARENA_BOT_SHURA_1V1)
+		return;
+	md->spiritball = 0;
+	clif_spiritball( md, nullptr, AREA );
+}
+
+/// Sura mirror: PC Sura / Baby Sura / Trans Sura, or another arena Shura bot mob.
+static bool mob_arena_shura_target_is_mirror_sura( block_list* tbl ) {
+	if ( tbl == nullptr )
+		return false;
+	if ( tbl->type == BL_PC ) {
+		map_session_data* tsd = BL_CAST( BL_PC, tbl );
+		if ( tsd == nullptr )
+			return false;
+		const uint64 jm = tsd->class_ & MAPID_THIRDMASK;
+		return jm == MAPID_SURA || jm == MAPID_SURA_T || jm == MAPID_BABY_SURA;
+	}
+	if ( tbl->type == BL_MOB ) {
+		mob_data* tmd = BL_CAST( BL_MOB, tbl );
+		return tmd != nullptr && tmd->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1;
+	}
+	return false;
+}
+
+static bool mob_arena_shura_ai_tick(mob_data& md, t_tick tick) {
+	if (md.mob_id != MOB_ID_ARENA_BOT_SHURA_1V1)
+		return false;
+
+	// Respect "can't act" abnormal states (stun/sleep/freeze/etc). The generic mob AI checks this,
+	// but our custom AI runs earlier, so we must enforce it here too.
+	if ( ( md.sc.opt1 && md.sc.opt1 != OPT1_STONEWAIT && md.sc.opt1 != OPT1_BURNING ) || status_db.hasSCF( &md.sc, SCF_MOBLOSETARGET ) )
+		return false;
+
+	// Siege White Potion (11548): same effect as item script `percentheal 10,0` (mob has no real inventory).
+	if ( md.status.max_hp > 0 && md.ud.skilltimer == INVALID_TIMER && DIFF_TICK( tick, md.ud.canact_tick ) >= 0 ) {
+		const int32 hp_pct = static_cast<int32>( ( static_cast<uint64>( md.status.hp ) * 100ull ) / static_cast<uint64>( md.status.max_hp ) );
+		auto stock_it = g_arena_shura_potion11548_stock_by_gid.find( md.id );
+		const int16 stock = ( stock_it != g_arena_shura_potion11548_stock_by_gid.end() ) ? stock_it->second : 0;
+		const t_tick next_pot_it = g_arena_shura_next_potion11548_tick_by_gid[md.id];
+		if ( hp_pct < 62 && md.status.hp < md.status.max_hp && stock > 0 && DIFF_TICK( tick, next_pot_it ) >= 0 ) {
+			status_percent_heal( &md, 10, 0 );
+			g_arena_shura_potion11548_stock_by_gid[md.id] = static_cast<int16>( stock - 1 );
+			g_arena_shura_next_potion11548_tick_by_gid[md.id] = tick + 3500;
+			const t_tick gate = tick + 250;
+			const auto act_it = g_arena_shura_next_action_tick_by_gid.find( md.id );
+			if ( act_it == g_arena_shura_next_action_tick_by_gid.end() || DIFF_TICK( act_it->second, gate ) < 0 )
+				g_arena_shura_next_action_tick_by_gid[md.id] = gate;
+			return true;
+		}
+	}
+
+	// Peek target for sphere emergency (strip / absorb) before the action gate — avoids "freeze" after Windmill.
+	block_list* tbl_sphere = (md.target_id ? map_id2bl(md.target_id) : nullptr);
+	if ( tbl_sphere == nullptr || tbl_sphere->m != md.m || battle_check_target( &md, tbl_sphere, BCT_ENEMY ) <= 0 ) {
+		block_list* nt = nullptr;
+		const int32 mode_sp = status_get_mode( &md );
+		map_foreachinallrange( mob_ai_sub_hard_activesearch, &md, md.db->range3, DEFAULT_ENEMY_TYPE( ( &md ) ), &md, &nt, mode_sp );
+		if ( nt != nullptr )
+			tbl_sphere = nt;
+	}
+	const bool sphere_emergency = ( tbl_sphere != nullptr && tbl_sphere->m == md.m && battle_check_target( &md, tbl_sphere, BCT_ENEMY ) > 0
+		&& md.spiritball < 1 && md.ud.skilltimer == INVALID_TIMER && DIFF_TICK( tick, md.ud.canact_tick ) >= 0 );
+
+	auto set_next_action = [&](uint16 skill_id, uint16 skill_lv, int32 extra_ms = 0) {
+		const int32 cast_ms = skill_get_cast(skill_id, skill_lv);
+		const int32 delay_ms = skill_get_delay(skill_id, skill_lv);
+		// Cooldown is applied per-skill separately when relevant; here we do a global "GCD-ish" pacing.
+		const int32 gcd_ms = std::max(150, (cast_ms + delay_ms)) * 2 + extra_ms; // doubled
+		g_arena_shura_next_action_tick_by_gid[md.id] = tick + gcd_ms;
+	};
+	auto set_next_action_fast = [&](uint16 skill_id, uint16 skill_lv, int32 extra_ms = 0) {
+		const int32 cast_ms = skill_get_cast(skill_id, skill_lv);
+		const int32 delay_ms = skill_get_delay(skill_id, skill_lv);
+		const int32 gcd_ms = std::max( 60, cast_ms + delay_ms ) + extra_ms;
+		g_arena_shura_next_action_tick_by_gid[md.id] = tick + gcd_ms;
+	};
+
+	block_list* tbl = (md.target_id ? map_id2bl(md.target_id) : nullptr);
+	if (tbl == nullptr || tbl->m != md.m || battle_check_target(&md, tbl, BCT_ENEMY) <= 0) {
+		// Try to reacquire a target quickly.
+		block_list* newtbl = nullptr;
+		const int32 mode = status_get_mode(&md);
+		map_foreachinallrange(mob_ai_sub_hard_activesearch, &md, md.db->range3, DEFAULT_ENEMY_TYPE((&md)), &md, &newtbl, mode);
+		if (newtbl != nullptr) {
+			tbl = newtbl;
+		} else {
+			// No target: keep moving around self to avoid "freeze".
+			const t_tick next_snap = g_arena_shura_next_snap_tick_by_gid[md.id];
+			if (DIFF_TICK(tick, next_snap) >= 0) {
+				// If we're out of spheres, prefer Raising Dragon first (less "Zen spam").
+				if ( md.spiritball < 1 ) {
+					const t_tick next_rd = g_arena_shura_next_raisingdragon_tick_by_gid[md.id];
+					if ( DIFF_TICK( tick, next_rd ) >= 0 && DIFF_TICK( tick, md.ud.canact_tick ) >= 0 ) {
+						g_arena_shura_next_raisingdragon_tick_by_gid[md.id] = tick + 9000;
+						if ( mob_arena_shura_skill_use( md, md.id, SR_RAISINGDRAGON, 10 ) ) {
+							set_next_action( SR_RAISINGDRAGON, 10 );
+							return true;
+						}
+					}
+					if ( mob_arena_shura_skill_use( md, md.id, CH_SOULCOLLECT, 1 ) ) {
+						set_next_action( CH_SOULCOLLECT, 1, 200 );
+						return true;
+					}
+					return false;
+				}
+
+				int16 x = md.x;
+				int16 y = md.y;
+				// Random reachable tile around self.
+				if (map_search_freecell(&md, md.m, &x, &y, 7, 7, 1|2, 30)) {
+					g_arena_shura_next_snap_tick_by_gid[md.id] = tick + 600;
+					if (unit_can_move(&md) && unit_movepos(&md, x, y, 2, true))
+						clif_snap(&md, md.x, md.y);
+					g_arena_shura_last_snap_tick_by_gid[md.id] = tick;
+					md.spiritball = static_cast<int16>( std::max<int32>( 0, md.spiritball - 1 ) );
+					clif_spiritball( &md, nullptr, AREA );
+					set_next_action(MO_BODYRELOCATION, 1, 150); // add a small extra to feel less "teleporty"
+					return true;
+				}
+				g_arena_shura_next_snap_tick_by_gid[md.id] = tick + 600;
+			}
+			return false;
+		}
+	}
+
+	// Apply player-like pacing (doubled, per request) to avoid "instant" behavior.
+	// Must run after we know `tbl`: counter-play vs Cursed Circle must not be blocked by our own GCD.
+	const auto next_action_it = g_arena_shura_next_action_tick_by_gid.find( md.id );
+	const t_tick next_action_tick = ( next_action_it != g_arena_shura_next_action_tick_by_gid.end() ) ? next_action_it->second : 0;
+	const int32 dist = distance_bl( &md, tbl );
+	unit_data *enemy_ud = unit_bl2ud( tbl );
+	const bool enemy_casting_cc = ( enemy_ud != nullptr && enemy_ud->skill_id == SR_CURSEDCIRCLE && enemy_ud->skilltimer != INVALID_TIMER );
+	const bool enemy_casting_absorb_on_me = ( enemy_ud != nullptr && enemy_ud->skill_id == MO_ABSORBSPIRITS && enemy_ud->skilltimer != INVALID_TIMER && enemy_ud->skilltarget == md.id );
+	const bool enemy_casting_asura_on_me = ( enemy_ud != nullptr && enemy_ud->skill_id == MO_EXTREMITYFIST && enemy_ud->skilltimer != INVALID_TIMER && enemy_ud->skilltarget == md.id );
+	const bool cc_dodge_emergency = ( enemy_casting_cc && dist <= 8 && md.ud.skilltimer == INVALID_TIMER && DIFF_TICK( tick, md.ud.canact_tick ) >= 0 );
+	const bool absorb_dodge_emergency = ( enemy_casting_absorb_on_me && md.ud.skilltimer == INVALID_TIMER && DIFF_TICK( tick, md.ud.canact_tick ) >= 0 );
+	const bool asura_dodge_emergency = ( enemy_casting_asura_on_me && md.ud.skilltimer == INVALID_TIMER && DIFF_TICK( tick, md.ud.canact_tick ) >= 0 );
+
+	// Post-Asura weakness must ALWAYS override the action gate, otherwise the generic mob AI may take over.
+	// Keep SP at 0 and retreat by WALKING (no skills / no Snap).
+	status_change* sc_gate = status_get_sc( &md );
+	if ( tbl != nullptr && sc_gate != nullptr && sc_gate->getSCE( SC_EXTREMITYFIST ) != nullptr ) {
+		if ( md.status.sp > 0 )
+			status_set_sp( &md, 0, 0 );
+
+		// Try to retreat by WALKING; use flag 4 to queue movement until can-move.
+		// Keep step distance modest so unit_walktoxy doesn't fail max_walk_path checks.
+		{
+			int16 tx = md.x;
+			int16 ty = md.y;
+			const int16 dx = md.x - tbl->x;
+			const int16 dy = md.y - tbl->y;
+			const int16 sdx = ( dx > 0 ? 1 : ( dx < 0 ? -1 : 0 ) );
+			const int16 sdy = ( dy > 0 ? 1 : ( dy < 0 ? -1 : 0 ) );
+			tx = static_cast<int16>( md.x + sdx * 6 );
+			ty = static_cast<int16>( md.y + sdy * 6 );
+
+			// Prefer the opposite direction; let unit_walktoxy search nearby free cell (flag 8).
+			// Use flag 4 to queue until can-move. Do not require a distance threshold; any motion is better than standing still.
+			if ( unit_walktoxy( &md, tx, ty, 4 | 8 ) == 0 ) {
+				// Broader attempts around the opposite point, then around self.
+				for ( int32 tries = 0; tries < 6; ++tries ) {
+					int16 x = tx;
+					int16 y = ty;
+					if ( map_search_freecell( &md, md.m, &x, &y, 5, 5, 1 | 2, 60 ) && unit_walktoxy( &md, x, y, 4 | 8 ) )
+						break;
+				}
+				for ( int32 tries = 0; tries < 6; ++tries ) {
+					int16 x = md.x;
+					int16 y = md.y;
+					if ( map_search_freecell( &md, md.m, &x, &y, 8, 8, 1 | 2, 60 ) && unit_walktoxy( &md, x, y, 4 | 8 ) )
+						break;
+				}
+			}
+		}
+		return true; // hard override while weakened
+	}
+
+	if ( DIFF_TICK( tick, next_action_tick ) < 0 && !sphere_emergency && !cc_dodge_emergency && !absorb_dodge_emergency && !asura_dodge_emergency )
+		return false;
+
+	// Core buffs via real skill effects (explosion spirits required for Asura checks).
+	status_change* sc = status_get_sc(&md);
+
+	// Incoming threat reaction: schedule short Hiding near the END of the enemy cast (Absorb / Asura).
+	{
+		const bool enemy_casting_threat_on_me = enemy_casting_absorb_on_me || enemy_casting_asura_on_me;
+		auto pend = g_arena_shura_pending_defhide_tick_by_gid.find( md.id );
+		const bool already_hiding = ( sc != nullptr && sc->getSCE( SC_HIDING ) != nullptr );
+
+		if ( !enemy_casting_threat_on_me ) {
+			if ( pend != g_arena_shura_pending_defhide_tick_by_gid.end() )
+				g_arena_shura_pending_defhide_tick_by_gid.erase( pend );
+		} else {
+			t_tick desired_at = 0;
+			if ( enemy_ud != nullptr && enemy_ud->skilltimer != INVALID_TIMER ) {
+				const TimerData* td = get_timer( enemy_ud->skilltimer );
+				if ( td != nullptr && td->tick > tick )
+					desired_at = td->tick - 80; // aim just before cast-end
+			}
+			if ( desired_at == 0 ) {
+				const int32 cast_ms = skill_get_cast( enemy_ud != nullptr ? enemy_ud->skill_id : MO_ABSORBSPIRITS, ( enemy_ud != nullptr ? enemy_ud->skill_lv : 1 ) );
+				desired_at = tick + std::clamp( cast_ms - 180, 50, 650 );
+			}
+			if ( pend == g_arena_shura_pending_defhide_tick_by_gid.end() )
+				g_arena_shura_pending_defhide_tick_by_gid[md.id] = desired_at;
+			else
+				pend->second = desired_at;
+		}
+
+		pend = g_arena_shura_pending_defhide_tick_by_gid.find( md.id );
+		if ( pend != g_arena_shura_pending_defhide_tick_by_gid.end() && DIFF_TICK( tick, pend->second ) >= 0 ) {
+			const t_tick next_hide = g_arena_shura_next_hide_tick_by_gid[md.id];
+			if ( enemy_casting_threat_on_me && !already_hiding && DIFF_TICK( tick, next_hide ) >= 0
+				&& md.ud.skilltimer == INVALID_TIMER && DIFF_TICK( tick, md.ud.canact_tick ) >= 0 ) {
+				g_arena_shura_pending_defhide_tick_by_gid.erase( pend );
+				g_arena_shura_next_hide_tick_by_gid[md.id] = tick + 9000;
+				if ( mob_arena_shura_skill_use( md, md.id, TF_HIDING, 1 ) ) {
+					g_arena_shura_hide_until_tick_by_gid[md.id] = tick + 1200;
+					set_next_action_fast( TF_HIDING, 1, 50 );
+					return true;
+				}
+			}
+		}
+	}
+
+	// If we entered Hiding, don't get stuck forever: reveal after a short defensive window.
+	// Also, reveal before attempting any meaningful action so skills aren't "invisible".
+	if ( sc != nullptr && sc->getSCE( SC_HIDING ) != nullptr ) {
+		const t_tick hide_until = g_arena_shura_hide_until_tick_by_gid[md.id];
+		if ( hide_until != 0 && DIFF_TICK( tick, hide_until ) >= 0 ) {
+			status_change_end( &md, SC_HIDING );
+		}
+	}
+	{
+		// Recast Raising Dragon occasionally, and prioritize it when low on spheres.
+		// This makes the bot less reliant on Zen to keep Snap going.
+		const t_tick next_rd = g_arena_shura_next_raisingdragon_tick_by_gid[md.id];
+		const bool missing_rd = ( sc != nullptr && sc->getSCE( SC_RAISINGDRAGON ) == nullptr );
+		const bool low_spheres = ( md.spiritball <= 2 );
+		if ( ( missing_rd || low_spheres ) && DIFF_TICK( tick, next_rd ) >= 0 && DIFF_TICK( tick, md.ud.canact_tick ) >= 0 ) {
+			g_arena_shura_next_raisingdragon_tick_by_gid[md.id] = tick + 9000;
+			if ( mob_arena_shura_skill_use( md, md.id, SR_RAISINGDRAGON, 10 ) ) {
+				set_next_action( SR_RAISINGDRAGON, 10 );
+				return true;
+			}
+		}
+		if ( md.spiritball < 1 && DIFF_TICK( tick, md.ud.canact_tick ) >= 0 && md.ud.skilltimer == INVALID_TIMER ) {
+			if ( mob_arena_shura_skill_use( md, md.id, CH_SOULCOLLECT, 1 ) ) {
+				set_next_action( CH_SOULCOLLECT, 1, 200 );
+				return true;
+			}
+		}
+	}
+	if ( sc != nullptr && sc->getSCE( SC_EXPLOSIONSPIRITS ) == nullptr ) {
+		if ( sc != nullptr && sc->getSCE( SC_HIDING ) != nullptr )
+			status_change_end( &md, SC_HIDING );
+		if ( mob_arena_shura_skill_use( md, md.id, MO_EXPLOSIONSPIRITS, 5 ) ) {
+			// Fury is instant but should remain readable (player-like pacing).
+			set_next_action( MO_EXPLOSIONSPIRITS, 5, 300 );
+			return true;
+		}
+		return false;
+	}
+
+	// Smokie card (accessory): Hiding when hurt — short defensive window (not spam).
+	if ( tbl != nullptr && md.status.max_hp > 0 ) {
+		const int32 hp_pct = static_cast<int32>( ( static_cast<uint64>( md.status.hp ) * 100ull ) / md.status.max_hp );
+		const t_tick next_hide = g_arena_shura_next_hide_tick_by_gid[md.id];
+		if ( hp_pct < 46 && DIFF_TICK( tick, next_hide ) >= 0 && ( sc == nullptr || sc->getSCE( SC_HIDING ) == nullptr ) ) {
+			g_arena_shura_next_hide_tick_by_gid[md.id] = tick + 14000;
+			if ( mob_arena_shura_skill_use( md, md.id, TF_HIDING, 1 ) ) {
+				// Keep it as a short "defensive" hide; then auto-reveal so the bot keeps fighting.
+				g_arena_shura_hide_until_tick_by_gid[md.id] = tick + 3000;
+				set_next_action( TF_HIDING, 1 );
+				return true;
+			}
+		}
+	}
+
+	int32 prev_enemy_dist = -1;
+	{
+		const auto dit = g_arena_shura_last_enemy_dist_by_gid.find( md.id );
+		if ( dit != g_arena_shura_last_enemy_dist_by_gid.end() )
+			prev_enemy_dist = dit->second;
+	}
+	// Teleport / big step-in: was too strict (prev>=7), so walking Snap chains also trigger.
+	const bool enemy_snap_in = ( tbl != nullptr && prev_enemy_dist >= 5 && dist <= 7 && ( prev_enemy_dist - dist ) >= 3 );
+	g_arena_shura_last_enemy_dist_by_gid[md.id] = dist;
+
+	const t_tick next_cc = g_arena_shura_next_cc_tick_by_gid[md.id];
+	const t_tick next_asura = g_arena_shura_next_asura_tick_by_gid[md.id];
+	const bool ready_for_asura = ( md.spiritball >= 1 ) && ( sc != nullptr && sc->getSCE( SC_EXPLOSIONSPIRITS ) != nullptr );
+	const bool pending_asura = ( g_arena_shura_pending_asura_tick_by_gid.find( md.id ) != g_arena_shura_pending_asura_tick_by_gid.end() );
+	status_change *enemy_sc = status_get_sc( tbl );
+	const bool enemy_hiding = ( enemy_sc != nullptr && enemy_sc->getSCE( SC_HIDING ) != nullptr );
+	t_tick last_snap = 0;
+	{
+		const auto sit = g_arena_shura_last_snap_tick_by_gid.find( md.id );
+		if ( sit != g_arena_shura_last_snap_tick_by_gid.end() )
+			last_snap = sit->second;
+	}
+	// After Body Relocation, only allow Asura again after 1s.
+	const bool snap_lock_asura = ( last_snap != 0 && DIFF_TICK( tick, last_snap + 1000 ) < 0 );
+	const bool can_asura_now = ( dist <= 2 && ready_for_asura && !pending_asura && !enemy_hiding && !snap_lock_asura
+		&& DIFF_TICK( tick, next_asura ) >= 0 && DIFF_TICK( tick, md.ud.canact_tick ) >= 0 && md.ud.skilltimer == INVALID_TIMER );
+
+	const bool enemy_in_fury = ( enemy_sc != nullptr && enemy_sc->getSCE( SC_EXPLOSIONSPIRITS ) != nullptr );
+	const bool sura_pointblank_threat = ( mob_arena_shura_target_is_mirror_sura( tbl ) && enemy_in_fury && dist >= 1 && dist <= 3 );
+
+	// Pre-empt Cursed Circle when the enemy teleports in (Snap) before melee-range checks (Windmill / dist<=2 CC).
+	if ( enemy_snap_in && dist <= 3 && DIFF_TICK( tick, next_cc ) >= 0 && DIFF_TICK( tick, md.ud.canact_tick ) >= 0 && md.ud.skilltimer == INVALID_TIMER ) {
+		if ( sc != nullptr && sc->getSCE( SC_HIDING ) != nullptr )
+			status_change_end( &md, SC_HIDING );
+		if ( mob_arena_shura_skill_use( md, md.id, SR_CURSEDCIRCLE, 5 ) ) {
+			g_arena_shura_next_cc_tick_by_gid[md.id] = tick + ( skill_get_cooldown( SR_CURSEDCIRCLE, 5 ) + skill_get_delay( SR_CURSEDCIRCLE, 5 ) ) * 2;
+			g_arena_shura_pending_asura_tick_by_gid[md.id] = tick + std::max( 280, skill_get_cast( SR_CURSEDCIRCLE, 5 ) + 120 );
+			set_next_action( SR_CURSEDCIRCLE, 5 );
+			return true;
+		}
+	}
+
+	// If CC already landed (pending-asura timer hit), prioritize Asura over utility skills.
+	{
+		auto pend_it = g_arena_shura_pending_asura_tick_by_gid.find( md.id );
+		if ( pend_it != g_arena_shura_pending_asura_tick_by_gid.end() && DIFF_TICK( tick, pend_it->second ) >= 0 ) {
+			// Don't allow combo-Asura right after Snap.
+			if ( snap_lock_asura ) {
+				pend_it->second = std::max<t_tick>( pend_it->second, last_snap + 1000 );
+				return false;
+			}
+			if ( enemy_hiding || !( tbl != nullptr && check_distance_bl( &md, tbl, 3 ) && ready_for_asura ) ) {
+				g_arena_shura_pending_asura_tick_by_gid.erase( pend_it );
+			} else if ( DIFF_TICK( tick, md.ud.canact_tick ) < 0 || md.ud.skilltimer != INVALID_TIMER ) {
+				pend_it->second = tick + 50;
+			} else {
+				g_arena_shura_pending_asura_tick_by_gid.erase( pend_it );
+				g_arena_shura_next_asura_tick_by_gid[md.id] = tick + ( skill_get_delay( MO_EXTREMITYFIST, 5 ) * 2 ) + 2000;
+				if ( sc != nullptr && sc->getSCE( SC_HIDING ) != nullptr )
+					status_change_end( &md, SC_HIDING );
+				if ( mob_arena_shura_skill_use( md, tbl->id, MO_EXTREMITYFIST, 5 ) ) {
+					set_next_action( MO_EXTREMITYFIST, 5 );
+					return true;
+				}
+				return false;
+			}
+		}
+	}
+
+	// Clean Asura opportunity: don't waste the window on Absorb/Windmill.
+	if ( can_asura_now ) {
+		g_arena_shura_next_asura_tick_by_gid[md.id] = tick + ( skill_get_delay( MO_EXTREMITYFIST, 5 ) * 2 ) + 2000;
+		if ( sc != nullptr && sc->getSCE( SC_HIDING ) != nullptr )
+			status_change_end( &md, SC_HIDING );
+		if ( mob_arena_shura_skill_use( md, tbl->id, MO_EXTREMITYFIST, 5 ) ) {
+			set_next_action( MO_EXTREMITYFIST, 5 );
+			return true;
+		}
+		return false;
+	}
+
+	// Enemy is casting Cursed Circle on themselves — get out, interrupt, or trade CC before splash resolves.
+	if ( enemy_casting_cc && dist <= 8 && md.ud.skilltimer == INVALID_TIMER && DIFF_TICK( tick, md.ud.canact_tick ) >= 0 ) {
+		const t_tick next_wm = g_arena_shura_next_windmill_tick_by_gid[md.id];
+		const bool wm_panic = ( enemy_casting_cc && dist <= 3 );
+		if ( dist <= 4 && ( DIFF_TICK( tick, next_wm ) >= 0 || wm_panic ) ) {
+			if ( sc != nullptr && sc->getSCE( SC_HIDING ) != nullptr )
+				status_change_end( &md, SC_HIDING );
+			const uint16 wm_lv = static_cast<uint16>( std::max( 1, skill_get_max( SR_WINDMILL ) ) );
+			if ( mob_arena_shura_skill_use( md, md.id, SR_WINDMILL, wm_lv ) ) {
+				g_arena_shura_next_windmill_tick_by_gid[md.id] = tick + 3200;
+				set_next_action_fast( SR_WINDMILL, wm_lv );
+				return true;
+			}
+		}
+		if ( md.spiritball >= 1 && unit_can_move( &md ) ) {
+			const t_tick next_snap_em = g_arena_shura_next_snap_tick_by_gid[md.id];
+			if ( DIFF_TICK( tick, next_snap_em ) >= 0 ) {
+				int16 fx = md.x;
+				int16 fy = md.y;
+				if ( map_search_freecell( &md, md.m, &fx, &fy, 10, 10, 1 | 2, 50 ) ) {
+					const int32 dd = distance_xy( fx, fy, tbl->x, tbl->y );
+					if ( dd >= 5 && unit_movepos( &md, fx, fy, 2, true ) ) {
+						clif_snap( &md, md.x, md.y );
+						g_arena_shura_last_snap_tick_by_gid[md.id] = tick;
+						md.spiritball = static_cast<int16>( std::max<int32>( 0, md.spiritball - 1 ) );
+						clif_spiritball( &md, nullptr, AREA );
+						g_arena_shura_next_snap_tick_by_gid[md.id] = tick + 350;
+						set_next_action_fast( MO_BODYRELOCATION, 1, 50 );
+						return true;
+					}
+				}
+			}
+		}
+		// Only trade CC while still inside their splash (self-centered on them); at dist 6+ prefer flee above.
+		if ( dist <= 3 && DIFF_TICK( tick, next_cc ) >= 0 && md.ud.skilltimer == INVALID_TIMER ) {
+			if ( sc != nullptr && sc->getSCE( SC_HIDING ) != nullptr )
+				status_change_end( &md, SC_HIDING );
+			if ( mob_arena_shura_skill_use( md, md.id, SR_CURSEDCIRCLE, 5 ) ) {
+				g_arena_shura_next_cc_tick_by_gid[md.id] = tick + ( skill_get_cooldown( SR_CURSEDCIRCLE, 5 ) + skill_get_delay( SR_CURSEDCIRCLE, 5 ) ) * 2;
+				g_arena_shura_pending_asura_tick_by_gid[md.id] = tick + std::max( 280, skill_get_cast( SR_CURSEDCIRCLE, 5 ) + 120 );
+				set_next_action( SR_CURSEDCIRCLE, 5 );
+				return true;
+			}
+		}
+	}
+
+	// Sura mirror matchup: strip enemy spirit spheres (MO_ABSORBSPIRITS) when they use spheres too.
+	if ( tbl != nullptr && mob_arena_shura_target_is_mirror_sura( tbl ) ) {
+		if ( sc != nullptr && sc->getSCE( SC_HIDING ) != nullptr )
+			status_change_end( &md, SC_HIDING );
+
+		int32 enemy_balls = 0;
+		if ( tbl->type == BL_PC ) {
+			const map_session_data* esd = BL_CAST( BL_PC, tbl );
+			if ( esd != nullptr )
+				enemy_balls = esd->spiritball;
+		} else if ( tbl->type == BL_MOB ) {
+			const mob_data* emd = BL_CAST( BL_MOB, tbl );
+			if ( emd != nullptr && emd->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1 )
+				enemy_balls = emd->spiritball;
+		}
+
+		const t_tick next_abs = g_arena_shura_next_absorb_tick_by_gid[md.id];
+		if ( enemy_balls >= 1 && dist <= 9 && !can_asura_now && DIFF_TICK( tick, next_abs ) >= 0 && DIFF_TICK( tick, md.ud.canact_tick ) >= 0 ) {
+			const uint16 abs_lv = static_cast<uint16>( std::max( 1, skill_get_max( MO_ABSORBSPIRITS ) ) );
+			if ( mob_arena_shura_skill_use( md, tbl->id, MO_ABSORBSPIRITS, abs_lv ) ) {
+				g_arena_shura_next_absorb_tick_by_gid[md.id] = tick + 9000;
+				set_next_action_fast( MO_ABSORBSPIRITS, abs_lv );
+				return true;
+			}
+		}
+	}
+
+	// SR_WINDMILL ("chute rasteiro"): self-centered splash — usable vs any enemy class when in melee range.
+	if ( tbl != nullptr && tbl->m == md.m && battle_check_target( &md, tbl, BCT_ENEMY ) > 0 ) {
+		if ( sc != nullptr && sc->getSCE( SC_HIDING ) != nullptr )
+			status_change_end( &md, SC_HIDING );
+		const t_tick next_wm = g_arena_shura_next_windmill_tick_by_gid[md.id];
+		if ( !can_asura_now && ( dist <= 2 || ( enemy_snap_in && dist <= 4 ) || ( enemy_casting_cc && dist <= 4 ) ) && ( DIFF_TICK( tick, next_wm ) >= 0 || ( enemy_casting_cc && dist <= 3 ) ) && DIFF_TICK( tick, md.ud.canact_tick ) >= 0 ) {
+			const uint16 wm_lv = static_cast<uint16>( std::max( 1, skill_get_max( SR_WINDMILL ) ) );
+			if ( mob_arena_shura_skill_use( md, md.id, SR_WINDMILL, wm_lv ) ) {
+				g_arena_shura_next_windmill_tick_by_gid[md.id] = tick + 3200;
+				set_next_action_fast( SR_WINDMILL, wm_lv );
+				return true;
+			}
+		}
+	}
+
+	if ( ( dist <= 3 || sura_pointblank_threat ) && DIFF_TICK( tick, next_cc ) >= 0 && DIFF_TICK( tick, md.ud.canact_tick ) >= 0 && md.ud.skilltimer == INVALID_TIMER ) {
+		if ( sc != nullptr && sc->getSCE( SC_HIDING ) != nullptr )
+			status_change_end( &md, SC_HIDING );
+		if ( mob_arena_shura_skill_use( md, md.id, SR_CURSEDCIRCLE, 5 ) ) {
+			g_arena_shura_next_cc_tick_by_gid[md.id] = tick + ( skill_get_cooldown( SR_CURSEDCIRCLE, 5 ) + skill_get_delay( SR_CURSEDCIRCLE, 5 ) ) * 2;
+			g_arena_shura_pending_asura_tick_by_gid[md.id] = tick + std::max( 280, skill_get_cast( SR_CURSEDCIRCLE, 5 ) + 120 );
+			set_next_action( SR_CURSEDCIRCLE, 5 );
+			return true;
+		}
+		return false;
+	}
+
+	// Constant Snap: keep a safe distance and move to random tiles around the target.
+	// Desired band: 5..9 cells.
+	const t_tick next_snap = g_arena_shura_next_snap_tick_by_gid[md.id];
+	// Can't Snap at 0 SP (player-like), and never Snap during post-Asura weakness.
+	if ( md.status.sp > 0 && ( sc == nullptr || sc->getSCE( SC_EXTREMITYFIST ) == nullptr ) && DIFF_TICK(tick, next_snap) >= 0) {
+		// If target got far, prioritize chasing (snap near the target) instead of random kiting.
+		const bool chase_far = (dist > 12);
+		bool should_snap = true;
+		if (dist >= 5 && dist <= 9) {
+			// Still snap periodically while "kiting"
+			should_snap = true;
+		}
+		if (should_snap) {
+			// If we're out of spheres, prefer Raising Dragon first (less "Zen spam").
+			if ( md.spiritball < 1 ) {
+				const t_tick next_rd = g_arena_shura_next_raisingdragon_tick_by_gid[md.id];
+				if ( DIFF_TICK( tick, next_rd ) >= 0 && DIFF_TICK( tick, md.ud.canact_tick ) >= 0 ) {
+					g_arena_shura_next_raisingdragon_tick_by_gid[md.id] = tick + 9000;
+					if ( mob_arena_shura_skill_use( md, md.id, SR_RAISINGDRAGON, 10 ) ) {
+						set_next_action( SR_RAISINGDRAGON, 10 );
+						return true;
+					}
+				}
+				if ( mob_arena_shura_skill_use( md, md.id, CH_SOULCOLLECT, 1 ) ) {
+					set_next_action( CH_SOULCOLLECT, 1, 200 );
+					return true;
+				}
+				return false;
+			}
+
+			// If movement is blocked, don't burn the snap cooldown too aggressively.
+			if (!unit_can_move(&md)) {
+				g_arena_shura_next_snap_tick_by_gid[md.id] = tick + 250;
+				return false;
+			}
+
+			int16 x = tbl->x;
+			int16 y = tbl->y;
+			// Tighter radius when already close so Snap sets up Cursed Circle / melee more reliably.
+			const int16 rad = chase_far ? 3 : ( dist <= 4 ? 2 : 7 );
+			// Flag 1: around given x/y (target). Flag 2: must be reachable by src (avoid snapping into unreachable pockets).
+			if (map_search_freecell(&md, md.m, &x, &y, rad, rad, 1|2, 30)) {
+				g_arena_shura_next_snap_tick_by_gid[md.id] = tick + (chase_far ? 350 : 600);
+				// Use the same movement as MO_BODYRELOCATION (Snap), but without skill requirement checks for mobs.
+				// This avoids "teleport feeling" while keeping the Snap visuals.
+				if (unit_movepos(&md, x, y, 2, true))
+					clif_snap(&md, md.x, md.y);
+				g_arena_shura_last_snap_tick_by_gid[md.id] = tick;
+				md.spiritball = static_cast<int16>( std::max<int32>( 0, md.spiritball - 1 ) );
+				clif_spiritball( &md, nullptr, AREA );
+				set_next_action(MO_BODYRELOCATION, 1, chase_far ? 50 : 150);
+				return true;
+			}
+			// If no cell found, back off the snap a bit.
+			g_arena_shura_next_snap_tick_by_gid[md.id] = tick + 1200;
+		}
+	}
+
+	return false;
+}
 
 // On official servers, monsters will only seek targets that are closer to walk to than their
 // search range. The search range is affected depending on if the monster is walking or not.
@@ -1206,6 +1824,18 @@ int32 mob_spawn (struct mob_data *md)
 
 	md->lootitem_count = 0;
 
+	// Arena Shura bot: force client-side sprite to an existing PC job (Sura Trans) to avoid client crashes
+	// when the client has no mapping for monster class id 31997.
+	if (md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1) {
+		mob_set_dynamic_viewdata(md);
+		if (md->vd != nullptr) {
+			md->vd->look[LOOK_BASE] = JOB_SURA_T;
+			md->vd->look[LOOK_BODY2] = JOB_SURA_T;
+			clif_class_change(*md, md->vd->look[LOOK_BASE]);
+			clif_changelook(md, LOOK_BODY2, md->vd->look[LOOK_BODY2]);
+		}
+	}
+
 	if(md->db->option)
 		// Added for carts, falcons and pecos for cloned monsters. [Valaris]
 		md->sc.option = md->db->option;
@@ -1218,6 +1848,13 @@ int32 mob_spawn (struct mob_data *md)
 		return 2;
 	if( map_getmapdata(md->m)->users )
 		clif_spawn(md);
+	if ( md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1 ) {
+		mob_arena_shura_apply_equipment_look( md );
+		mob_arena_shura_apply_potadora_buffs( md );
+		// Consumable sustain (same effect as item 11548 script: percentheal 10,0)
+		g_arena_shura_potion11548_stock_by_gid[md->id] = 30;
+		g_arena_shura_next_potion11548_tick_by_gid.erase( md->id );
+	}
 	skill_unit_move(md,tick,1);
 	mobskill_use(md, tick, MSC_SPAWN);
 	return 0;
@@ -1324,7 +1961,8 @@ static int32 mob_ai_sub_hard_activesearch(struct block_list *bl,va_list ap)
 	mode= static_cast<enum e_mode>(va_arg(ap, int32));
 
 	//If can't seek yet, not an enemy, or you can't attack it, skip.
-	if ((*target) == bl || !status_check_skilluse(md, bl, 0, 0))
+	// Arena Shura: skill-only; without MD_CANATTACK (or YAML) status_check_skilluse(...,0) fails and it never picks an enemy.
+	if( (*target) == bl || ( md->mob_id != MOB_ID_ARENA_BOT_SHURA_1V1 && !status_check_skilluse( md, bl, 0, 0 ) ) )
 		return 0;
 
 	if ((mode&MD_TARGETWEAK) && status_get_lv(bl) >= md->level-5)
@@ -1376,9 +2014,9 @@ static int32 mob_ai_sub_hard_changechase(struct block_list *bl,va_list ap)
 	target= va_arg(ap,struct block_list**);
 
 	//If can't seek yet, not an enemy, or you can't attack it, skip.
-	if ((*target) == bl ||
-		battle_check_target(md,bl,BCT_ENEMY)<=0 ||
-	  	!status_check_skilluse(md, bl, 0, 0))
+	if( (*target) == bl ||
+		battle_check_target( md, bl, BCT_ENEMY ) <= 0 ||
+		( md->mob_id != MOB_ID_ARENA_BOT_SHURA_1V1 && !status_check_skilluse( md, bl, 0, 0 ) ) )
 		return 0;
 
 	if(battle_check_range (md, bl, md->status.rhw.range))
@@ -1851,11 +2489,27 @@ static bool mob_ai_sub_hard(struct mob_data *md, t_tick tick)
 	if (md->ud.state.force_walk)
 		return false;
 
-	if (DIFF_TICK(tick, md->next_thinktime) < 0)
+	// Arena Shura bot should not be throttled by next_thinktime (it must keep snapping responsively).
+	if (md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1 && DIFF_TICK(tick, md->next_thinktime) < 0)
+		md->next_thinktime = tick;
+	else if (DIFF_TICK(tick, md->next_thinktime) < 0)
 		return false;
 
 	// This prevents the lazy AI from being executed at the same time
 	md->next_thinktime = tick;
+
+	// Arena Shura bot custom AI (skill-only). This is isolated to mob_id 31997.
+	if (md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1) {
+		// Watchdog: if it gets stuck in casting state, clear it after a short timeout so it doesn't freeze forever.
+		if (md->ud.skilltimer != INVALID_TIMER && DIFF_TICK(tick, md->ud.canact_tick) > 3000) {
+			// Safe cancel: just drop the timer id; castend handlers will see mismatch and clean up.
+			md->ud.skilltimer = INVALID_TIMER;
+			md->ud.skill_id = 0;
+			md->ud.skill_lv = 0;
+		}
+		if (mob_arena_shura_ai_tick(*md, tick))
+			return true;
+	}
 
 	if (md->ud.skilltimer != INVALID_TIMER)
 		return false;
@@ -1901,11 +2555,19 @@ static bool mob_ai_sub_hard(struct mob_data *md, t_tick tick)
 	if (can_move)
 		md->last_canmove = tick;
 
+	// Arena Shura bot: if it lost target (e.g. after aggressive snapping), try to reacquire quickly.
+	if (md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1 && md->target_id == 0) {
+		block_list* newtbl = nullptr;
+		map_foreachinallrange(mob_ai_sub_hard_activesearch, md, md->db->range3, DEFAULT_ENEMY_TYPE(md), md, &newtbl, mode);
+		if (newtbl != nullptr)
+			tbl = newtbl;
+	}
+
 	if (md->target_id)
 	{	//Check validity of current target. [Skotlex]
 		tbl = map_id2bl(md->target_id);
 		if (!tbl || tbl->m != md->m ||
-			(md->ud.attacktimer == INVALID_TIMER && !status_check_skilluse(md, tbl, 0, 0)) ||
+			(md->ud.attacktimer == INVALID_TIMER && md->mob_id != MOB_ID_ARENA_BOT_SHURA_1V1 && !status_check_skilluse(md, tbl, 0, 0)) ||
 			(
 				tbl->type == BL_PC &&
 				((((TBL_PC*)tbl)->state.gangsterparadise && !(mode&MD_STATUSIMMUNE)) ||
@@ -1925,7 +2587,7 @@ static bool mob_ai_sub_hard(struct mob_data *md, t_tick tick)
 			// But don't do this if they stopped because target is already in attack range
 			if (!battle_check_range(md, tbl, md->status.rhw.range)) {
 				// If target is no longer visible, target is dropped and the monster waits for next iteration to continue
-				if (!status_check_visibility(md, tbl, true)) {
+				if (md->mob_id != MOB_ID_ARENA_BOT_SHURA_1V1 && !status_check_visibility(md, tbl, true)) {
 					mob_unlocktarget(md, tick);
 					return true;
 				}
@@ -2138,7 +2800,8 @@ static bool mob_ai_sub_hard(struct mob_data *md, t_tick tick)
 	// At this point we know the target is attackable, attempt to attack
 
 	// Normal attack / berserk skill is only used when target is in range
-	if (battle_check_range(md, tbl, md->status.rhw.range))
+	// Arena Shura 31997: skills-only (no melee auto-attack).
+	if (battle_check_range(md, tbl, md->status.rhw.range) && md->mob_id != MOB_ID_ARENA_BOT_SHURA_1V1)
 	{
 		int32 stop_flag = USW_FIXPOS|USW_RELEASE_TARGET;
 
@@ -2208,12 +2871,18 @@ static bool mob_ai_sub_hard(struct mob_data *md, t_tick tick)
 
 	// Monsters in Angry state only start chasing when target is in chase range
 	if (md->state.skillstate == MSS_ANGRY && !mob_can_reach(md, tbl, md->db->range3)) {
-		mob_unlocktarget(md, tick);
+		if (md->mob_id != MOB_ID_ARENA_BOT_SHURA_1V1)
+			mob_unlocktarget(md, tick);
 		return true;
 	}
 
-	if(!unit_walktobl(md, tbl, md->status.rhw.range, 2))
-		mob_unlocktarget(md, tick);
+	if( !unit_walktobl( md, tbl, md->status.rhw.range, 2 ) ) {
+		// Shura arena without auto-attack: already in melee range => walktobl fails; don't drop target or it can freeze.
+		if( md->mob_id != MOB_ID_ARENA_BOT_SHURA_1V1 )
+			mob_unlocktarget( md, tick );
+		else if( !mob_can_reach( md, tbl, md->db->range3 ) )
+			mob_unlocktarget( md, tick );
+	}
 
 	return true;
 }
@@ -2942,6 +3611,24 @@ int32 mob_dead(struct mob_data *md, struct block_list *src, int32 type)
 	bool rebirth, homkillonly, merckillonly;
 
 	status = &md->status;
+
+	if (md->mob_id == MOB_ID_ARENA_BOT_SHURA_1V1) {
+		g_arena_shura_pending_asura_tick_by_gid.erase( md->id );
+		g_arena_shura_next_hide_tick_by_gid.erase( md->id );
+		g_arena_shura_hide_until_tick_by_gid.erase( md->id );
+		g_arena_shura_next_raisingdragon_tick_by_gid.erase( md->id );
+		g_arena_shura_potion11548_stock_by_gid.erase( md->id );
+		g_arena_shura_next_potion11548_tick_by_gid.erase( md->id );
+		g_arena_shura_next_absorb_tick_by_gid.erase( md->id );
+		g_arena_shura_next_windmill_tick_by_gid.erase( md->id );
+		g_arena_shura_last_enemy_dist_by_gid.erase( md->id );
+		g_arena_shura_last_snap_tick_by_gid.erase( md->id );
+		g_arena_shura_pending_defhide_tick_by_gid.erase( md->id );
+	}
+	g_arena_shura_next_snap_tick_by_gid.erase(md->id);
+	g_arena_shura_next_cc_tick_by_gid.erase(md->id);
+	g_arena_shura_next_asura_tick_by_gid.erase(md->id);
+	g_arena_shura_next_action_tick_by_gid.erase(md->id);
 
 	if( src && src->type == BL_PC ) {
 		sd = (map_session_data *)src;
@@ -5543,6 +6230,9 @@ void MobDatabase::loadingFinished() {
 		// On aegis there is no real visible effect of having a recharge-time less than amotion anyway.
 		mob->status.adelay = max(mob->status.adelay, mob->status.amotion);
 		mob->status.aspd_rate = 1000;
+		// Bakonawa Agility Tattoo [2910]: ~+10% ASPD (mob ASPD rate: lower = faster).
+		if ( mob->id == MOB_ID_ARENA_BOT_SHURA_1V1 )
+			mob->status.aspd_rate = 900;
 
 		if (!battle_config.monster_active_enable)
 			mob->status.mode = static_cast<enum e_mode>(mob->status.mode & ~MD_AGGRESSIVE);

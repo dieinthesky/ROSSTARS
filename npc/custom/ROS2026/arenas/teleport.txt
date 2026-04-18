@@ -1,12 +1,12 @@
 // NPC para Batalha 7x7 - Time Azul  
-izlude,123,142,5	script	Guardi?o Azul#7x7	733,{  
-    // Verifica se ? visitante (sem party e sem guild)  
+izlude,123,142,5	script	Guardiao Azul#7x7	733,{  
+    // Verifica se e visitante (sem party e sem guild)
     if (getcharid(1) == 0 && getcharid(2) == 0) {  
-        mes "[Guardi?o Azul]";  
+        mes "[Guardiao Azul]";  
         mes "Bem-vindo visitante!";  
         mes "Deseja entrar como visitante para observar a batalha?";  
         next;  
-        if (select("Sim, entrar como visitante", "N?o, obrigado") == 1) {  
+        if (select("Sim, entrar como visitante", "Nao, obrigado") == 1) {  
             warp "tra_fild", 97, 165;  
             close;  
         }  
@@ -15,30 +15,30 @@ izlude,123,142,5	script	Guardi?o Azul#7x7	733,{
       
     // Verifica se tem party  
     if (getcharid(1) == 0) {  
-        mes "[Guardi?o Azul]";  
-        mes "Voc? precisa estar em uma party para entrar!";  
+        mes "[Guardiao Azul]";  
+        mes "Voce precisa estar em uma party para entrar!";  
         close;  
     }  
       
     // Verifica se tem guild  
     if (getcharid(2) == 0) {  
-        mes "[Guardi?o Azul]";  
-        mes "Voc? precisa estar em uma guild para entrar!";  
+        mes "[Guardiao Azul]";  
+        mes "Voce precisa estar em uma guild para entrar!";  
         close;  
     }  
       
-    // Verifica se ? o l?der da party  
+    // Verifica se e o lider da party
     if (!is_party_leader()) {  
-        mes "[Guardi?o Azul]";  
-        mes "Apenas o l?der da party pode falar comigo!";  
+        mes "[Guardiao Azul]";  
+        mes "Apenas o lider da party pode falar comigo!";  
         close;  
     }  
       
-    // Obt?m todos os membros da party (account_id)  
+    // Obtem todos os membros da party (account_id)  
     getpartymember getcharid(1), 2;  
     .@party_size = $@partymembercount;  
       
-    // Conta quantos membros est?o online  
+    // Conta quantos membros estao online  
     .@online_count = 0;  
     for (set .@i, 0; .@i < .@party_size; set .@i, .@i + 1) {  
         if (isloggedin($@partymemberaid[.@i])) {  
@@ -48,27 +48,27 @@ izlude,123,142,5	script	Guardi?o Azul#7x7	733,{
       
     // Verifica se tem exatamente 2 pessoas online na party  
     if (.@online_count != 2) {  
-        mes "[Guardi?o Azul]";  
+        mes "[Guardiao Azul]";  
         mes "Sua party precisa ter exatamente 2 pessoas online!";  
         mes "Membros totais: " + .@party_size;  
         mes "Membros online: " + .@online_count;  
         close;  
     }  
       
-    mes "[Guardi?o Azul]";  
-    mes "Sua party est? completa!";  
+    mes "[Guardiao Azul]";  
+    mes "Sua party esta completa!";  
     mes "Membros online: " + .@online_count;  
     mes "Guild: " + getguildname(getcharid(2));  
     next;  
-    mes "[Guardi?o Azul]";  
+    mes "[Guardiao Azul]";  
     mes "Deseja entrar na batalha 7x7?";  
-    mes "Todos os membros online ser?o puxados juntos.";  
+    mes "Todos os membros online serao puxados juntos.";  
     next;  
       
-    if (select("Sim, entrar!", "N?o, ainda n?o") == 1) {  
+    if (select("Sim, entrar!", "Nao, ainda nao") == 1) {  
         // Usa warpparty para puxar todos os membros da party  
         warpparty "tra_fild", 97, 165, getcharid(1);  
-        mes "[Guardi?o Azul]";  
+        mes "[Guardiao Azul]";  
         mes "Boa sorte na batalha!";  
         close;  
     }  
@@ -76,14 +76,14 @@ izlude,123,142,5	script	Guardi?o Azul#7x7	733,{
 }  
   
 // NPC para Batalha 7x7 - Time Vermelho  
-izlude,132,142,5	script	Guardi?o Vermelho#7x7	734,{  
-    // Verifica se ? visitante (sem party e sem guild)  
+izlude,132,142,5	script	Guardiao Vermelho#7x7	734,{  
+    // Verifica se e visitante (sem party e sem guild)
     if (getcharid(1) == 0 && getcharid(2) == 0) {  
-        mes "[Guardi?o Vermelho]";  
+        mes "[Guardiao Vermelho]";  
         mes "Bem-vindo visitante!";  
         mes "Deseja entrar como visitante para observar a batalha?";  
         next;  
-        if (select("Sim, entrar como visitante", "N?o, obrigado") == 1) {  
+        if (select("Sim, entrar como visitante", "Nao, obrigado") == 1) {  
             warp "tra_fild", 111, 165;  
             close;  
         }  
@@ -92,30 +92,30 @@ izlude,132,142,5	script	Guardi?o Vermelho#7x7	734,{
       
     // Verifica se tem party  
     if (getcharid(1) == 0) {  
-        mes "[Guardi?o Vermelho]";  
-        mes "Voc? precisa estar em uma party para entrar!";  
+        mes "[Guardiao Vermelho]";  
+        mes "Voce precisa estar em uma party para entrar!";  
         close;  
     }  
       
     // Verifica se tem guild  
     if (getcharid(2) == 0) {  
-        mes "[Guardi?o Vermelho]";  
-        mes "Voc? precisa estar em uma guild para entrar!";  
+        mes "[Guardiao Vermelho]";  
+        mes "Voce precisa estar em uma guild para entrar!";  
         close;  
     }  
       
-    // Verifica se ? o l?der da party  
+    // Verifica se e o lider da party
     if (!is_party_leader()) {  
-        mes "[Guardi?o Vermelho]";  
-        mes "Apenas o l?der da party pode falar comigo!";  
+        mes "[Guardiao Vermelho]";  
+        mes "Apenas o lider da party pode falar comigo!";  
         close;  
     }  
       
-    // Obt?m todos os membros da party (account_id)  
+    // Obtem todos os membros da party (account_id)  
     getpartymember getcharid(1), 2;  
     .@party_size = $@partymembercount;  
       
-    // Conta quantos membros est?o online  
+    // Conta quantos membros estao online  
     .@online_count = 0;  
     for (set .@i, 0; .@i < .@party_size; set .@i, .@i + 1) {  
         if (isloggedin($@partymemberaid[.@i])) {  
@@ -125,27 +125,27 @@ izlude,132,142,5	script	Guardi?o Vermelho#7x7	734,{
       
     // Verifica se tem exatamente 2 pessoas online na party  
     if (.@online_count != 2) {  
-        mes "[Guardi?o Vermelho]";  
+        mes "[Guardiao Vermelho]";  
         mes "Sua party precisa ter exatamente 2 pessoas online!";  
         mes "Membros totais: " + .@party_size;  
         mes "Membros online: " + .@online_count;  
         close;  
     }  
       
-    mes "[Guardi?o Vermelho]";  
-    mes "Sua party est? completa!";  
+    mes "[Guardiao Vermelho]";  
+    mes "Sua party esta completa!";  
     mes "Membros online: " + .@online_count;  
     mes "Guild: " + getguildname(getcharid(2));  
     next;  
-    mes "[Guardi?o Vermelho]";  
+    mes "[Guardiao Vermelho]";  
     mes "Deseja entrar na batalha 7x7?";  
-    mes "Todos os membros online ser?o puxados juntos.";  
+    mes "Todos os membros online serao puxados juntos.";  
     next;  
       
-    if (select("Sim, entrar!", "N?o, ainda n?o") == 1) {  
+    if (select("Sim, entrar!", "Nao, ainda nao") == 1) {  
         // Usa warpparty para puxar todos os membros da party  
         warpparty "tra_fild", 111, 165, getcharid(1);  
-        mes "[Guardi?o Vermelho]";  
+        mes "[Guardiao Vermelho]";  
         mes "Boa sorte na batalha!";  
         close;  
     }  

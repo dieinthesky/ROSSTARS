@@ -9,10 +9,39 @@
 OnInit:
 	setmapflag "2025arena1", mf_battleground;
 	setmapflag "2025arena1", mf_noreturn;
+	// Garante que os NPCs de entrada estejam ativos apos reload/restart.
+	enablenpc "Arena2025_WR_Blue";
+	enablenpc "Arena2025_WR_Red";
 	end;
 
 OnBlueQuit:
-	set BG_Delay_Tick, gettimetick(2) + 2000;
+	if ($@arena2025BG != 1 && $@arena2025BG != 2)
+		end;
+	.@pname$ = strcharinfo(0);
+	.@gid = getcharid(2);
+	if (.@gid)
+		.@gname$ = getguildname(.@gid);
+	else
+		.@gname$ = "sem guild";
+	mapannounce "2025arena1","[Arena GlastHeim] O player "+.@pname$+" da guild "+.@gname$+" se desconectou da partida!",bc_yellow;
+	soundeffectall "bandonou.wav",0,"2025arena1";
+	if ($@arena2025BG == 2) {
+		set .Blue_Count, .Blue_Count - 1;
+		set .Red_Score, .Red_Score + 1;
+		if (.Blue_Count < 1) {
+			.@elapsed = gettimetick(2) - .fight_start_sec;
+			if (.@elapsed < 0) set .@elapsed, 0;
+			.@rem = 420 - .@elapsed;
+			if (.@rem < 0) set .@rem, 0;
+			bg_updatescore "2025arena1",.Blue_Count,.Red_Count;
+			if ($@rostars_hud_bg_arenas)
+				rostars_hud_bg_from_bg "2025arena1",$@arena2025BG_id1,$@arena2025BG_id2,1,.@rem,.Blue_Count,.Red_Count;
+			donpcevent "Arena2025_BG::OnRedWin";
+		}
+	} else if ($@arena2025BG == 1) {
+		// Durante preparacao (countdown), qualquer desconexao encerra a partida.
+		donpcevent "Arena2025_BG::OnRedWin";
+	}
 	end;
 
 OnBlueDie:
@@ -20,14 +49,47 @@ OnBlueDie:
 		message strcharinfo(0), "[ARENA] Voce foi morto na arena. Aguarde o fim da partida para retornar!";
 		set .Blue_Count, .Blue_Count - 1;
 		set .Red_Score, .Red_Score + 1;
-		bg_updatescore "2025arena1",.Blue_Count,.Red_Count;
-		if (.Blue_Count < 1)
+		if (.Blue_Count < 1) {
+			.@elapsed = gettimetick(2) - .fight_start_sec;
+			if (.@elapsed < 0) set .@elapsed, 0;
+			.@rem = 420 - .@elapsed;
+			if (.@rem < 0) set .@rem, 0;
+			bg_updatescore "2025arena1",.Blue_Count,.Red_Count;
+			if ($@rostars_hud_bg_arenas)
+				rostars_hud_bg_from_bg "2025arena1",$@arena2025BG_id1,$@arena2025BG_id2,1,.@rem,.Blue_Count,.Red_Count;
 			donpcevent "Arena2025_BG::OnRedWin";
+		}
 	}
 	end;
 
 OnRedQuit:
-	set BG_Delay_Tick, gettimetick(2) + 2000;
+	if ($@arena2025BG != 1 && $@arena2025BG != 2)
+		end;
+	.@pname$ = strcharinfo(0);
+	.@gid = getcharid(2);
+	if (.@gid)
+		.@gname$ = getguildname(.@gid);
+	else
+		.@gname$ = "sem guild";
+	mapannounce "2025arena1","[Arena GlastHeim] O player "+.@pname$+" da guild "+.@gname$+" se desconectou da partida!",bc_yellow;
+	soundeffectall "bandonou.wav",0,"2025arena1";
+	if ($@arena2025BG == 2) {
+		set .Red_Count, .Red_Count - 1;
+		set .Blue_Score, .Blue_Score + 1;
+		if (.Red_Count < 1) {
+			.@elapsed = gettimetick(2) - .fight_start_sec;
+			if (.@elapsed < 0) set .@elapsed, 0;
+			.@rem = 420 - .@elapsed;
+			if (.@rem < 0) set .@rem, 0;
+			bg_updatescore "2025arena1",.Blue_Count,.Red_Count;
+			if ($@rostars_hud_bg_arenas)
+				rostars_hud_bg_from_bg "2025arena1",$@arena2025BG_id1,$@arena2025BG_id2,1,.@rem,.Blue_Count,.Red_Count;
+			donpcevent "Arena2025_BG::OnBlueWin";
+		}
+	} else if ($@arena2025BG == 1) {
+		// Durante preparacao (countdown), qualquer desconexao encerra a partida.
+		donpcevent "Arena2025_BG::OnBlueWin";
+	}
 	end;
 
 OnRedDie:
@@ -35,15 +97,29 @@ OnRedDie:
 		message strcharinfo(0), "[ARENA] Voce foi morto na arena. Aguarde o fim da partida para retornar!";
 		set .Red_Count, .Red_Count - 1;
 		set .Blue_Score, .Blue_Score + 1;
-		bg_updatescore "2025arena1",.Blue_Count,.Red_Count;
-		if (.Red_Count < 1)
+		if (.Red_Count < 1) {
+			.@elapsed = gettimetick(2) - .fight_start_sec;
+			if (.@elapsed < 0) set .@elapsed, 0;
+			.@rem = 420 - .@elapsed;
+			if (.@rem < 0) set .@rem, 0;
+			bg_updatescore "2025arena1",.Blue_Count,.Red_Count;
+			if ($@rostars_hud_bg_arenas)
+				rostars_hud_bg_from_bg "2025arena1",$@arena2025BG_id1,$@arena2025BG_id2,1,.@rem,.Blue_Count,.Red_Count;
 			donpcevent "Arena2025_BG::OnBlueWin";
+		}
 	}
 	end;
 
 OnStart:
 	announce "[Arena GlastHeim] Dois times entraram na Arena GlastHeim.",bc_yellow;
 	set $@arena2025BG_Victory, 0;
+	set .start_msg_sent, 0;
+	set .hud_tick_on, 0;
+	set .fight_start_sec, 0;
+	set .fight_start_ms, 0;
+	// Some com os NPCs de entrada durante a partida.
+	disablenpc "Arena2025_WR_Blue";
+	disablenpc "Arena2025_WR_Red";
 	// Garante o envio para arena mesmo se algum cliente nao for movido no waitingroom2bg.
 	bg_warp $@arena2025BG_id1,"2025arena1",234,156;
 	bg_warp $@arena2025BG_id2,"2025arena1",118,157;
@@ -53,7 +129,7 @@ OnStart:
 
 	set .Blue_Count, bg_get_data($@arena2025BG_id1, 0);
 	set .Red_Count,  bg_get_data($@arena2025BG_id2, 0);
-	bg_updatescore "2025arena1",.Blue_Count,.Red_Count;
+	// Nao inicializa HUD no countdown; enviar apenas no inicio real da luta.
 
 	// ================== REGISTRO SQL DA PARTIDA ==================
 	query_sql("INSERT INTO arena2025_matches (started_at, map_name) VALUES (NOW(), '2025arena1')");
@@ -93,44 +169,67 @@ OnStart:
 	initnpctimer;
 	end;
 
-OnTimer1000:   mapannounce "2025arena1","A batalha comecara em 25 segundos!",bc_yellow; end;
-OnTimer2000:   mapannounce "2025arena1","A batalha comecara em 24 segundos!",bc_yellow; end;
-OnTimer3000:   mapannounce "2025arena1","A batalha comecara em 23 segundos!",bc_yellow; end;
-OnTimer4000:   mapannounce "2025arena1","A batalha comecara em 22 segundos!",bc_yellow; end;
-OnTimer5000:   mapannounce "2025arena1","A batalha comecara em 21 segundos!",bc_yellow; end;
-OnTimer6000:   mapannounce "2025arena1","A batalha comecara em 20 segundos!",bc_yellow; end;
-OnTimer7000:   mapannounce "2025arena1","A batalha comecara em 19 segundos!",bc_yellow; end;
-OnTimer8000:   mapannounce "2025arena1","A batalha comecara em 18 segundos!",bc_yellow; end;
-OnTimer9000:   mapannounce "2025arena1","A batalha comecara em 17 segundos!",bc_yellow; end;
-OnTimer10000:  mapannounce "2025arena1","A batalha comecara em 16 segundos!",bc_yellow; end;
-OnTimer11000:  mapannounce "2025arena1","A batalha comecara em 15 segundos!",bc_yellow; end;
-OnTimer12000:  mapannounce "2025arena1","A batalha comecara em 14 segundos!",bc_yellow; end;
-OnTimer13000:  mapannounce "2025arena1","A batalha comecara em 13 segundos!",bc_yellow; end;
-OnTimer14000:  mapannounce "2025arena1","A batalha comecara em 12 segundos!",bc_yellow; end;
-OnTimer15000:  mapannounce "2025arena1","A batalha comecara em 11 segundos!",bc_yellow; end;
-OnTimer16000:  mapannounce "2025arena1","A batalha comecara em 10 segundos!",bc_yellow; end;
-OnTimer17000:  mapannounce "2025arena1","A batalha comecara em 9 segundos!",bc_yellow; end;
-OnTimer18000:  mapannounce "2025arena1","A batalha comecara em 8 segundos!",bc_yellow; end;
-OnTimer19000:  mapannounce "2025arena1","A batalha comecara em 7 segundos!",bc_yellow; end;
-OnTimer20000:  mapannounce "2025arena1","A batalha comecara em 6 segundos!",bc_yellow; end;
-OnTimer21000:  mapannounce "2025arena1","A batalha comecara em 5 segundos!",bc_yellow; end;
-OnTimer22000:  mapannounce "2025arena1","A batalha comecara em 4 segundos!",bc_yellow; end;
-OnTimer23000:  mapannounce "2025arena1","A batalha comecara em 3 segundos!",bc_yellow; end;
-OnTimer24000:  mapannounce "2025arena1","A batalha comecara em 2 segundos!",bc_yellow; end;
-OnTimer24500:  mapannounce "2025arena1","A batalha comecara em 1 segundo!",bc_yellow; end;
+OnTimer1000:
+	mapannounce "2025arena1","[Arena 7x7 GlastHeim] O confronto ira comecar em 30 segundos!!",bc_yellow;
+	soundeffectall "30s.wav",0,"2025arena1";
+	end;
+OnTimer6000:   mapannounce "2025arena1","[Arena 7x7 GlastHeim] O confronto ira comecar em 25 segundos!!",bc_yellow; end;
+OnTimer16000:  mapannounce "2025arena1","[Arena 7x7 GlastHeim] O confronto ira comecar em 15 segundos!!",bc_yellow; end;
+OnTimer21000:  mapannounce "2025arena1","[Arena 7x7 GlastHeim] O confronto ira comecar em 10 segundos!!",bc_yellow; end;
+OnTimer26000:  mapannounce "2025arena1","[Arena 7x7 GlastHeim] O confronto ira comecar em 5 segundos!!",bc_yellow; end;
+OnTimer27000:  mapannounce "2025arena1","[Arena 7x7 GlastHeim] O confronto ira comecar em 4 segundos!!",bc_yellow; end;
+OnTimer28000:  mapannounce "2025arena1","[Arena 7x7 GlastHeim] O confronto ira comecar em 3 segundos!!",bc_yellow; end;
+OnTimer29000:  mapannounce "2025arena1","[Arena 7x7 GlastHeim] O confronto ira comecar em 2 segundos!!",bc_yellow; end;
+OnTimer29500:  mapannounce "2025arena1","[Arena 7x7 GlastHeim] O confronto ira comecar em 1 segundo!!",bc_yellow; end;
 
-OnTimer25000:
+OnTimer29900:
+	if (!.start_msg_sent) {
+		set .start_msg_sent, 1;
+		mapannounce "2025arena1","[Arena 7x7 GlastHeim] Boa sorte as equipes!",bc_yellow;
+	}
+	end;
+
+OnTimer30000:
 	set $@arena2025BG, 2;
 	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena1";
-
-	mapannounce "2025arena1","[Arena GlastHeim] A batalha comecou! Boa sorte aos dois times!",bc_yellow;
+	soundeffectall "tropas-liberadas.wav",0,"2025arena1";
+	set .fight_start_sec, gettimetick(2);
+	set .hud_tick_on, 1;
+	donpcevent "Arena2025_BG::OnHudLoop";
+	if (!.start_msg_sent) {
+		set .start_msg_sent, 1;
+		mapannounce "2025arena1","[Arena 7x7 GlastHeim] Boa sorte as equipes!",bc_yellow;
+	}
 	end;
 
-OnTimer330000:
-	mapannounce "2025arena1","[Arena GlastHeim] A batalha terminara em 30 segundos!",bc_yellow;
+OnHudLoop:
+	sleep 1500;
+	// Intervalo 2s: .@rem pelo relogio — menos carga no client (DLL filtra 0x7BFE).
+	while ($@arena2025BG == 2 && .hud_tick_on) {
+		.@elapsed = gettimetick(2) - .fight_start_sec;
+		if (.@elapsed < 0) set .@elapsed, 0;
+		.@rem = 420 - .@elapsed;
+		if (.@rem < 0) set .@rem, 0;
+		bg_updatescore "2025arena1",.Blue_Count,.Red_Count;
+		if ($@rostars_hud_bg_arenas)
+			rostars_hud_bg_from_bg "2025arena1",$@arena2025BG_id1,$@arena2025BG_id2,1,.@rem,.Blue_Count,.Red_Count;
+		if (.@rem <= 0) break;
+		sleep 2000;
+	}
 	end;
 
-OnTimer360000:
+OnTimer31000:
+	if ($@arena2025BG == 2 && !.start_msg_sent) {
+		set .start_msg_sent, 1;
+		mapannounce "2025arena1","[Arena 7x7 GlastHeim] Boa sorte as equipes!",bc_yellow;
+	}
+	end;
+
+OnTimer420000:
+	mapannounce "2025arena1","[Arena 7x7 GlastHeim] O confronto terminara em 30 segundos!",bc_yellow;
+	end;
+
+OnTimer450000:
 	if (.Red_Count > .Blue_Count)
 		donpcevent "Arena2025_BG::OnRedWin";
 	else if (.Red_Count < .Blue_Count)
@@ -236,6 +335,7 @@ OnBlueWin:
 		if (.@blue_gid && .@red_gid) break;
 	}
 	if (.@blue_gid) {
+		set .@blue_gname$, getguildname(.@blue_gid);
 		set .@gname$, escape_sql(getguildname(.@blue_gid));
 		query_sql(
 			"INSERT INTO arena2025_guild_stats (guild_id,guild_name,arena_name,wins,losses,draws) " +
@@ -254,7 +354,10 @@ OnBlueWin:
 
 	stopnpctimer;
 	sleep 1000;
-	announce "[Arena GlastHeim] Time 1 venceu!",bc_all,0x00bfff;
+	if (.@blue_gid && .@blue_gname$ != "")
+		announce "[Arena GlastHeim] Guild "+.@blue_gname$+" venceu pelo Time Azul!",bc_all,0x00bfff;
+	else
+		announce "[Arena GlastHeim] Time Azul venceu!",bc_all,0x00bfff;
 	sleep 3000;
 	donpcevent "Arena2025_BG::OnStop";
 	end;
@@ -307,6 +410,7 @@ OnRedWin:
 		);
 	}
 	if (.@red_gid) {
+		set .@red_gname$, getguildname(.@red_gid);
 		set .@gname2$, escape_sql(getguildname(.@red_gid));
 		query_sql(
 			"INSERT INTO arena2025_guild_stats (guild_id,guild_name,arena_name,wins,losses,draws) " +
@@ -317,13 +421,27 @@ OnRedWin:
 
 	stopnpctimer;
 	sleep 1000;
-	announce "[Arena GlastHeim] Time 2 venceu!",bc_all,0xff6347;
+	if (.@red_gid && .@red_gname$ != "")
+		announce "[Arena GlastHeim] Guild "+.@red_gname$+" venceu pelo Time Vermelho!",bc_all,0xff6347;
+	else
+		announce "[Arena GlastHeim] Time Vermelho venceu!",bc_all,0xff6347;
 	sleep 3000;
 	donpcevent "Arena2025_BG::OnStop";
 	end;
 
 OnStop:
+	set .hud_tick_on, 0;
+	rostars_hud_bg_from_bg "2025arena1",$@arena2025BG_id1,$@arena2025BG_id2,0,0,.Blue_Count,.Red_Count;
 	donpcevent "ArenaBG_Wall_Controller::OnOpen_2025arena1";
+	getmapunits BL_PC, "2025arena1", .@uids;
+	for (.@i = 0; .@i < getarraysize(.@uids); .@i++)
+		unitkill .@uids[.@i];
+	recovery 3,"2025arena1",4;
+	for (.@i = 0; .@i < getarraysize(.@uids); .@i++) {
+		if (!attachrid(.@uids[.@i])) continue;
+		bonus_script_clear 1;
+		detachrid;
+	}
 	mapwarp "2025arena1","turbo_room",100,100;
 	donpcevent "Arena2025_BG::OnReset";
 	end;
@@ -335,6 +453,10 @@ OnReset:
 	set .Red_Count, 0;
 	set .Blue_Score, 0;
 	set .Red_Score, 0;
+	set .hud_tick_on, 0;
+	set .fight_start_sec, 0;
+	set .fight_start_ms, 0;
+	set .start_msg_sent, 0;
 	set $@arena2025BG_Victory, 0;
 	set $@arena2025_in_match, 0;
 
@@ -343,6 +465,9 @@ OnReset:
 
 	bg_updatescore "2025arena1",0,0;
 	set $@arena2025BG, 0;
+	// Reaparece com os NPCs de entrada quando a arena fica livre.
+	enablenpc "Arena2025_WR_Blue";
+	enablenpc "Arena2025_WR_Red";
 	end;
 }
 
@@ -354,7 +479,7 @@ turbo_room,135,95,5	script	Arena2025 Azul::Arena2025_WR_Blue	417,{
 	end;
 
 OnInit:
-	waitingroom "Arena GlastHeim - Azul",3,"Arena2025_Wait_BG::OnBlueJoin",1;
+	waitingroom "[2] Arena Glast",8,"Arena2025_Wait_BG::OnBlueJoin",1;
 	end;
 
 OnEnterBG:
@@ -366,7 +491,7 @@ turbo_room,64,95,5	script	Arena2025 Vermelho::Arena2025_WR_Red	414,{
 	end;
 
 OnInit:
-	waitingroom "Arena GlastHeim - Vermelho",3,"Arena2025_Wait_BG::OnRedJoin",1;
+	waitingroom "[2] Arena Glast",8,"Arena2025_Wait_BG::OnRedJoin",1;
 	end;
 
 OnEnterBG:
@@ -403,14 +528,13 @@ OnReadyCheck:
 	// Evita flood: so anuncia quando houver mudanca na contagem.
 	if (.@blue != .last_blue || .@red != .last_red) {
 		// Anuncia por area para cada lado (vermelho esquerdo / azul direito)
-		areaannounce "turbo_room",0,70,99,120,"[Arena GlastHeim] Vermelho: "+.@red+"/3 | Azul: "+.@blue+"/3",bc_map,0xff6347;
-		areaannounce "turbo_room",100,70,199,120,"[Arena GlastHeim] Vermelho: "+.@red+"/3 | Azul: "+.@blue+"/3",bc_map,0xff6347;
+		areaannounce "turbo_room",0,70,99,120,"[Arena GlastHeim] Vermelho: "+.@red+"/7 | Azul: "+.@blue+"/7",bc_map,0xff6347;
+		areaannounce "turbo_room",100,70,199,120,"[Arena GlastHeim] Vermelho: "+.@red+"/7 | Azul: "+.@blue+"/7",bc_map,0xff6347;
 		set .last_blue, .@blue;
 		set .last_red, .@red;
 	}
 
-	// Inicia quando a waitingroom estiver 2/3 em cada lado.
-	if ((.@blue < 2) || (.@red < 2))
+	if ((.@blue < 7) || (.@red < 7))
 		end;
 
 	set $@arena2025BG, 1; // Starting

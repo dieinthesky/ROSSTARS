@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.13)
 
-if ( NOT ENABLE_WEB_SERVER )
-    return()
-endif( NOT ENABLE_WEB_SERVER )
+if ( NOT ENABLE_WEB_SERVER AND NOT ENABLE_MAP_BG_OVERLAY_API )
+	return()
+endif()
 
 SET (this_target httplib)
 PROJECT(${this_target})

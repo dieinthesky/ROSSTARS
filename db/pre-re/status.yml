@@ -63,6 +63,7 @@ Body:
       StopAttacking: true
       StopCasting: true
       RemoveOnDamaged: true
+      RemoveOnRefresh: true
     Fail:
       Refresh: true
       Inspiration: true
@@ -87,7 +88,10 @@ Body:
       SendOption: true
       BossResist: true
       StopAttacking: true
+      RemoveOnRefresh: true
     Fail:
+      Refresh: true
+      Inspiration: true
       Freeze: true
       Stun: true
       Sleep: true
@@ -112,6 +116,7 @@ Body:
       StopAttacking: true
       StopCasting: true
       RemoveOnDamaged: true
+      RemoveOnRefresh: true
     Fail:
       Refresh: true
       Inspiration: true
@@ -137,6 +142,7 @@ Body:
       BossResist: true
       StopAttacking: true
       StopCasting: true
+      RemoveOnRefresh: true
     Fail:
       Refresh: true
       Inspiration: true
@@ -154,6 +160,7 @@ Body:
       StopAttacking: true
       StopCasting: true
       RemoveOnDamaged: true
+      RemoveOnRefresh: true
     Fail:
       Refresh: true
       Inspiration: true
@@ -171,6 +178,7 @@ Body:
       SendOption: true
       BossResist: true
       StopAttacking: true
+      RemoveOnRefresh: true
     Fail:
       Refresh: true
       Inspiration: true
@@ -188,6 +196,7 @@ Body:
     Flags:
       SendOption: true
       BossResist: true
+      RemoveOnRefresh: true
     Fail:
       Refresh: true
       Inspiration: true
@@ -203,6 +212,7 @@ Body:
       SendOption: true
       BossResist: true
       StopCasting: true
+      RemoveOnRefresh: true
     Fail:
       Refresh: true
       Inspiration: true
@@ -216,6 +226,7 @@ Body:
       SendOption: true
       BossResist: true
       StopWalking: true
+      RemoveOnRefresh: true
     Fail:
       Refresh: true
       Inspiration: true
@@ -231,6 +242,7 @@ Body:
     Flags:
       SendOption: true
       BossResist: true
+      RemoveOnRefresh: true
     Fail:
       Refresh: true
       Inspiration: true
@@ -250,6 +262,7 @@ Body:
       NoSave: true
       NoClearance: true
       RemoveOnHermode: true
+      RemoveOnRefresh: true
     Fail:
       Refresh: true
       Inspiration: true
@@ -264,6 +277,7 @@ Body:
     Flags:
       SendOption: true
       BossResist: true
+      RemoveOnRefresh: true
     Fail:
       Refresh: true
       Inspiration: true
@@ -847,6 +861,7 @@ Body:
     DurationLookup: AM_CP_WEAPON
     Flags:
       NoClearbuff: true
+      NoSave: true
       NoDispell: true
       NoBanishingBuster: true
       NoClearance: true
@@ -1144,6 +1159,7 @@ Body:
     Icon: EFST_RESIST_PROPERTY_WATER
     Flags:
       NoDispell: true
+      NoClearance: true
       OverlapIgnoreLevel: true
     Script: |
       bonus2 bSubEle,Ele_Water, getstatus(SC_ARMOR_ELEMENT_WATER, 1);
@@ -1159,6 +1175,7 @@ Body:
     Flags:
       NoRemoveOnDead: true
       NoClearbuff: true
+      NoSave: true
       NoDispell: true
       NoBanishingBuster: true
       NoClearance: true
@@ -1283,10 +1300,11 @@ Body:
     Icon: EFST_EDP
     DurationLookup: ASC_EDP
     Flags:
-      NoRemoveOnDead: true
+      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
       NoSave: true
+      NoClearance: true
   - Status: Truesight
     Icon: EFST_TRUESIGHT
     DurationLookup: SN_SIGHT
@@ -2562,6 +2580,7 @@ Body:
       Aspersio: true
       Chasewalk: true
       Chasewalk2: true
+      Encpoison: true
   - Status: Magicalattack
     DurationLookup: NPC_MAGICALATTACK
     CalcFlags:
@@ -3072,7 +3091,6 @@ Body:
     Icon: EFST_REUSE_MILLENNIUMSHIELD
     DurationLookup: RK_MILLENNIUMSHIELD
     Flags:
-      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
       NoClearance: true
@@ -3080,34 +3098,31 @@ Body:
     Icon: EFST_CRUSHSTRIKE
     DurationLookup: RK_CRUSHSTRIKE
     Flags:
-      NoClearbuff: true
       NoDispell: true
+      NoClearance: true
   - Status: Refresh
     Icon: EFST_REFRESH
     DurationLookup: RK_REFRESH
     Flags:
-      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
+      NoClearance: true
       NoSave: true
   - Status: Reuse_Refresh
     Icon: EFST_REUSE_REFRESH
     Flags:
-      NoRemoveOnDead: true
-      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
       NoClearance: true
-      NoForcedEnd: true
   - Status: Giantgrowth
     Icon: EFST_GIANTGROWTH
     DurationLookup: RK_GIANTGROWTH
     CalcFlags:
       Str: true
     Flags:
-      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
+      NoClearance: true
   - Status: Stonehardskin
     Icon: EFST_STONEHARDSKIN
     DurationLookup: RK_STONEHARDSKIN
@@ -3115,10 +3130,9 @@ Body:
       Def: true
       Mdef: true
     Flags:
-      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
-      NoRemoveOnDead: true
+      NoClearance: true
       NoSave: true
   - Status: Vitalityactivation
     Icon: EFST_VITALITYACTIVATION
@@ -3126,17 +3140,16 @@ Body:
     CalcFlags:
       Regen: true
     Flags:
-      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
+      NoClearance: true
   - Status: Stormblast
     Icon: EFST_REUSE_STORMBLAST
     DurationLookup: RK_VITALITYACTIVATION
     Flags:
-      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
-      NoRemoveOnDead: true
+      NoClearance: true
   - Status: Fightingspirit
     Icon: EFST_FIGHTINGSPIRIT
     DurationLookup: RK_FIGHTINGSPIRIT
@@ -3144,7 +3157,6 @@ Body:
       Watk: true
       Aspd: true
     Flags:
-      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
       NoClearance: true
@@ -3154,7 +3166,6 @@ Body:
     Icon: EFST_ABUNDANCE
     DurationLookup: RK_ABUNDANCE
     Flags:
-      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
       NoClearance: true
@@ -3228,7 +3239,6 @@ Body:
     Icon: EFST_AB_SECRAMENT
     DurationLookup: AB_SECRAMENT
     Flags:
-      NoDispell: true
       NoBanishingBuster: true
   - Status: Whiteimprison
     DurationLookup: WL_WHITEIMPRISON
@@ -3251,6 +3261,10 @@ Body:
       Agi: true
       Dex: true
       Speed: true
+      Def: true
+      Def2: true
+      Mdef: true
+      MDef2: true
     Flags:
       RemoveOnRefresh: true
       RemoveOnLuxAnima: true
@@ -4128,7 +4142,6 @@ Body:
     Icon: EFST_SATURDAY_NIGHT_FEVER
     DurationLookup: WM_SATURDAY_NIGHT_FEVER
     States:
-      NoCast: true
       NoChat: true
       NoEquipItem: true
       NoUnEquipItem: true
@@ -4182,7 +4195,6 @@ Body:
     DurationLookup: WM_MELODYOFSINK
     CalcFlags:
       Int: true
-      MaxSp: true
     Flags:
       NoDispell: true
       NoBanishingBuster: true
@@ -4466,7 +4478,6 @@ Body:
   - Status: Savage_Steak
     Icon: EFST_SAVAGE_STEAK
     Flags:
-      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
       NoClearance: true
@@ -4476,7 +4487,6 @@ Body:
   - Status: Cocktail_Warg_Blood
     Icon: EFST_COCKTAIL_WARG_BLOOD
     Flags:
-      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
       NoClearance: true
@@ -4486,7 +4496,6 @@ Body:
   - Status: Minor_Bbq
     Icon: EFST_MINOR_BBQ
     Flags:
-      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
       NoClearance: true
@@ -4496,7 +4505,6 @@ Body:
   - Status: Siroma_Ice_Tea
     Icon: EFST_SIROMA_ICE_TEA
     Flags:
-      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
       NoClearance: true
@@ -4506,7 +4514,6 @@ Body:
   - Status: Drocera_Herb_Steamed
     Icon: EFST_DROCERA_HERB_STEAMED
     Flags:
-      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
       NoClearance: true
@@ -4516,7 +4523,6 @@ Body:
   - Status: Putti_Tails_Noodles
     Icon: EFST_PUTTI_TAILS_NOODLES
     Flags:
-      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
       NoClearance: true
@@ -4602,6 +4608,9 @@ Body:
     Icon: EFST_REPRODUCE
     DurationLookup: SC_REPRODUCE
     Flags:
+      NoRemoveOnDead: true
+      NoClearbuff: true
+      NoSave: true
       NoDispell: true
       NoBanishingBuster: true
       NoClearance: true
@@ -4667,7 +4676,6 @@ Body:
     Flags:
       BossResist: true
       NoBanishingBuster: true
-      NoClearance: true
     Fail:
       Inspiration: true
   - Status: _Groomy
@@ -4679,7 +4687,6 @@ Body:
     Flags:
       BossResist: true
       NoBanishingBuster: true
-      NoClearance: true
     Fail:
       Inspiration: true
   - Status: _Ignorance
@@ -4690,7 +4697,6 @@ Body:
     Flags:
       BossResist: true
       NoBanishingBuster: true
-      NoClearance: true
     Fail:
       Inspiration: true
   - Status: _Laziness
@@ -4702,7 +4708,6 @@ Body:
     Flags:
       BossResist: true
       NoBanishingBuster: true
-      NoClearance: true
     Fail:
       Inspiration: true
   - Status: _Unlucky
@@ -4714,7 +4719,6 @@ Body:
     Flags:
       BossResist: true
       NoBanishingBuster: true
-      NoClearance: true
     Fail:
       Inspiration: true
   - Status: _Weakness
@@ -4725,7 +4729,6 @@ Body:
     Flags:
       BossResist: true
       NoBanishingBuster: true
-      NoClearance: true
     Fail:
       Inspiration: true
   - Status: _Stripaccessory
@@ -5562,6 +5565,7 @@ Body:
       Deepsleep: true
       Fear: true
       Mandragora: true
+      Sacrifice: true
   - Status: Telekinesis_Intense
     Icon: EFST_TELEKINESIS_INTENSE
     DurationLookup: WL_TELEKINESIS_INTENSE
@@ -5921,30 +5925,21 @@ Body:
   - Status: Reuse_Millenniumshield
     Icon: EFST_REUSE_MILLENNIUMSHIELD
     Flags:
-      NoRemoveOnDead: true
-      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
       NoClearance: true
-      NoForcedEnd: true
   - Status: Reuse_Crushstrike
     Icon: EFST_REUSE_CRUSHSTRIKE
     Flags:
-      NoRemoveOnDead: true
-      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
       NoClearance: true
-      NoForcedEnd: true
   - Status: Reuse_Stormblast
     Icon: EFST_REUSE_STORMBLAST
     Flags:
-      NoRemoveOnDead: true
-      NoClearbuff: true
       NoDispell: true
       NoBanishingBuster: true
       NoClearance: true
-      NoForcedEnd: true
   - Status: All_Riding_Reuse_Limit
     Icon: EFST_ALL_RIDING_REUSE_LIMIT
     Flags:
@@ -5976,10 +5971,16 @@ Body:
     Icon: EFST_PROMOTE_HEALTH_RESERCH
     CalcFlags:
       MaxHp: true
+    Flags:
+      NoDispell: true
+      NoClearance: true
   - Status: Energy_Drink_Reserch
     Icon: EFST_ENERGY_DRINK_RESERCH
     CalcFlags:
       MaxSp: true
+    Flags:
+      NoDispell: true
+      NoClearance: true
   - Status: Norecover_State
     Icon: EFST_HANDICAPSTATE_NORECOVER
     CalcFlags:
@@ -6322,6 +6323,7 @@ Body:
     Icon: EFST_RESIST_PROPERTY_GROUND
     Flags:
       NoDispell: true
+      NoClearance: true
       OverlapIgnoreLevel: true
     Script: |
       bonus2 bSubEle,Ele_Water, getstatus(SC_ARMOR_ELEMENT_EARTH, 1);
@@ -6332,6 +6334,7 @@ Body:
     Icon: EFST_RESIST_PROPERTY_FIRE
     Flags:
       NoDispell: true
+      NoClearance: true
       OverlapIgnoreLevel: true
     Script: |
       bonus2 bSubEle,Ele_Water, getstatus(SC_ARMOR_ELEMENT_FIRE, 1);
@@ -6342,6 +6345,7 @@ Body:
     Icon: EFST_RESIST_PROPERTY_WIND
     Flags:
       NoDispell: true
+      NoClearance: true
       OverlapIgnoreLevel: true
     Script: |
       bonus2 bSubEle,Ele_Water, getstatus(SC_ARMOR_ELEMENT_WIND, 1);
@@ -6773,14 +6777,11 @@ Body:
       NoBanishingBuster: true
       NoDispell: true
       NoClearance: true
-      NoClearbuff: true
   - Status: Reuse_Limit_Luxanima
     Flags:
       NoBanishingBuster: true
       NoDispell: true
       NoClearance: true
-      NoRemoveOnDead: true
-      NoClearbuff: true
   - Status: Ensemblefatigue
     Icon: EFST_ENSEMBLEFATIGUE
     States:

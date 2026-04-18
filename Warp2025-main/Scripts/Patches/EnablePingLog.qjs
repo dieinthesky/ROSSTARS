@@ -1,0 +1,38 @@
+EnablePingLog = function(_)
+{
+    const entry_va  = 0x00D9C0D0;
+
+    // AutoHook expects physical (file) address
+    const entry_phy = Exe.Vir2Phy(entry_va, CODE);
+
+    if (entry_phy < 0)
+        throw Error("EnablePingLog: failed to convert VA to PHY");
+
+    const hookCode =
+        "C6 05 F8 FB 5B 01 01 " +
+        "EB 04 " +
+        "00 00 00 00 " +
+        "51 " +
+        "E8 00 00 00 00 " +
+        "59 " +
+        "83 C1 1D " +
+        "FF 74 24 0C " +
+        "FF 74 24 0C " +
+        "51 " +
+        "8B 4C 24 0C " +
+        "55 8B EC 83 EC 7C " +
+        "68 D6 C0 D9 00 " +
+        "C3 " +
+        "83 C4 08 " +
+        "59 " +
+        "EB 03 " +
+        "00 00 00 " +
+        "C2";
+
+    AutoHook(entry_phy, [hookCode], { nops: 0 });
+
+    return true;
+};
+
+EnablePingLog.validate = () =>
+    Exe.BuildDate === 20250529;

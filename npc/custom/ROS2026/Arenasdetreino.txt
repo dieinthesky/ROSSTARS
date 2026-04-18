@@ -1,39 +1,39 @@
-turbo_room,104,123,5	script	Arena de Testes ROS	430,{  
-    // Configura??o das arenas  
-    setarray .@arena_names$[0], "Nightmare Toy Factory", "Arena Forgotten Glasheim", "Arena NiflHeim", "Arena NightFall of Brazilis", "Arena Sunset of Ayothaya", "Arena Somatology Labotory";  
-    setarray .@arena_maps$[0], "25ros03_02", "2025arena11", "2025arena22", "2025arena33", "2025arena44", "2025arena55";  
-    setarray .@arena_x[0], 100, 177, 91, 132, 178, 99;  
-    setarray .@arena_y[0], 80, 140, 79, 99, 144, 70;  
-      
-    // Constr?i o menu din?mico com contagem de jogadores  
-    set .@menu$, "";  
-    for (set .@i, 0; .@i < getarraysize(.@arena_names$); set .@i, .@i + 1) {  
-        set .@count, getmapusers(.@arena_maps$[.@i]);  
-        if (.@i > 0)  
-            set .@menu$, .@menu$ + ":";  
-        set .@menu$, .@menu$ + .@arena_names$[.@i] + " " + .@count + "/50";  
-    }  
-      
-    mes "[Arena de Testes ROS]";  
-    mes "Bem-vindo à Arena de Testes ROS.";  
-    mes "Selecione abaixo a arena desejada para ingressar no ambiente competitivo.";  
-    next;  
-      
-    set .@selection, select(.@menu$) - 1;  
-      
-    // Verifica se a arena est? cheia  
-    if (getmapusers(.@arena_maps$[.@selection]) >= 50) {  
-        mes "[Arena de Testes ROS]";  
-        mes "Esta arena atingiu a capacidade máxima de participantes.";  
-        mes "Por favor, selecione outra opção disponível.";  
-        close;  
-    }  
-      
-    // Warp para a arena selecionada  
-    warp .@arena_maps$[.@selection], .@arena_x[.@selection], .@arena_y[.@selection];  
-    end;  
-      
-OnInit:  
-    waitingroom "Arena de Testes ROS", 0;  
-    end;  
+turbo_room,104,123,5	script	Arena de Testes ROS	430,{
+    // Configuracao das arenas (nomes so em PT-BR no menu)
+    setarray .@arena_names$[0], "Fabrica Toy Pesadelo", "Arena Glastheim", "Arena Niflheim", "Arena NightFall Brasilis", "Arena Por do Sol Ayothaya", "Laboratorio de Somatologia";
+    setarray .@arena_maps$[0], "25ros03_02", "2025arena11", "2025arena22", "2025arena33", "2025arena44", "2025arena55";
+    setarray .@arena_x[0], 100, 177, 91, 132, 178, 99;
+    setarray .@arena_y[0], 80, 140, 79, 99, 144, 70;
+
+    // Monta o menu dinamico com contagem de jogadores
+    set .@menu$, "";
+    for (set .@i, 0; .@i < getarraysize(.@arena_names$); set .@i, .@i + 1) {
+        set .@count, getmapusers(.@arena_maps$[.@i]);
+        if (.@i > 0)
+            set .@menu$, .@menu$ + ":";
+        set .@menu$, .@menu$ + .@arena_names$[.@i] + " " + .@count + "/50";
+    }
+
+    mes "[Arena de Testes ROS]";
+    mes "Bem-vindo a Arena de Testes ROS.";
+    mes "Selecione abaixo a arena desejada para ingressar no ambiente competitivo.";
+    next;
+
+    set .@selection, select(.@menu$) - 1;
+
+    // Verifica se a arena esta cheia
+    if (getmapusers(.@arena_maps$[.@selection]) >= 50) {
+        mes "[Arena de Testes ROS]";
+        mes "Esta arena atingiu a capacidade maxima de participantes.";
+        mes "Por favor, selecione outra opcao disponivel.";
+        close;
+    }
+
+    // Warp para a arena selecionada
+    warp .@arena_maps$[.@selection], .@arena_x[.@selection], .@arena_y[.@selection];
+    end;
+
+OnInit:
+    waitingroom "Arena de Testes ROS", 0;
+    end;
 }

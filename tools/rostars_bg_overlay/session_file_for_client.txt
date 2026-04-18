@@ -1,0 +1,25 @@
+For zero player configuration, the game client (Warp / hexed / DLL) must write a small JSON file
+that the overlay reads. Host/port/secret are compiled into the .exe (rostars_player_build.hpp), not
+sent to players in an INI. Optional rostars_overlay.ini is only for developer overrides.
+
+Path (recommended):
+  %LOCALAPPDATA%\RostarsOnline\rostars_session.json
+
+Alternate path (checked first):
+  <folder of rostars_bg_overlay.exe>\rostars_session.json
+
+The folder name "RostarsOnline" must match session_subfolder in rostars_overlay.ini (default).
+
+File format (UTF-8, one line or pretty-printed):
+  {"account_id":123456,"char_id":789012,"ts":1700000000}
+
+Fields:
+  account_id  - unsigned, same as mmo_charstatus.account_id for the logged-in character
+  char_id     - unsigned, same as mmo_charstatus.char_id
+  ts          - Unix time in seconds (time_t). Overlay ignores the file if older than
+                session_max_age_sec (default 180). Refresh ts at least every 60s while online.
+
+On character select / map load: write or update the file.
+On logout / close client: delete the file or set ts to 0 and empty ids (optional).
+
+The map-server API is unchanged; only the overlay learns ids from this file instead of the INI.

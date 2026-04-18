@@ -1,6 +1,6 @@
 // NPC de Elmos    
 turbo_room,93,138,2	script	Elmos#prt	625,{    
-	callshop "mercado_Elmos", 1;    
+	callshop "mercado_Elmos";    
 	end;    
 OnInit:    
 	initnpctimer;    
@@ -13,7 +13,7 @@ OnTimer1000:
     
 // NPC de Armaduras    
 turbo_room,93,136,4	script	Armaduras#prt	10582,{    
-	callshop "mercado_armaduras", 1;    
+	callshop "mercado_armaduras";    
 	end;    
 OnInit:    
 	initnpctimer;    
@@ -26,7 +26,7 @@ OnTimer1000:
     
 // NPC de Escudos    
 turbo_room,93,132,4	script	Escudos#prt	653,{    
-	callshop "mercado_escudo", 1;    
+	callshop "mercado_escudo";    
 	end;    
 OnInit:    
 	initnpctimer;    
@@ -39,7 +39,7 @@ OnTimer1000:
     
 // NPC de Capas    
 turbo_room,93,130,2	script	Capas#prt	10022,{    
-	callshop "mercado_capas", 1;    
+	callshop "mercado_capas";    
 	end;    
 OnInit:    
 	initnpctimer;    
@@ -52,7 +52,7 @@ OnTimer1000:
     
 // NPC de Sapatos    
 turbo_room,93,128,4	script	Sapatos#prt	10057,{    
-	callshop "mercado_sapatos", 1;    
+	callshop "mercado_sapatos";    
 	end;    
 OnInit:    
 	initnpctimer;    
@@ -63,15 +63,15 @@ OnTimer1000:
 	end;    
 }    
     
-// NPC de Acess rios    
-turbo_room,93,126,2	script	Acess rios#prt	10021,{    
-	callshop "mercado_acessorios", 1;    
+// NPC de Acessorios
+turbo_room,93,126,2	script	Acessorios#prt	10021,{    
+	callshop "mercado_acessorios";    
 	end;    
 OnInit:    
 	initnpctimer;    
 	end;    
 OnTimer1000:    
-	showscript "Loja de Acess rios";    
+	showscript "Loja de Acessorios";
 	setnpctimer 0;    
 	end;    
 }
@@ -82,4 +82,4 @@ OnTimer1000:
 -	shop	mercado_capas	-1,2532:50000,2589:150000,2528:70000,2524:70000,2554:90000,2537:70000,2536:70000,2587:120000,2586:120000,20773:120000,2525:70000,2519:70000,2509:70000,20933:120000,20934:120000  
 -	shop	mercado_Elmos	-1,5387:90000,5170:100000,18570:90000,18959:100000,2266:50000,2265:50000,5004:50000,5362:50000,5361:50000,5445:50000,5494:50000,18670:60000,18518:250000,18519:250000,2291:250000,5389:250000,5272:250000,18894:250000  
 -	shop	mercado_escudo	-1,2161:70000,2123:70000,2124:70000,2153:70000,2109:60000,2115:120000,2176:70000,2139:20000,28953:120000  
--	shop	mercado_sapatos	-1,2422:50000,2408:50000,2424:70000,2433:70000,2485:120000,2484:120000,2483:120000,22006:100000,22007:100000,22008:100000,22009:100000,22010:100000,22005:100000,22196:120000,22197:120000
+-	shop	mercado_sapatos	-1,2422:50000,2408:50000,2424:70000,2433:70000,2485:120000,2484:120000,2483:120000,22006:100000,22007:100000,22008:100000,22009:100000,22010:100000,22011:100000,22196:120000,22197:120000
